@@ -1,4 +1,8 @@
+import { supabase } from "./supabase-client.js";
+
 console.log("Login script loaded.");
+
+document.getElementById("loginForm").addEventListener("submit", handleLogin);
 
 async function handleLogin(evt) {
     evt.preventDefault();
@@ -6,29 +10,40 @@ async function handleLogin(evt) {
     const studentId = document.getElementById("studentId").value.trim();
     const password = document.getElementById("password").value.trim();
     const errorBox = document.getElementById("loginError");
+    const loginBtn = document.getElementById("loginBtn");
 
     errorBox.classList.add("hidden");
 
     if (studentId.length !== 7) {
-        errorBox.textContent = "Student ID must be 7 digits.";
-        errorBox.classList.remove("hidden");
-        return;
+        return showError("Student ID must be 7 digits.");
     }
 
-    // Authenticate via Supabase Auth
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Logging in...";
+
+    // Student ID → Virtual Email Login
+    const email = `${studentId}@ecobirla.student`;
+
     const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${studentId}@ecobirla.student`, // virtual email login
-        password: password
+        email,
+        password
     });
 
     if (error) {
-        errorBox.textContent = "Invalid Student ID or Password.";
-        errorBox.classList.remove("hidden");
+        showError("Invalid Student ID or Password.");
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
         return;
     }
 
-    console.log("Logged in:", data.user);
+    console.log("Logged in user:", data.user);
 
-    // Redirect after successful login
+    // Redirect to main app
     window.location.href = "index.html";
+}
+
+function showError(message) {
+    const errorBox = document.getElementById("loginError");
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
 }
