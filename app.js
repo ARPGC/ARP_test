@@ -104,8 +104,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 async function initializeApp(authUser) {
     try {
         console.log("Initializing app for user:", authUser.id);
-        
-        // 1. Fetch the user's public profile
+
+        // --- Fetch User Profile Safely ---
         const { data: userProfile, error: profileError } = await supabase
             .from('users')
             .select('*')
@@ -113,16 +113,28 @@ async function initializeApp(authUser) {
             .single();
 
         if (profileError || !userProfile) {
-            console.error('Error fetching user profile:', profileError);
-            supabase.auth.signOut(); // Sign out if profile doesn't exist
-            return;
-        }
-        
-        state.currentUser = { ...userProfile, isCheckedInToday: false, checkInStreak: 0 }; // Combine profile
-        console.log("Current user profile loaded:", state.currentUser.full_name);
+            console.warn('User profile missing, using fallback.');
 
-        // 2. Fetch all other data in parallel
-        const today = getTodayDateString();
+            state.currentUser = {
+                id: authUser.id,
+                full_name: authUser.email?.split('@')[0] || "User",
+                current_points: 0,
+                lifetime_points: 0,
+                profile_img_url: null,
+                checkInStreak: 0,
+                isCheckedInToday: false
+            };
+        } else {
+            state.currentUser = {
+                ...userProfile,
+                checkInStreak: 0,
+                isCheckedInToday: false
+            };
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+
+        // --- Safe Parallel Fetch for all app data ---
         const [
             leaderboardRes,
             historyRes,
@@ -136,104 +148,79 @@ async function initializeApp(authUser) {
             streakRes,
             checkinRes,
             impactRes
-        ] = await Promise.all([
-            // [0] Leaderboard
+        ] = await Promise.allSettled([
             supabase.from('users').select('id, full_name, course, lifetime_points, profile_img_url, tick_type').order('lifetime_points', { ascending: false }).limit(10),
-            // [1] History
-            supabase.from('points_ledger').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false }).limit(20),
-            // [2] Challenges
+            supabase.from('points_ledger').select('*').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }).limit(20),
             supabase.from('challenges').select('*').eq('is_active', true),
-            // [3] Challenge Submissions (for current user)
-            supabase.from('challenge_submissions').select('challenge_id, status').eq('user_id', userProfile.id),
-            // [4] Events
+            supabase.from('challenge_submissions').select('challenge_id, status').eq('user_id', state.currentUser.id),
             supabase.from('events').select('*').order('start_at', { ascending: true }),
-            // [5] Event Attendance (for current user)
-            supabase.from('event_attendance').select('event_id, status').eq('user_id', userProfile.id),
-            // [6] Stores
+            supabase.from('event_attendance').select('event_id, status').eq('user_id', state.currentUser.id),
             supabase.from('stores').select('*').eq('is_active', true),
-            // [7] Products (with nested images, features, specs)
             supabase.from('products').select('*, product_images(*), product_features(*), product_specifications(*)').eq('is_active', true),
-            // [8] Orders (with nested items, product, store)
-            supabase.from('orders').select('*, order_items(*, products(*, product_images(image_url), stores(name)))').eq('user_id', userProfile.id).order('created_at', { ascending: false }),
-            // [9] User Streak
-            supabase.from('user_streaks').select('*').eq('user_id', userProfile.id).single(),
-            // [10] Today's Check-in
-            supabase.from('daily_checkins').select('*').eq('user_id', userProfile.id).eq('checkin_date', today),
-            // [11] User Impact
-            supabase.from('user_impact').select('*').eq('user_id', userProfile.id).single()
+            supabase.from('orders').select('*, order_items(*, products(*, product_images(image_url), stores(name)))').eq('user_id', state.currentUser.id).order('created_at', { ascending: false }),
+            supabase.from('user_streaks').select('*').eq('user_id', state.currentUser.id).single(),
+            supabase.from('daily_checkins').select('*').eq('user_id', state.currentUser.id).eq('checkin_date', today),
+            supabase.from('user_impact').select('*').eq('user_id', state.currentUser.id).single()
         ]);
 
-        // 3. Process and map data into state
-        
-        // Leaderboard
-        state.leaderboard = (leaderboardRes.data || []).map(u => ({
+        // --- Helper for safe access ---
+        const safeData = (res, fallback = []) =>
+            (res && res.status === "fulfilled" && res.value && res.value.data) ? res.value.data : fallback;
+
+        // --- Assign Safe State Values ---
+        state.leaderboard = safeData(leaderboardRes, []).map(u => ({
             ...u,
             name: u.full_name,
             lifetimePoints: u.lifetime_points,
             avatarUrl: u.profile_img_url,
             isCurrentUser: u.id === state.currentUser.id,
-            initials: u.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+            initials: u.full_name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
         }));
 
-        // History
-        state.history = (historyRes.data || []).map(mapHistory);
+        state.history = safeData(historyRes, []).map(mapHistory);
+        const userSubmissions = safeData(challengeSubmissionsRes, []).reduce((acc, s) => { acc[s.challenge_id] = s.status; return acc; }, {});
+        state.dailyChallenges = safeData(challengesRes, []).map(c => mapChallenge(c, userSubmissions));
 
-        // Challenges (with user's submission status)
-        const userSubmissions = (challengeSubmissionsRes.data || []).reduce((acc, s) => {
-            acc[s.challenge_id] = s.status;
-            return acc;
-        }, {});
-        state.dailyChallenges = (challengesRes.data || []).map(c => mapChallenge(c, userSubmissions));
+        const userAttendance = safeData(eventAttendanceRes, []).reduce((acc, a) => { acc[a.event_id] = a.status; return acc; }, {});
+        state.events = safeData(eventsRes, []).map(e => mapEvent(e, userAttendance));
 
-        // Events (with user's attendance status)
-        const userAttendance = (eventAttendanceRes.data || []).reduce((acc, a) => {
-            acc[a.event_id] = a.status;
-            return acc;
-        }, {});
-        state.events = (eventsRes.data || []).map(e => mapEvent(e, userAttendance));
-        
-        // Stores & Products
-        state.stores = storesRes.data || [];
-        state.products = (productsRes.data || []).map(mapProduct);
+        state.stores = safeData(storesRes, []);
+        state.products = safeData(productsRes, []).map(mapProduct);
 
-        // User Rewards (from Orders)
         state.userRewards = [];
-        (ordersRes.data || []).forEach(order => {
-            order.order_items.forEach(item => {
+        safeData(ordersRes, []).forEach(order => {
+            order.order_items?.forEach(item => {
                 state.userRewards.push({
-                    userRewardId: item.id, // Use order_item id as the unique reward ID
+                    userRewardId: item.id,
                     orderId: order.id,
                     productId: item.product_id,
                     purchaseDate: new Date(order.created_at).toLocaleDateString('en-CA'),
-                    status: order.status, // 'pending', 'confirmed', 'cancelled'
-                    productName: item.products.name,
-                    productImage: item.products.product_images?.[0]?.image_url || 'https://placehold.co/100x100/cccccc/FFFFFF?text=No+Image',
-                    storeName: item.products.stores.name,
-                    storeId: item.products.store_id
+                    status: order.status,
+                    productName: item.products?.name,
+                    productImage: item.products?.product_images?.[0]?.image_url || 'https://placehold.co/100x100',
+                    storeName: item?.products?.stores?.name || "Unknown Store",
                 });
             });
         });
 
-        // Check-in & Streak
-        state.currentUser.checkInStreak = streakRes.data ? streakRes.data.current_streak : 0;
-        state.currentUser.isCheckedInToday = (checkinRes.data && checkinRes.data.length > 0);
+        state.currentUser.checkInStreak = (streakRes?.value?.data?.current_streak) ?? 0;
+        state.currentUser.isCheckedInToday = (checkinRes?.value?.data?.length > 0) ?? false;
+        state.userImpact = impactRes?.value?.data ?? { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
 
-        // Impact
-        state.userImpact = impactRes.data || { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
-
-        // 4. Initial UI Render
+        // --- Render UI ---
         setupEventListeners();
         renderAllUI();
-        
-        // 5. Hide loader
-        els.appLoader.classList.add('loaded');
-        console.log("App initialized.");
+
+        // --- Hide Loader ---
+        els.appLoader.classList.add("loaded");
+        console.log("App initialized safely.");
 
     } catch (error) {
-        console.error('Error during app initialization:', error);
-        els.appLoader.innerHTML = '<p class="text-red-500">Error loading app. Please refresh.</p>';
+        console.error("Fatal app error:", error);
+        els.appLoader.innerHTML = `<p class="text-red-500 p-4">Error loading app. Please refresh.</p>`;
     }
 }
+
 
 /**
  * Renders all dynamic UI components.
