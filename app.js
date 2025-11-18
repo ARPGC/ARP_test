@@ -2,10 +2,11 @@
 // 1. IMPORTS & SETUP
 // =========================================
 //
-// FIX: Changed from `import { supabase }` to `import supabase`
-// This correctly imports the default export from your supabase-client.js
+// FINAL FIX: Changing back to a named import (with curly braces).
+// This error "...does not provide an export named 'default'" means
+// your file uses `export const supabase`, not `export default`.
 //
-import supabase from './supabase-client.js';
+import { supabase } from './supabase-client.js';
 
 // =========================================
 // 2. APPLICATION STATE
@@ -85,7 +86,7 @@ const els = {
 // =========================================
 
 // Listen for authentication changes
-// This line (15) was throwing the error, but it was caused by the import
+// This line should now work with the corrected import
 supabase.auth.onAuthStateChanged(async (event, session) => {
     if (session) {
         state.currentAuthUser = session.user;
