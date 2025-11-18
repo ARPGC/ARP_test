@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoBirla - Green Campus Initiative</title>
+    
+    <!-- Supabase Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Linking to the style.css file as requested -->
+    
+    <!-- Renamed from style (2).css -->
     <link rel="stylesheet" href="style.css"> 
+    
     <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- 
-      FIX: The redundant Supabase script tag that was here has been REMOVED.
-      Your 'supabase-client.js' file is already loading the library.
-    -->
 
     <script>
         tailwind.config = {
@@ -103,7 +104,7 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900">
 
-    <!-- This input is used for the "upload" type challenges -->
+    <!-- This input is used for challenge file uploads -->
     <input type="file" id="challenge-file-input" accept="image/*" class="hidden">
 
     <!-- App Loader -->
@@ -123,11 +124,10 @@
     
     <!-- Sidebar -->
     <div id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-800 z-40 transform -translate-x-full flex flex-col">
-        <!-- Sidebar content from index (5).html -->
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <img id="user-avatar-sidebar" src="https://placehold.co/80x80/cccccc/FFFFFF?text=USER" class="w-16 h-16 rounded-full mb-3 border-2 border-green-500" alt="User Avatar">
+            <img id="user-avatar-sidebar" src="https://placehold.co/80x80/A3E635/FFFFFF?text=AG" class="w-16 h-16 rounded-full mb-3 border-2 border-green-500" alt="User Avatar">
             <h2 id="user-name-sidebar" class="text-xl font-bold text-gray-800 dark:text-gray-100">Loading...</h2>
-            <p id="user-level-sidebar" class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1"></p>
+            <p id="user-level-sidebar" class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">...</h2>
             <p class="text-sm text-green-600 dark:text-green-400 font-semibold">
                 <span id="user-points-sidebar">0</span> EcoPoints
             </p>
@@ -191,7 +191,7 @@
         </div>
     </div>
 
-    <!-- App Container -->
+    <!-- Main App Container -->
     <div class="app-container bg-white dark:bg-gray-950">
 
         <!-- Header -->
@@ -216,33 +216,35 @@
             </div>
         </header>
 
-        <!-- Main Content (Pages) -->
+        <!-- Main Content Area (Scrollable) -->
         <main class="main-content bg-gray-50 dark:bg-gray-900">
 
             <!-- Dashboard Page -->
             <div id="dashboard" class="page active p-6">
                 <div class="mb-8">
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                        Hi, <span id="user-name-greeting"></span>!
+                        Hi, <span id="user-name-greeting">...</span>!
                     </h2>
                     <p class="text-lg text-gray-600 dark:text-gray-400">
                         Let's make our campus greener today.
                     </p>
                 </div>
 
-                <div id="dashboard-event-card" class="glass-green-card p-5 mb-6 hidden"> <!-- Hidden by default -->
+                <div class="glass-green-card p-5 mb-6">
                     <div class="flex items-center mb-2">
                         <i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-emerald-100"></i>
                         <h3 class="font-bold tracking-tight text-emerald-50">Upcoming Event</h3>
                     </div>
-                    <p id="dashboard-event-title" class="text-lg font-semibold mb-1 text-emerald-50"></p>
-                    <p id="dashboard-event-desc" class="text-sm opacity-95 mb-4 text-emerald-100"></p>
+                    <p id="dashboard-event-title" class="text-lg font-semibold mb-1 text-emerald-50">Loading...</p>
+                    <p id="dashboard-event-desc" class="text-sm opacity-95 mb-4 text-emerald-100">
+                        Loading event details...
+                    </p>
                     <button onclick="showPage('events')" class="px-4 py-2 rounded-full text-xs font-semibold bg-emerald-50/15 text-emerald-50 border border-emerald-100/40">
                         View All Events
                     </button>
                 </div>
 
-                <button id="daily-checkin-button" class="w-full bg-gradient-to-r from-yellow-400 to-orange-400 dark:from-yellow-500 dark:to-orange-500 p-5 rounded-2xl mb-6 flex items-center justify-between relative overflow-hidden transition-all duration-300">
+                <button id="daily-checkin-button" onclick="openCheckinModal()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-400 dark:from-yellow-500 dark:to-orange-500 p-5 rounded-2xl mb-6 flex items-center justify-between relative overflow-hidden transition-all duration-300">
                    <div>
                         <h3 class="text-lg font-bold text-white dark:text-gray-900">Daily Check-in</h3>
                         <p id="checkin-subtext" class="text-sm text-white/90 dark:text-gray-800 checkin-hide-on-complete">Tap here to get your daily points!</p>
@@ -292,29 +294,27 @@
 
             <!-- Profile Page -->
             <div id="profile" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Your Profile</h2>
                 <div class="space-y-6">
                     <div class="glass-card rounded-2xl overflow-hidden">
                         <div class="bg-green-500 h-24"></div>
                         <div class="p-5 -mt-16 flex flex-col items-center">
                             <div class="relative group">
-                                <img id="profile-avatar" src="https://placehold.co/80x80/cccccc/FFFFFF?text=USER" class="w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 object-cover">
-                                <!-- Add upload button here if needed -->
+                                <img id="profile-avatar" src="https://placehold.co/112x112/A3E635/FFFFFF?text=..." class="w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 object-cover">
                             </div>
                             <h3 id="profile-name" class="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-3 flex items-center">Loading...</h3>
-                            <p id="profile-email" class="text-gray-500 dark:text-gray-400"></p>
-                            <p id="profile-joined" class="text-sm text-gray-400 dark:text-gray-500 mt-1"></p>
+                            <p id="profile-email" class="text-gray-500 dark:text-gray-400">...</p>
+                            <p id="profile-joined" class="text-sm text-gray-400 dark:text-gray-500 mt-1">...</p>
 
                             <div class="w-full px-4 mt-4">
                                 <div class="flex justify-between items-center mb-1">
-                                    <span id="profile-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400"></span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="profile-level-number"></span></span>
+                                    <span id="profile-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="profile-level-number">0</span></span>
                                 </div>
                                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                                     <div id="profile-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
                                 </div>
-                                <p id="profile-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1"></p>
+                                <p id="profile-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p>
                             </div>
                         </div>
                     </div>
@@ -324,19 +324,19 @@
                         <div class="space-y-3 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Student ID</span>
-                                <span id="profile-student-id" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+                                <span id="profile-student-id" class="font-semibold text-gray-900 dark:text-gray-100">...</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Course</span>
-                                <span id="profile-course" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+                                <span id="profile-course" class="font-semibold text-gray-900 dark:text-gray-100">...</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Mobile</span>
-                                <span id="profile-mobile" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+                                <span id="profile-mobile" class="font-semibold text-gray-900 dark:text-gray-100">...</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Email</span>
-                                <span id="profile-email-personal" class="font-semibold text-gray-900 dark:text-gray-100"></span>
+                                <span id="profile-email-personal" class="font-semibold text-gray-900 dark:text-gray-100">...</span>
                             </div>
                         </div>
                     </div>
@@ -345,7 +345,6 @@
 
             <!-- Leaderboard Page -->
             <div id="leaderboard" class="page p-6 relative">
-                 <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">Eco Hall of Champions</h2>
 
                 <div class="mb-6 p-1 bg-gray-200 dark:bg-gray-800 leaderboard-switch flex relative z-10">
@@ -364,7 +363,9 @@
                             Monthly competition between departments.
                         </p>
                     </div>
-                    <div id="eco-wars-page-list" class="space-y-3"></div>
+                    <div id="eco-wars-page-list" class="space-y-3">
+                        <p class="text-center text-gray-500 dark:text-gray-400">Loading department rankings...</p>
+                    </div>
                 </div>
 
                 <div id="leaderboard-content-student" class="relative">
@@ -374,27 +375,31 @@
                     </div>
                     
                     <div class="lb-container">
-                        <div id="lb-podium-container" class="podium-wrapper"></div>
-                        <div id="lb-list-container" class="list"></div>
+                        <div id="lb-podium-container" class="podium-wrapper">
+                             <p class="text-center text-gray-500 dark:text-gray-400">Loading podium...</p>
+                        </div>
+                        <div id="lb-list-container" class="list">
+                             <p class="text-center text-gray-500 dark:text-gray-400">Loading rankings...</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Challenges Page -->
             <div id="challenges" class="page p-6">
-                 <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Daily Challenges</h2>
-                <div id="challenges-page-list" class="space-y-4"></div>
+                <div id="challenges-page-list" class="space-y-4">
+                    <p class="text-center text-gray-500 dark:text-gray-400">Loading challenges...</p>
+                </div>
             </div>
 
             <!-- EcoPoints Page -->
             <div id="ecopoints" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">My EcoPoints</h2>
 
                 <div class="glass-card p-6 rounded-2xl text-center mb-6">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Your current balance is</p>
-                    <p class="text-5xl font-extrabold text-green-600 dark:text-green-400 my-2" id="ecopoints-balance"></p>
+                    <p class="text-5xl font-extrabold text-green-600 dark:text-green-400 my-2" id="ecopoints-balance">0</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Keep up the great work!</p>
                 </div>
 
@@ -402,37 +407,41 @@
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Level Progress</h3>
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-1">
-                            <span id="ecopoints-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400"></span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="ecopoints-level-number"></span></span>
+                            <span id="ecopoints-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="ecopoints-level-number">0</span></span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                             <div id="ecopoints-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
                         </div>
-                        <p id="ecopoints-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1"></p>
+                        <p id="ecopoints-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p>
                     </div>
                 </div>
 
                 <div class="glass-card p-6 rounded-2xl mb-6">
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">All Levels</h3>
-                    <div id="all-levels-list" class="space-y-4"></div>
+                    <div id="all-levels-list" class="space-y-4">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Loading levels...</p>
+                    </div>
                 </div>
                 
                 <div class="glass-card p-6 rounded-2xl mb-6">
                      <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Recent Transactions</h4>
-                    <div id="ecopoints-recent-activity" class="space-y-3"></div>
+                    <div id="ecopoints-recent-activity" class="space-y-3">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Loading activity...</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Events Page -->
             <div id="events" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">All Events</h2>
-                <div id="event-list" class="space-y-4"></div>
+                <div id="event-list" class="space-y-4">
+                    <p class="text-center text-gray-500 dark:text-gray-400">Loading events...</p>
+                </div>
             </div>
 
             <!-- Rewards (Store) Page -->
             <div id="rewards" class="page p-6">
-                <!-- Content from index (5).html -->
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Eco-Store</h2>
                     <span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200">
@@ -476,12 +485,13 @@
                     </div>
                 </div>
 
-                <div id="product-grid" class="grid grid-cols-2 gap-4"></div>
+                <div id="product-grid" class="grid grid-cols-2 gap-4">
+                    <p class="text-center text-gray-500 dark:text-gray-400 col-span-2">Loading rewards...</p>
+                </div>
             </div>
             
             <!-- Redeem Code Page -->
             <div id="redeem-code" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Redeem Code</h2>
                 
                 <div class="glass-card p-6 rounded-2xl mb-6">
@@ -513,29 +523,30 @@
                 </div>
             </div>
 
-            <!-- Placeholder Pages -->
+            <!-- Detail Pages (Populated by JS) -->
             <div id="store-detail-page" class="page dark:bg-gray-900"></div>
             <div id="product-detail-page" class="page dark:bg-gray-900"></div>
             <div id="user-profile-page" class="page dark:bg-gray-900"></div>
             <div id="department-detail-page" class="page dark:bg-gray-900"></div>
 
-            <!-- My Rewards (Orders) Page -->
+            <!-- My Rewards/Orders Page -->
             <div id="my-rewards" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">My Orders</h2>
-                <div id="all-rewards-list" class="space-y-4"></div>
+                <div id="all-rewards-list" class="space-y-4">
+                    <p class="text-center text-gray-500 dark:text-gray-400">Loading your orders...</p>
+                </div>
             </div>
 
             <!-- History Page -->
             <div id="history" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Activity History</h2>
-                <div id="history-list" class="space-y-3"></div>
+                <div id="history-list" class="space-y-3">
+                    <p class="text-center text-gray-500 dark:text-gray-400">Loading history...</p>
+                </div>
             </div>
 
             <!-- About Page -->
             <div id="about" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">About Us</h2>
                 <div class="glass-card p-6 rounded-2xl space-y-4">
                     <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -549,7 +560,6 @@
 
             <!-- Help Page -->
             <div id="help" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Help & Support</h2>
                 <div class="glass-card p-6 rounded-2xl space-y-4">
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Frequently Asked Questions</h3>
@@ -575,7 +585,6 @@
 
             <!-- Change Password Page -->
             <div id="change-password" class="page p-6">
-                <!-- Content from index (5).html -->
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
                 <div class="glass-card p-6 rounded-2xl">
                     <form id="change-password-form" class="space-y-6">
@@ -602,14 +611,13 @@
 
         </main>
 
-        <!-- Chatbot Button -->
+        <!-- Chatbot FAB -->
         <button onclick="openChatbotModal()" id="chatbot-btn" class="fixed z-20 bottom-24 right-6 w-16 h-16 flex items-center justify-center hover:scale-105 transition-transform">
              <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" alt="EcoBot" class="w-full h-full object-contain drop-shadow-xl">
         </button>
 
         <!-- Bottom Navigation -->
         <nav class="glass-bottom-bar border-t border-gray-200/70 dark:border-gray-800">
-            <!-- Content from index (5).html -->
             <div class="flex justify-around">
                 <button onclick="showPage('dashboard')" class="nav-item active flex-1 text-center py-3 text-gray-600 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400">
                     <i data-lucide="layout-dashboard" class="w-6 h-6 mx-auto"></i><span class="text-xs block mt-1">Dashboard</span>
@@ -627,11 +635,8 @@
         </nav>
     </div>
 
-    <!-- Modals -->
-
     <!-- Check-in Modal -->
     <div id="checkin-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center opacity-0 invisible" onclick="closeCheckinModal()">
-        <!-- Content from index (5).html -->
         <div id="checkin-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md p-6 transform translate-y-full" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Daily Check-in</h3>
@@ -658,7 +663,6 @@
 
     <!-- Chatbot Modal -->
     <div id="chatbot-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center opacity-0 invisible" onclick="closeChatbotModal()">
-        <!-- Content from index (5).html -->
         <div id="chatbot-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md h-[70vh] flex flex-col transform translate-y-full" onclick="event.stopPropagation()">
             <div class="flex-shrink-0 flex justify-between items-center p-4 border-b dark:border-gray-700">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
@@ -687,9 +691,8 @@
         </div>
     </div>
 
-    <!-- Eco-Quiz Modal -->
+    <!-- Eco Quiz Modal -->
     <div id="eco-quiz-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center opacity-0 invisible" onclick="closeEcoQuizModal()">
-        <!-- Content from index (5).html -->
         <div id="eco-quiz-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md p-6 transform translate-y-full" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Daily Eco-Quiz</h3>
@@ -712,7 +715,6 @@
 
     <!-- Camera Modal -->
     <div id="camera-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
-        <!-- Content from index (5).html -->
         <div class="relative flex-grow bg-black">
             <video id="camera-feed" autoplay playsinline class="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"></video>
             <canvas id="camera-canvas" class="hidden"></canvas>
@@ -731,9 +733,11 @@
     </div>
 
     <!-- 
-      Replaced script.js with app.js and set type="module".
-      This allows app.js to import from your existing 'supabase-client.js'.
+      Load Supabase Client and App JS.
+      supabase-client.js must load first.
     -->
-    <script type="module" src="app.js"></script>
+    <script src="supabase-client.js"></script>
+    <!-- Renamed from script.js -->
+    <script src="app.js"></script> 
 </body>
 </html>
