@@ -417,8 +417,8 @@ header, nav {
    ========================================= */
 /* Check-in Completed State */
 .checkin-completed {
-    /* Styles moved to index.html <style> tag for higher specificity */
-    /* See .checkin-completed in the HTML file */
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    cursor: default !important;
 }
 .checkin-completed #checkin-subtext {
     display: none; /* Hide "Tap here..." */
