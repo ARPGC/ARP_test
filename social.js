@@ -7,7 +7,8 @@ let currentLeaderboardTab = 'student';
 export const loadLeaderboardData = async () => {
     try {
         // 1. Fetch Users + Streak Data
-        // FIX: Added '!user_streaks_user_id_fkey' to specify the exact relationship
+        // We join 'user_streaks' to get the current streak
+        // Explicitly specify relationship to avoid ambiguity
         const { data, error } = await supabase
             .from('users')
             .select(`
@@ -24,22 +25,26 @@ export const loadLeaderboardData = async () => {
             name: u.full_name,
             initials: getUserInitials(u.full_name),
             isCurrentUser: u.id === state.currentUser.id,
-            // Access streak safely (it might be an array or object depending on relationship type, usually object here)
+            // Access streak safely
             streak: (u.user_streaks && u.user_streaks.current_streak) 
                 ? u.user_streaks.current_streak 
                 : (Array.isArray(u.user_streaks) && u.user_streaks[0] ? u.user_streaks[0].current_streak : 0)
         }));
 
-        // 3. Process Department Leaderboard (New Formula: Avg Score)
+        // 3. Process Department Leaderboard
         const deptMap = {};
         
         data.forEach(user => {
-            // Extract Course Name (e.g., "FY BCOM" -> "BCOM")
-            let cleanCourse = user.course ? user.course.trim() : 'General';
-            if (cleanCourse.match(/^(FY|SY|TY)\s/i)) {
-                cleanCourse = cleanCourse.split(' ').slice(1).join(' '); 
-            }
+            // --- FIX: Course Name Cleaning Logic ---
+            let cleanCourse = user.course ? user.course.trim().toUpperCase() : 'GENERAL';
             
+            // Removes FY, SY, TY from the start (with or without space)
+            // Examples: "SYBSC" -> "BSC", "FY BCOM" -> "BCOM", "TY.BA" -> "BA"
+            cleanCourse = cleanCourse.replace(/^(FY|SY|TY)[\s.]?/i, '');
+            
+            // Safety: If name becomes empty or too short, revert to original
+            if (cleanCourse.length < 2) cleanCourse = user.course;
+
             if (!deptMap[cleanCourse]) {
                 deptMap[cleanCourse] = { 
                     name: cleanCourse, 
