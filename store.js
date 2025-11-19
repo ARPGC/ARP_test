@@ -7,18 +7,25 @@ const getProduct = (productId) => state.products.find(p => p.id === productId);
 
 export const loadStoreAndProductData = async () => {
     try {
+        // UPDATED QUERY: Fetches features and specs from their specific tables
         const { data, error } = await supabase.from('products').select(`
                 id, name, description, original_price, discounted_price, ecopoints_cost, store_id, metadata,
                 stores ( name, logo_url ), 
-                product_images ( image_url, sort_order )
+                product_images ( image_url, sort_order ),
+                product_features ( feature, sort_order ),
+                product_specifications ( spec_key, spec_value, sort_order )
             `).eq('is_active', true);
         if (error) return;
 
         state.products = data.map(p => ({
             ...p, 
-            images: p.product_images.sort((a,b) => a.sort_order - b.sort_order).map(img => img.image_url),
-            storeName: p.stores.name, 
-            storeLogo: p.stores.logo_url, 
+            images: p.product_images?.sort((a,b) => a.sort_order - b.sort_order).map(img => img.image_url) || [],
+            // Map new tables
+            highlights: p.product_features?.sort((a,b) => a.sort_order - b.sort_order).map(f => f.feature) || [],
+            specs: p.product_specifications?.sort((a,b) => a.sort_order - b.sort_order) || [],
+            
+            storeName: p.stores?.name || 'Unknown Store', 
+            storeLogo: p.stores?.logo_url, 
             popularity: Math.floor(Math.random() * 50) 
         }));
         if (document.getElementById('rewards').classList.contains('active')) renderRewards();
@@ -55,7 +62,6 @@ export const renderRewards = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-// ENHANCED PRODUCT DETAIL PAGE UI
 export const showProductDetailPage = (productId) => {
     const product = getProduct(productId);
     if (!product) return;
@@ -63,53 +69,54 @@ export const showProductDetailPage = (productId) => {
     const images = (product.images && product.images.length > 0) ? product.images : [getPlaceholderImage()];
     const canAfford = state.currentUser.current_points >= product.ecopoints_cost;
     
-    // Parse Metadata
-    const specs = product.metadata?.specifications || [
-        { label: 'Availability', value: '8:00 AM - 5:00 PM' },
-        { label: 'Includes', value: '1 Item' }
-    ];
-    const highlights = product.metadata?.highlights || ['Freshly made', 'Eco-friendly packaging'];
+    // Data is already mapped in loadStoreAndProductData
+    const specs = product.specs.length > 0 ? product.specs : [{ spec_key: 'Info', spec_value: 'Standard Item' }];
+    const highlights = product.highlights.length > 0 ? product.highlights : ['Quality Verified'];
 
     // Slider HTML
     let sliderImagesHTML = '';
     let sliderDotsHTML = '';
     images.forEach((img, index) => {
-        sliderImagesHTML += `<img src="${img}" class="slider-item w-full h-64 object-cover flex-shrink-0" data-index="${index}" onerror="this.src='${getPlaceholderImage('600x400')}'">`;
+        sliderImagesHTML += `<img src="${img}" class="slider-item w-full h-80 object-cover flex-shrink-0" data-index="${index}" onerror="this.src='${getPlaceholderImage('600x400')}'">`;
         sliderDotsHTML += `<button class="slider-dot w-2 h-2 rounded-full bg-white/50 transition-all ${index === 0 ? 'bg-white w-4' : ''}"></button>`;
     });
 
+    // FIX: Increased padding-bottom (pb-32) so content isn't hidden behind fixed footer
     els.productDetailPage.innerHTML = `
-        <div class="pb-24 bg-white dark:bg-gray-900 min-h-screen relative">
+        <div class="bg-white dark:bg-gray-900 min-h-screen relative pb-32">
             <div class="relative">
                 <div class="slider-container flex w-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
                     ${sliderImagesHTML}
                 </div>
-                <button onclick="showPage('rewards')" class="absolute top-4 left-4 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors">
+                <button onclick="showPage('rewards')" class="absolute top-4 left-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-colors z-10">
                     <i data-lucide="arrow-left" class="w-6 h-6"></i>
                 </button>
-                <div class="absolute bottom-4 left-0 right-0 flex justify-center items-center space-x-2 z-10">
+                <div class="absolute bottom-8 left-0 right-0 flex justify-center items-center space-x-2 z-10">
                     ${sliderDotsHTML}
                 </div>
             </div>
 
-            <div class="px-5 py-6 -mt-6 relative bg-white dark:bg-gray-900 rounded-t-[30px] z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div class="px-5 py-8 -mt-6 relative bg-white dark:bg-gray-900 rounded-t-[32px] z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
                 
-                <div class="flex justify-between items-start mb-2">
-                    <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white w-3/4 leading-tight">${product.name}</h1>
-                    <div class="flex items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
+                <div class="flex justify-between items-start mb-3">
+                    <h1 class="text-2xl font-black text-gray-900 dark:text-white w-3/4 leading-snug">${product.name}</h1>
+                    <div class="flex-shrink-0 flex items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-800">
                         <i data-lucide="leaf" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 mr-1.5"></i>
-                        <span class="text-sm font-bold text-emerald-700 dark:text-emerald-300">${product.ecopoints_cost} Pts</span>
+                        <span class="text-sm font-bold text-emerald-700 dark:text-emerald-300">${product.ecopoints_cost}</span>
                     </div>
                 </div>
 
-                <div class="flex items-center mb-6">
-                    <img src="${product.storeLogo || getPlaceholderImage('40x40')}" class="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-700 mr-2 object-cover">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">${product.storeName}</p>
+                <div class="flex items-center mb-8">
+                    <img src="${product.storeLogo || getPlaceholderImage('40x40')}" class="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 mr-3 object-cover shadow-sm">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Sold By</p>
+                        <p class="text-sm font-bold text-gray-700 dark:text-gray-300">${product.storeName}</p>
+                    </div>
                 </div>
 
                 <div class="mb-8">
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <i data-lucide="file-text" class="w-4 h-4 text-gray-400"></i> Description
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        Description
                     </h3>
                     <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                         ${product.description || 'No description available for this item.'}
@@ -117,13 +124,11 @@ export const showProductDetailPage = (productId) => {
                 </div>
 
                 <div class="mb-8">
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> Highlights
-                    </h3>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Highlights</h3>
                     <div class="flex flex-wrap gap-2">
                         ${highlights.map(h => `
-                            <div class="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700">
-                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500 mr-2"></i>
+                            <div class="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500 mr-2"></i>
                                 <span class="text-xs font-medium text-gray-700 dark:text-gray-300">${h}</span>
                             </div>
                         `).join('')}
@@ -131,44 +136,46 @@ export const showProductDetailPage = (productId) => {
                 </div>
 
                 <div class="mb-8">
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <i data-lucide="info" class="w-4 h-4 text-blue-500"></i> Specifications
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        ${specs.map(s => `
-                            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">${s.label || 'Info'}</p>
-                                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">${s.value || s}</p>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Specifications</h3>
+                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        ${specs.map((s, i) => `
+                            <div class="flex justify-between p-4 text-sm ${i !== specs.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''}">
+                                <span class="text-gray-500 dark:text-gray-400 font-medium">${s.spec_key}</span>
+                                <span class="text-gray-900 dark:text-white font-semibold text-right">${s.spec_value}</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <i data-lucide="qr-code" class="w-4 h-4 text-purple-500"></i> How to Redeem
-                    </h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Show the QR code generated after purchase at the ${product.storeName} counter.</p>
+                <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+                        <h3 class="text-sm font-bold text-blue-900 dark:text-blue-100">How to Redeem</h3>
+                    </div>
+                    <p class="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                        Purchase this item using points. A QR code will be generated which you must show at the <strong>${product.storeName}</strong> counter to claim your item.
+                    </p>
                 </div>
             </div>
 
-            <div class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-4 px-6 pb-8 z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] flex items-center justify-between">
+            <div class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 p-4 z-50 shadow-[0_-5px_30px_rgba(0,0,0,0.08)] flex items-center justify-between pb-6">
                 <div>
                     <p class="text-xs text-gray-400 line-through mb-0.5">₹${product.original_price}</p>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-2xl font-extrabold text-gray-900 dark:text-white">₹${product.discounted_price}</span>
-                        <div class="flex items-center text-emerald-600 font-bold text-sm">
-                            <span>+</span>
-                            <i data-lucide="leaf" class="w-3 h-3 mx-0.5"></i>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-2xl font-black text-gray-900 dark:text-white">₹${product.discounted_price}</span>
+                        <span class="text-sm font-medium text-gray-400">+</span>
+                        <div class="flex items-center text-emerald-600 font-bold text-lg">
+                            <i data-lucide="leaf" class="w-4 h-4 mr-1 fill-current"></i>
                             <span>${product.ecopoints_cost}</span>
                         </div>
                     </div>
                 </div>
                 
                 <button onclick="openPurchaseModal('${product.id}')" 
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-8 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-200 text-white dark:text-black font-bold py-3.5 px-6 rounded-xl shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     ${canAfford ? '' : 'disabled'}>
-                    ${canAfford ? 'Redeem Offer' : 'Low Points'}
+                    ${canAfford ? 'Redeem Now' : 'Low Points'}
+                    <i data-lucide="chevron-right" class="w-5 h-5 ml-1"></i>
                 </button>
             </div>
         </div>`;
@@ -255,10 +262,9 @@ export const closeQrModal = () => {
 };
 
 export const renderEcoPointsPage = () => {
-    // Basic placeholder
     const u = state.currentUser;
     if (!u) return;
-    // ... Logic is in dashboard usually, or handled here if needed
+    // ... (keep existing logic)
 };
 
 // --- ASSIGN TO WINDOW AT THE VERY END ---
