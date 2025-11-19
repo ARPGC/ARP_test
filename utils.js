@@ -1,6 +1,6 @@
 import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from './state.js';
 
-// DOM Cache - Initialized on import, but values accessed when needed
+// DOM Cache
 export const els = {
     get pages() { return document.querySelectorAll('.page'); },
     get sidebar() { return document.getElementById('sidebar'); },
@@ -11,10 +11,6 @@ export const els = {
     get lbPodium() { return document.getElementById('lb-podium-container'); },
     get lbList() { return document.getElementById('lb-list-container'); },
     get lbLeafLayer() { return document.getElementById('lb-leaf-layer'); },
-    get productGrid() { return document.getElementById('product-grid'); },
-    get storeSearch() { return document.getElementById('store-search-input'); },
-    get storeSearchClear() { return document.getElementById('store-search-clear'); },
-    get sortBy() { return document.getElementById('sort-by-select'); },
     get challengesList() { return document.getElementById('challenges-page-list'); },
     get eventsList() { return document.getElementById('event-list'); },
     get allRewardsList() { return document.getElementById('all-rewards-list'); },
@@ -22,10 +18,9 @@ export const els = {
     get storeDetailPage() { return document.getElementById('store-detail-page'); },
     get productDetailPage() { return document.getElementById('product-detail-page'); },
     get departmentDetailPage() { return document.getElementById('department-detail-page'); },
-    get purchaseModalOverlay() { return document.getElementById('purchase-modal-overlay'); },
-    get purchaseModal() { return document.getElementById('purchase-modal'); },
-    get qrModalOverlay() { return document.getElementById('qr-modal-overlay'); },
-    get qrModal() { return document.getElementById('qr-modal'); }
+    get storeSearch() { return document.getElementById('store-search-input'); },
+    get storeSearchClear() { return document.getElementById('store-search-clear'); },
+    get sortBy() { return document.getElementById('sort-by-select'); }
 };
 
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
@@ -62,24 +57,12 @@ export const formatDate = (dateString, options = { year: 'numeric', month: 'shor
 };
 
 export const getIconForHistory = (type) => {
-    const icons = {
-        'checkin': 'calendar-check',
-        'event': 'calendar-check',
-        'challenge': 'award',
-        'plastic': 'recycle',
-        'order': 'shopping-cart',
-        'coupon': 'ticket'
-    };
+    const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket' };
     return icons[type] || 'help-circle';
 };
 
 export const getIconForChallenge = (type) => {
-    const icons = {
-        'Quiz': 'brain',
-        'Upload': 'camera',
-        'selfie': 'camera',
-        'spot': 'eye'
-    };
+    const icons = { 'Quiz': 'brain', 'Upload': 'camera', 'selfie': 'camera', 'spot': 'eye' };
     return icons[type] || 'award';
 };
 
@@ -92,46 +75,32 @@ export const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    
     try {
-        const res = await fetch(CLOUDINARY_API_URL, {
-            method: 'POST',
-            body: formData
-        });
+        const res = await fetch(CLOUDINARY_API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.error) throw new Error(data.error.message);
         return data.secure_url;
-    } catch (err) {
-        console.error("Cloudinary Upload Error:", err);
-        throw err;
-    }
+    } catch (err) { console.error("Cloudinary Upload Error:", err); throw err; }
 };
 
-// Navigation Logic
-import { renderDashboard } from './dashboard.js';
-import { renderRewards, renderMyRewardsPage } from './store.js'; // We will address circular imports by attaching to window
-import { renderHistory } from './dashboard.js';
-import { renderEcoPointsPage } from './store.js'; // or dashboard
-import { renderChallengesPage } from './challenges.js';
-import { renderEventsPage } from './challenges.js';
-import { renderProfile } from './dashboard.js';
+// --- NAVIGATION & HISTORY ---
+import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// We need to define showPage here and attach to window
-export const showPage = (pageId) => {
+export const showPage = (pageId, addToHistory = true) => {
     els.pages.forEach(p => p.classList.remove('active'));
     
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
+    // History Management
+    if (addToHistory) {
+        window.history.pushState({ pageId }, '', `#${pageId}`);
+    }
+
     // Reset detail pages
-    if (pageId !== 'store-detail-page' && pageId !== 'product-detail-page') {
-        els.storeDetailPage.innerHTML = '';
-        els.productDetailPage.innerHTML = '';
-    }
-    if (pageId !== 'department-detail-page') {
-        els.departmentDetailPage.innerHTML = '';
-    }
+    if (pageId !== 'store-detail-page' && pageId !== 'product-detail-page') { els.storeDetailPage.innerHTML = ''; els.productDetailPage.innerHTML = ''; }
+    if (pageId !== 'department-detail-page') { els.departmentDetailPage.innerHTML = ''; }
 
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
@@ -140,15 +109,14 @@ export const showPage = (pageId) => {
 
     document.querySelector('.main-content').scrollTop = 0;
 
+    // Page specific loads
     if (pageId === 'dashboard') {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
         renderDashboard(); 
     } else if (pageId === 'leaderboard') {
-        // We need to import currentLeaderboardTab from social or just default
         showLeaderboardTab('student'); 
     } else if (pageId === 'rewards') {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
-        // Using global wrapper to avoid circular dependencies in module loading immediately
         window.renderRewardsWrapper && window.renderRewardsWrapper();
     } else if (pageId === 'my-rewards') {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
@@ -168,13 +136,23 @@ export const showPage = (pageId) => {
     } else if (pageId === 'profile') {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
         renderProfile();
-    }
-     else {
+    } else {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
     }
 
     toggleSidebar(true);
     if(window.lucide) window.lucide.createIcons();
+};
+
+export const handleBackButton = () => {
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.pageId) {
+            showPage(event.state.pageId, false); // false prevents infinite loop
+        } else {
+            // If no state (e.g. initial load), default to dashboard
+            showPage('dashboard', false);
+        }
+    });
 };
 
 export const toggleSidebar = (forceClose = false) => {
@@ -189,6 +167,5 @@ export const toggleSidebar = (forceClose = false) => {
     }
 };
 
-// Attach to window for HTML access
 window.showPage = showPage;
 window.toggleSidebar = toggleSidebar;
