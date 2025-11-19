@@ -540,8 +540,8 @@ header, nav {
 
 /* FIX #2: Tick Icon Size Control */
 .tick-icon {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     object-fit: contain;
     display: inline-block;
     vertical-align: middle;
