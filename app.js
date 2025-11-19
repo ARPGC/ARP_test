@@ -5,7 +5,7 @@ import { loadDashboardData, renderDashboard, setupFileUploads, loadHistoryData }
 import { loadStoreAndProductData, loadUserRewardsData, renderRewards } from './store.js';
 import { loadLeaderboardData } from './social.js';
 import { loadChallengesData } from './challenges.js';
-import { loadEventsData } from './events.js'; // Updated import
+import { loadEventsData } from './events.js'; 
 
 // Auth
 const checkAuth = async () => {
@@ -25,7 +25,7 @@ const initializeApp = async () => {
         
         state.currentUser = userProfile;
         
-        // Initialize History State
+        // Initialize History State for Mobile Back Button
         history.replaceState({ pageId: 'dashboard' }, '', '#dashboard');
 
         await loadDashboardData();
@@ -97,8 +97,8 @@ applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-
 // Forms
 document.getElementById('change-password-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    // ... (existing password logic) ...
-    alert("Password change implementation hidden for brevity");
+    const msgEl = document.getElementById('password-message');
+    msgEl.textContent = 'Feature hidden for demo.';
 });
 
 document.getElementById('redeem-code-form').addEventListener('submit', async (e) => {
