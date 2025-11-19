@@ -1,61 +1,97 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { getTickImg, formatDate, getPlaceholderImage } from './utils.js';
+import { els, getPlaceholderImage, getTickImg } from './utils.js';
 
-export const loadSocialData = async () => {
-    const { data: users } = await supabase.from('users').select('*').order('lifetime_points', { ascending: false });
-    state.leaderboard = users || [];
-    
-    const { data: hist } = await supabase.from('points_ledger').select('*').eq('user_id', state.currentUser.id).order('created_at', { ascending: false });
-    state.history = hist || [];
+let currentLeaderboardTab = 'student';
+
+export const loadLeaderboardData = async () => {
+    try {
+        const { data, error } = await supabase.from('users').select('id, full_name, course, lifetime_points, profile_img_url, tick_type').order('lifetime_points', { ascending: false });
+        if (error) return;
+
+        state.leaderboard = data.slice(0, 20).map(u => ({
+            ...u, name: u.full_name, initials: (u.full_name || '...').split(' ').map(n => n[0]).join('').toUpperCase(), isCurrentUser: u.id === state.currentUser.id
+        }));
+
+        const deptMap = {};
+        data.forEach(user => {
+            let cleanCourse = user.course ? user.course.trim() : 'General';
+            if (cleanCourse.length > 2) cleanCourse = cleanCourse.substring(2); 
+            if (!deptMap[cleanCourse]) deptMap[cleanCourse] = { name: cleanCourse, points: 0, students: [] };
+            deptMap[cleanCourse].points += (user.lifetime_points || 0);
+            deptMap[cleanCourse].students.push({
+                name: user.full_name, points: user.lifetime_points, img: user.profile_img_url, tick_type: user.tick_type, initials: (user.full_name || '...').split(' ').map(n => n[0]).join('').toUpperCase()
+            });
+        });
+        state.departmentLeaderboard = Object.values(deptMap).sort((a, b) => b.points - a.points);
+        
+        if (document.getElementById('leaderboard').classList.contains('active')) {
+            renderStudentLeaderboard();
+            renderDepartmentLeaderboard();
+        }
+    } catch (err) { console.error('Leaderboard Data Error:', err); }
 };
 
-export const renderLeaderboard = (type = 'student') => {
-    const div = document.getElementById('lb-content');
-    const btnS = document.getElementById('lb-tab-student');
-    const btnD = document.getElementById('lb-tab-dept');
+export const showLeaderboardTab = (tab) => {
+    currentLeaderboardTab = tab;
+    const btnStudent = document.getElementById('leaderboard-tab-student');
+    const btnDept = document.getElementById('leaderboard-tab-dept');
+    const contentStudent = document.getElementById('leaderboard-content-student');
+    const contentDept = document.getElementById('leaderboard-content-department');
 
-    if(type === 'student') {
-        btnS.classList.add('bg-white', 'shadow-sm', 'text-green-600'); btnS.classList.remove('text-gray-500');
-        btnD.classList.remove('bg-white', 'shadow-sm', 'text-green-600'); btnD.classList.add('text-gray-500');
-        
-        div.innerHTML = state.leaderboard.slice(0, 20).map((u, i) => `
-            <div class="glass-card p-3 flex items-center justify-between ${u.id === state.currentUser.id ? 'border-green-500 border-2 bg-green-50/50' : ''}">
-                <div class="flex items-center gap-4">
-                    <span class="font-bold text-gray-400 w-4 text-sm">#${i+1}</span>
-                    <img src="${u.profile_img_url || getPlaceholderImage('40x40', 'U')}" class="w-10 h-10 rounded-full object-cover">
-                    <div><p class="font-bold text-sm dark:text-white leading-tight">${u.full_name} ${getTickImg(u.tick_type)}</p><p class="text-[10px] font-bold text-gray-400 uppercase">${u.course}</p></div>
-                </div>
-                <span class="font-black text-green-600 text-sm">${u.lifetime_points}</span>
-            </div>
-        `).join('');
+    if (tab === 'department') {
+        btnDept.classList.add('active'); btnStudent.classList.remove('active');
+        contentDept.classList.remove('hidden'); contentStudent.classList.add('hidden');
+        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
+        renderDepartmentLeaderboard();
     } else {
-        btnD.classList.add('bg-white', 'shadow-sm', 'text-green-600'); btnD.classList.remove('text-gray-500');
-        btnS.classList.remove('bg-white', 'shadow-sm', 'text-green-600'); btnS.classList.add('text-gray-500');
-        
-        const depts = {};
-        state.leaderboard.forEach(u => {
-            const d = (u.course || 'General').split(' ')[0];
-            if(!depts[d]) depts[d] = 0;
-            depts[d] += u.lifetime_points;
-        });
-        
-        div.innerHTML = Object.entries(depts).sort((a,b) => b[1]-a[1]).map(([name, pts], i) => `
-            <div class="glass-card p-4 mb-2 flex justify-between items-center">
-                <div class="flex items-center gap-3"><span class="font-bold text-gray-400 text-sm">#${i+1}</span><span class="font-bold dark:text-white">${name}</span></div>
-                <span class="font-black text-green-600">${pts}</span>
-            </div>
-        `).join('');
+        btnStudent.classList.add('active'); btnDept.classList.remove('active');
+        contentStudent.classList.remove('hidden'); contentDept.classList.add('hidden');
+        if(els.lbLeafLayer) els.lbLeafLayer.classList.remove('hidden');
+        renderStudentLeaderboard();
     }
 };
 
-export const renderHistory = () => {
-    document.getElementById('history-list').innerHTML = state.history.map(h => `
-        <div class="glass-card p-4 flex justify-between items-center">
-            <div><p class="font-bold text-sm dark:text-white mb-0.5">${h.description}</p><p class="text-xs text-gray-400 font-medium">${formatDate(h.created_at)}</p></div>
-            <span class="font-bold ${h.points_delta > 0 ? 'text-green-600' : 'text-gray-500'}">${h.points_delta > 0 ? '+' : ''}${h.points_delta}</span>
-        </div>
-    `).join('');
+export const renderDepartmentLeaderboard = () => {
+    const container = document.getElementById('eco-wars-page-list');
+    container.innerHTML = '';
+    if (state.departmentLeaderboard.length === 0) { container.innerHTML = `<p class="text-sm text-center text-gray-500">Calculating...</p>`; return; }
+    state.departmentLeaderboard.forEach((dept, index) => {
+        container.innerHTML += `
+            <div class="glass-card p-3 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" onclick="showDepartmentDetail('${dept.name}')">
+                <div class="flex items-center justify-between"><div class="flex items-center"><span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center mr-3 text-xs font-bold text-emerald-700 dark:text-emerald-200">#${index + 1}</span><div><p class="font-semibold text-gray-800 dark:text-gray-100">${dept.name}</p><p class="text-xs text-gray-500 dark:text-gray-400">${dept.points.toLocaleString()} pts</p></div></div><i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i></div>
+            </div>`;
+    });
+    if(window.lucide) window.lucide.createIcons();
 };
 
-window.switchLb = (t) => renderLeaderboard(t);
+export const showDepartmentDetail = (deptName) => {
+    const deptData = state.departmentLeaderboard.find(d => d.name === deptName);
+    if (!deptData) return;
+    const studentsHTML = deptData.students.length === 0 ? `<p class="text-center text-gray-500 col-span-3">No active students.</p>` : deptData.students.map(s => `
+            <div class="dept-student-card"><img src="${s.img || getPlaceholderImage('60x60', s.initials)}" class="w-16 h-16 rounded-full object-cover mb-2 border"><p class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate w-full">${s.name} ${getTickImg(s.tick_type)}</p><p class="text-xs text-gray-500">${s.points} pts</p></div>`).join('');
+    els.departmentDetailPage.innerHTML = `
+        <div class="flex items-center mb-6"><button onclick="showPage('leaderboard')" class="mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="arrow-left" class="w-5 h-5"></i></button><h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">${deptName} Dept</h2></div><div class="dept-student-grid">${studentsHTML}</div>`;
+    // showPage is global/window
+    window.showPage('department-detail-page');
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const renderStudentLeaderboard = () => {
+    if (state.leaderboard.length === 0) return;
+    const sorted = [...state.leaderboard];
+    const rank1 = sorted[0], rank2 = sorted[1], rank3 = sorted[2];
+    const rest = sorted.slice(3);
+    const renderChamp = (u, rank) => {
+        if (!u) return '';
+        return `<div class="badge ${rank === 1 ? 'gold' : rank === 2 ? 'silver' : 'bronze'}">${u.profile_img_url ? `<img src="${u.profile_img_url}" class="w-full h-full object-cover">` : u.initials}</div><div class="champ-name">${u.name} ${getTickImg(u.tick_type)}</div><div class="champ-points">${u.lifetime_points} pts</div><div class="rank">${rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'}</div>`;
+    }
+    els.lbPodium.innerHTML = `<div class="podium"><div class="champ">${renderChamp(rank2, 2)}</div><div class="champ">${renderChamp(rank1, 1)}</div><div class="champ">${renderChamp(rank3, 3)}</div></div>`;
+    els.lbList.innerHTML = '';
+    rest.forEach((user, index) => {
+        els.lbList.innerHTML += `<div class="item ${user.isCurrentUser ? 'is-me' : ''}"><div class="user"><span class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-3 text-xs font-bold text-gray-600 dark:text-gray-300">#${index + 4}</span><div class="circle">${user.profile_img_url ? `<img src="${user.profile_img_url}" class="w-full h-full object-cover">` : user.initials}</div><div class="user-info"><strong>${user.name} ${user.isCurrentUser ? '(You)' : ''} ${getTickImg(user.tick_type)}</strong><span class="sub-class">${user.course}</span></div></div><div class="points-display">${user.lifetime_points} pts</div></div>`;
+    });
+};
+
+window.showLeaderboardTab = showLeaderboardTab;
+window.showDepartmentDetail = showDepartmentDetail;
