@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { getTickImg, formatDate } from './utils.js';
+import { getTickImg, formatDate, getPlaceholderImage } from './utils.js';
 
 export const loadSocialData = async () => {
     const { data: users } = await supabase.from('users').select('*').order('lifetime_points', { ascending: false });
@@ -23,7 +23,7 @@ export const renderLeaderboard = (type = 'student') => {
             <div class="glass-card p-3 flex items-center justify-between ${u.id === state.currentUser.id ? 'border-green-500 border-2 bg-green-50/50' : ''}">
                 <div class="flex items-center gap-4">
                     <span class="font-bold text-gray-400 w-4 text-sm">#${i+1}</span>
-                    <img src="${u.profile_img_url || 'https://placehold.co/40x40'}" class="w-10 h-10 rounded-full object-cover">
+                    <img src="${u.profile_img_url || getPlaceholderImage('40x40', 'U')}" class="w-10 h-10 rounded-full object-cover">
                     <div><p class="font-bold text-sm dark:text-white leading-tight">${u.full_name} ${getTickImg(u.tick_type)}</p><p class="text-[10px] font-bold text-gray-400 uppercase">${u.course}</p></div>
                 </div>
                 <span class="font-black text-green-600 text-sm">${u.lifetime_points}</span>
