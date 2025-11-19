@@ -96,7 +96,7 @@ export const showPage = (pageId, addToHistory = true) => {
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
-    // Reset detail pages if navigating away
+    // Reset detail pages
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
         els.storeDetailPage.innerHTML = ''; els.productDetailPage.innerHTML = '';
     }
@@ -110,12 +110,11 @@ export const showPage = (pageId, addToHistory = true) => {
 
     document.querySelector('.main-content').scrollTop = 0;
 
-    // Handle Mobile Back Button Logic
     if (addToHistory) {
         window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     }
 
-    // Page Specific Renders using WINDOW globals to avoid circular deps
+    // Use WINDOW objects to avoid circular imports
     if (pageId === 'dashboard') { 
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         if(window.renderDashboard) window.renderDashboard(); 
@@ -155,7 +154,7 @@ export const showPage = (pageId, addToHistory = true) => {
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
     }
 
-    toggleSidebar(true); // Close sidebar if open
+    toggleSidebar(true);
     if(window.lucide) window.lucide.createIcons();
 };
 
@@ -164,7 +163,7 @@ window.addEventListener('popstate', (event) => {
     if (event.state && event.state.pageId) {
         showPage(event.state.pageId, false);
     } else {
-        showPage('dashboard', false); // Default fallback
+        showPage('dashboard', false); 
     }
 });
 
