@@ -13,7 +13,7 @@ html, body {
     --tw-shadow: 0 0 #0000 !important;
     --tw-shadow-colored: 0 0 #0000 !important;
     
-    /* Leaderboard Tokens */
+    /* New Leaderboard Tokens */
     --radius: 24px;
     --gold: #D4AF37;
     --silver: #C0C0C0;
@@ -23,6 +23,11 @@ html, body {
 
 *, *::before, *::after {
     box-shadow: none !important;
+}
+
+/* Re-enable shadows only for specific elements where we manually add them */
+.shadow-lg, .champ, .badge, .list .item, .btn-eco-gradient {
+    /* Shadows defined in their specific classes below */
 }
 
 .app-container {
@@ -124,7 +129,7 @@ header, nav {
     border: 1px solid rgba(148, 163, 184, 0.40);
 }
 .dark .glass-card {
-    background: rgba(15, 23, 42, 0.80);
+    background: rgba(15, 23, 42, 0.80); /* Slightly more opaque for dark mode readability */
     border-color: rgba(55, 65, 81, 0.9);
 }
 
@@ -154,7 +159,7 @@ header, nav {
 /* Gradient Buttons */
 .btn-eco-gradient {
     background-image: linear-gradient(135deg, #10B981, #34D399);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important; /* Force shadow */
 }
 .btn-eco-gradient:hover {
     filter: brightness(1.05);
@@ -166,7 +171,7 @@ header, nav {
 
 /* Leaf Particles (Overlay) */
 .leaf-layer {
-    position: absolute; 
+    position: absolute;
     inset: 0;
     overflow: hidden;
     pointer-events: none;
@@ -185,7 +190,7 @@ header, nav {
     animation: leafFall linear infinite;
 }
 .dark .leaf {
-    background: rgba(52, 211, 153, 0.4);
+    background: rgba(52, 211, 153, 0.4); /* Lighter green for dark mode */
 }
 
 @keyframes leafFall {
@@ -235,7 +240,7 @@ header, nav {
     justify-content: flex-end;
 }
 .dark .champ {
-    background: #1f2937;
+    background: #1f2937; /* Dark mode bg */
     color: #f3f4f6;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
 }
@@ -253,7 +258,7 @@ header, nav {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    margin: -40px auto 10px auto;
+    margin: -40px auto 10px auto; /* Adjusted for mobile sizing */
     font-weight: 700;
     font-size: 16px;
     display: flex;
@@ -265,19 +270,10 @@ header, nav {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     border: 3px solid #fff;
     flex-shrink: 0;
-    background-color: #fff; /* Fallback */
 }
-/* Ensure the image fits perfectly in the circle badge */
-.badge img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
 .dark .badge {
     border-color: #374151;
-    color: #000;
+    color: #000; /* Keep text dark on gold/silver/bronze bg */
 }
 
 .badge::after {
@@ -305,6 +301,16 @@ header, nav {
 .champ-name   { font-weight: 700; line-height: 1.2; margin-bottom: 4px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
 .champ-points { font-size: 12px; font-weight: 600; color: #555; }
 .dark .champ-points { color: #9ca3af; }
+
+.champ-class { 
+    font-size: 10px; 
+    color: var(--forest-accent);
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.dark .champ-class { color: #34d399; }
 
 .rank { font-size: 10px; opacity: .5; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;}
 
@@ -348,6 +354,29 @@ header, nav {
     gap: 12px;
 }
 
+/* Updated .circle to support images for Leaderboard
+    If this class is used on an <img> tag, object-cover ensures it looks good.
+*/
+.circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: #e8f5e9; 
+    color: var(--forest-accent);
+    flex-shrink: 0;
+    overflow: hidden; /* Ensure image doesn't bleed */
+    object-fit: cover; /* For img tags */
+}
+.dark .circle {
+    background: #064e3b;
+    color: #a7f3d0;
+}
+
 .user-info {
     display: flex;
     flex-direction: column;
@@ -377,6 +406,7 @@ header, nav {
 }
 .dark .points-display { color: #e5e7eb; }
 
+/* Highlight specific rank styling for user if needed */
 .item.is-me {
     border: 2px solid #10B981;
     background: #f0fdf4;
@@ -392,11 +422,47 @@ header, nav {
    ========================================= */
 /* Check-in Completed State */
 .checkin-completed {
-    background: linear-gradient(135deg, #10B981, #059669) !important;
+    background: #F3F4F6 !important; /* Light Grey */
+    background-image: none !important;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid #E5E7EB !important;
+    color: #9CA3AF !important; /* Grey text */
     cursor: default !important;
+    transform: none !important;
 }
-.checkin-completed #checkin-subtext {
-    display: none; /* Hide "Tap here..." */
+.dark .checkin-completed {
+    background: #1F2937 !important; /* Dark Grey */
+    border-color: #374151 !important;
+    color: #6B7280 !important;
+}
+
+/* Hide specific elements inside the button when completed */
+.checkin-completed .checkin-hide-on-complete {
+    display: none !important;
+}
+
+/* Change text color for specific children when completed */
+.checkin-completed h3, 
+.checkin-completed span, 
+.checkin-completed i,
+.checkin-completed p {
+    color: #6B7280 !important; /* Cool Grey */
+}
+.dark .checkin-completed h3, 
+.dark .checkin-completed span, 
+.dark .checkin-completed i,
+.dark .checkin-completed p {
+    color: #9CA3AF !important;
+}
+
+/* Camera Modal */
+#camera-modal {
+    transition: opacity 0.3s ease-in-out, visibility 0.3s;
+    z-index: 60; 
+}
+#camera-modal.open {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Loader */
@@ -457,4 +523,23 @@ header, nav {
 .dark .leaderboard-tab-btn.active {
     background-color: #1f2937;
     color: #34D399;
+}
+
+/* Slider for Product Details */
+.slider-container {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+.slider-item {
+    scroll-snap-align: center;
+}
+.slider-dot {
+    transition: all 0.3s ease;
+}
+.slider-dot.active {
+    background-color: #10B981;
+    transform: scale(1.25);
+}
+.dark .slider-dot.active {
+    background-color: #34D399;
 }
