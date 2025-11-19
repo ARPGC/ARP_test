@@ -1,4 +1,3 @@
-// Add your Cloudinary details here
 export const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/dnia8lb2q/auto/upload`;
 export const PRESET = 'EcoBirla_avatars';
 
@@ -8,6 +7,9 @@ export const getTickImg = (type) => {
 };
 
 export const formatDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+// This was missing in the previous version causing the error
+export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
 
 export const uploadToCloudinary = async (fileBlob) => {
     const fd = new FormData();
