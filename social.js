@@ -1,237 +1,322 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, getPlaceholderImage, getTickImg, getUserInitials } from './utils.js';
+import { els, getPlaceholderImage, formatDate } from './utils.js';
+import { refreshUserData } from './app.js';
 
-let currentLeaderboardTab = 'student';
+const getProduct = (productId) => state.products.find(p => p.id === productId);
 
-export const loadLeaderboardData = async () => {
+export const loadStoreAndProductData = async () => {
     try {
-        // 1. Fetch Users + Streak Data
-        // We join 'user_streaks' to get the current streak
-        // Explicitly specify relationship to avoid ambiguity
-        const { data, error } = await supabase
-            .from('users')
-            .select(`
-                id, full_name, course, lifetime_points, profile_img_url, tick_type,
-                user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
-            `)
-            .order('lifetime_points', { ascending: false });
+        // UPDATED QUERY: Fetches features and specs from their specific tables
+        const { data, error } = await supabase.from('products').select(`
+                id, name, description, original_price, discounted_price, ecopoints_cost, store_id, metadata,
+                stores ( name, logo_url ), 
+                product_images ( image_url, sort_order ),
+                product_features ( feature, sort_order ),
+                product_specifications ( spec_key, spec_value, sort_order )
+            `).eq('is_active', true);
+        if (error) return;
 
-        if (error) throw error;
-
-        // 2. Process Student Leaderboard
-        state.leaderboard = data.slice(0, 20).map(u => ({
-            ...u,
-            name: u.full_name,
-            initials: getUserInitials(u.full_name),
-            isCurrentUser: u.id === state.currentUser.id,
-            // Access streak safely
-            streak: (u.user_streaks && u.user_streaks.current_streak) 
-                ? u.user_streaks.current_streak 
-                : (Array.isArray(u.user_streaks) && u.user_streaks[0] ? u.user_streaks[0].current_streak : 0)
+        state.products = data.map(p => ({
+            ...p, 
+            images: p.product_images?.sort((a,b) => a.sort_order - b.sort_order).map(img => img.image_url) || [],
+            // Map new tables
+            highlights: p.product_features?.sort((a,b) => a.sort_order - b.sort_order).map(f => f.feature) || [],
+            specs: p.product_specifications?.sort((a,b) => a.sort_order - b.sort_order) || [],
+            
+            storeName: p.stores?.name || 'Unknown Store', 
+            storeLogo: p.stores?.logo_url, 
+            popularity: Math.floor(Math.random() * 50) 
         }));
+        if (document.getElementById('rewards').classList.contains('active')) renderRewards();
+    } catch (err) { console.error('Product Load Error:', err); }
+};
 
-        // 3. Process Department Leaderboard
-        const deptMap = {};
-        
-        data.forEach(user => {
-            // --- FIX: Course Name Cleaning Logic ---
-            let cleanCourse = user.course ? user.course.trim().toUpperCase() : 'GENERAL';
-            
-            // Removes FY, SY, TY from the start (with or without space)
-            // Examples: "SYBSC" -> "BSC", "FY BCOM" -> "BCOM", "TY.BA" -> "BA"
-            cleanCourse = cleanCourse.replace(/^(FY|SY|TY)[\s.]?/i, '');
-            
-            // Safety: If name becomes empty or too short, revert to original
-            if (cleanCourse.length < 2) cleanCourse = user.course;
+export const renderRewards = () => {
+    els.productGrid.innerHTML = '';
+    let products = [...state.products];
+    if (products.length === 0) { els.productGrid.innerHTML = `<p class="text-sm text-center text-gray-500 col-span-2">Loading rewards...</p>`; return; }
+    
+    const searchTerm = els.storeSearch.value.toLowerCase();
+    if(searchTerm.length > 0) products = products.filter(p => p.name.toLowerCase().includes(searchTerm) || p.storeName.toLowerCase().includes(searchTerm));
+    els.storeSearchClear.classList.toggle('hidden', !searchTerm);
 
-            if (!deptMap[cleanCourse]) {
-                deptMap[cleanCourse] = { 
-                    name: cleanCourse, 
-                    totalPoints: 0, 
-                    studentCount: 0, 
-                    students: [] 
-                };
-            }
-
-            deptMap[cleanCourse].totalPoints += (user.lifetime_points || 0);
-            deptMap[cleanCourse].studentCount += 1;
-            
-            // Handle streak safely again
-            const streakVal = (user.user_streaks && user.user_streaks.current_streak) 
-                ? user.user_streaks.current_streak 
-                : (Array.isArray(user.user_streaks) && user.user_streaks[0] ? user.user_streaks[0].current_streak : 0);
-
-            deptMap[cleanCourse].students.push({
-                name: user.full_name,
-                points: user.lifetime_points,
-                img: user.profile_img_url,
-                tick_type: user.tick_type,
-                initials: getUserInitials(user.full_name),
-                streak: streakVal
-            });
-        });
-
-        // Calculate Average & Sort
-        state.departmentLeaderboard = Object.values(deptMap).map(dept => ({
-            ...dept,
-            averageScore: dept.studentCount > 0 ? Math.round(dept.totalPoints / dept.studentCount) : 0
-        })).sort((a, b) => b.averageScore - a.averageScore); // Sort by Avg Score
-        
-        // Render if active
-        if (document.getElementById('leaderboard').classList.contains('active')) {
-            renderStudentLeaderboard();
-            renderDepartmentLeaderboard();
+    const criteria = els.sortBy.value;
+    products.sort((a, b) => {
+        switch (criteria) {
+            case 'points-lh': return a.ecopoints_cost - b.ecopoints_cost;
+            case 'points-hl': return b.ecopoints_cost - a.ecopoints_cost;
+            case 'price-lh': return a.discounted_price - b.discounted_price;
+            case 'price-hl': return b.discounted_price - a.discounted_price;
+            default: return b.popularity - a.popularity;
         }
-    } catch (err) { console.error('Leaderboard Data Error:', err); }
+    });
+
+    products.forEach(p => {
+        const imageUrl = (p.images && p.images[0]) ? p.images[0] : getPlaceholderImage('300x225');
+        els.productGrid.innerHTML += `
+            <div class="w-full flex-shrink-0 glass-card border border-gray-200/60 dark:border-gray-700/80 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform" onclick="showProductDetailPage('${p.id}')">
+                <img src="${imageUrl}" class="w-full h-40 object-cover" onerror="this.src='${getPlaceholderImage('300x225')}'"><div class="p-3 flex flex-col flex-grow"><div class="flex items-center mb-1"><img src="${p.storeLogo || getPlaceholderImage('40x40')}" class="w-5 h-5 rounded-full mr-2 border dark:border-gray-600"><p class="text-xs font-medium text-gray-600 dark:text-gray-400">${p.storeName}</p></div><p class="font-bold text-gray-800 dark:text-gray-100 text-sm truncate mt-1">${p.name}</p><div class="mt-auto pt-2"><p class="text-xs text-gray-400 dark:text-gray-500 line-through">₹${p.original_price}</p><div class="flex items-center font-bold text-gray-800 dark:text-gray-100 my-1"><span class="text-md text-green-700 dark:text-green-400">₹${p.discounted_price}</span><span class="mx-1 text-gray-400 dark:text-gray-500 text-xs">+</span><i data-lucide="leaf" class="w-3 h-3 text-green-500 mr-1"></i><span class="text-sm text-green-700 dark:text-green-400">${p.ecopoints_cost}</span></div></div></div>
+            </div>`;
+    });
+    if(window.lucide) window.lucide.createIcons();
 };
 
-export const showLeaderboardTab = (tab) => {
-    currentLeaderboardTab = tab;
-    const btnStudent = document.getElementById('leaderboard-tab-student');
-    const btnDept = document.getElementById('leaderboard-tab-dept');
-    const contentStudent = document.getElementById('leaderboard-content-student');
-    const contentDept = document.getElementById('leaderboard-content-department');
+export const showProductDetailPage = (productId) => {
+    const product = getProduct(productId);
+    if (!product) return;
 
-    if (tab === 'department') {
-        btnDept.classList.add('active'); btnStudent.classList.remove('active');
-        contentDept.classList.remove('hidden'); contentStudent.classList.add('hidden');
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
-        renderDepartmentLeaderboard();
-    } else {
-        btnStudent.classList.add('active'); btnDept.classList.remove('active');
-        contentStudent.classList.remove('hidden'); contentDept.classList.add('hidden');
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.remove('hidden');
-        renderStudentLeaderboard();
-    }
+    const images = (product.images && product.images.length > 0) ? product.images : [getPlaceholderImage()];
+    const canAfford = state.currentUser.current_points >= product.ecopoints_cost;
+    
+    const specs = product.specs.length > 0 ? product.specs : [{ spec_key: 'Info', spec_value: 'Standard Item' }];
+    const highlights = product.highlights.length > 0 ? product.highlights : ['Quality Verified'];
+
+    // Slider HTML
+    let sliderImagesHTML = '';
+    let sliderDotsHTML = '';
+    images.forEach((img, index) => {
+        sliderImagesHTML += `<img src="${img}" class="slider-item w-full h-80 object-cover flex-shrink-0" data-index="${index}" onerror="this.src='${getPlaceholderImage('600x400')}'">`;
+        sliderDotsHTML += `<button class="slider-dot w-2 h-2 rounded-full bg-white/50 transition-all ${index === 0 ? 'bg-white w-4' : ''}"></button>`;
+    });
+
+    // Render Enhanced UI
+    els.productDetailPage.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 min-h-screen relative pb-32">
+            <div class="relative">
+                <div class="slider-container flex w-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                    ${sliderImagesHTML}
+                </div>
+                <button onclick="showPage('rewards')" class="absolute top-4 left-4 p-2 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-colors z-10">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </button>
+                <div class="absolute bottom-8 left-0 right-0 flex justify-center items-center space-x-2 z-10">
+                    ${sliderDotsHTML}
+                </div>
+            </div>
+
+            <div class="px-5 py-8 -mt-6 relative bg-white dark:bg-gray-900 rounded-t-[32px] z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+                
+                <div class="flex justify-between items-start mb-3">
+                    <h1 class="text-2xl font-black text-gray-900 dark:text-white w-3/4 leading-snug">${product.name}</h1>
+                    <div class="flex-shrink-0 flex items-center bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-800">
+                        <i data-lucide="leaf" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 mr-1.5"></i>
+                        <span class="text-sm font-bold text-emerald-700 dark:text-emerald-300">${product.ecopoints_cost}</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center mb-8">
+                    <img src="${product.storeLogo || getPlaceholderImage('40x40')}" class="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 mr-3 object-cover shadow-sm">
+                    <div>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Sold By</p>
+                        <p class="text-sm font-bold text-gray-700 dark:text-gray-300">${product.storeName}</p>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        Description
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        ${product.description || 'No description available for this item.'}
+                    </p>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Highlights</h3>
+                    <div class="space-y-3">
+                        ${highlights.map(h => `
+                            <div class="flex items-start p-3 bg-emerald-50/60 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100/50 dark:border-emerald-800/50">
+                                <div class="flex-shrink-0 mt-0.5 p-1 bg-emerald-100 dark:bg-emerald-800 rounded-full">
+                                    <i data-lucide="check" class="w-3 h-3 text-emerald-600 dark:text-emerald-300"></i>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200 leading-snug">${h}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-4">Specifications</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        ${specs.map(s => `
+                            <div class="bg-gray-50 dark:bg-gray-800/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col justify-center">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">${s.spec_key}</p>
+                                <p class="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">${s.spec_value}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="mb-4 p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl border border-indigo-100 dark:border-indigo-800">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
+                        <h3 class="text-sm font-bold text-indigo-900 dark:text-indigo-100">How to Redeem</h3>
+                    </div>
+                    <p class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                        Purchase this item using points. A QR code will be generated which you must show at the <strong>${product.storeName}</strong> counter to claim your item.
+                    </p>
+                </div>
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 max-w-[420px] mx-auto bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 p-4 z-50 shadow-[0_-5px_30px_rgba(0,0,0,0.08)] flex items-center justify-between pb-6">
+                <div>
+                    <p class="text-xs text-gray-400 line-through mb-0.5">₹${product.original_price}</p>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-2xl font-black text-gray-900 dark:text-white">₹${product.discounted_price}</span>
+                        <span class="text-sm font-medium text-gray-400">+</span>
+                        <div class="flex items-center text-emerald-600 font-bold text-lg">
+                            <i data-lucide="leaf" class="w-4 h-4 mr-1 fill-current"></i>
+                            <span>${product.ecopoints_cost}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="openPurchaseModal('${product.id}')" 
+                    class="bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-200 text-white dark:text-black font-bold py-3.5 px-6 rounded-xl shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    ${canAfford ? '' : 'disabled'}>
+                    ${canAfford ? 'Redeem Now' : 'Low Points'}
+                    <i data-lucide="chevron-right" class="w-5 h-5 ml-1"></i>
+                </button>
+            </div>
+        </div>`;
+
+    els.pages.forEach(p => p.classList.remove('active'));
+    els.productDetailPage.classList.add('active');
+    document.querySelector('.main-content').scrollTop = 0;
+    if(window.lucide) window.lucide.createIcons();
 };
 
-export const renderDepartmentLeaderboard = () => {
-    const container = document.getElementById('eco-wars-page-list');
-    container.innerHTML = '';
-    if (state.departmentLeaderboard.length === 0) { 
-        container.innerHTML = `<p class="text-sm text-center text-gray-500">Calculating...</p>`; 
+export const openPurchaseModal = (productId) => {
+    const product = getProduct(productId);
+    if (!product) return;
+    const imageUrl = (product.images && product.images[0]) ? product.images[0] : getPlaceholderImage('100x100');
+    els.purchaseModal.innerHTML = `
+        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Confirm Redemption</h3><button onclick="closePurchaseModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="flex items-center mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl"><img src="${imageUrl}" class="w-16 h-16 object-cover rounded-lg mr-4"><div><h4 class="text-lg font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${product.name}</h4><div class="flex items-center font-bold text-gray-800 dark:text-gray-100 text-sm"><span class="text-green-700 dark:text-green-400">₹${product.discounted_price}</span><span class="mx-1 text-gray-400">+</span><i data-lucide="leaf" class="w-3 h-3 text-green-500 mr-1"></i><span class="text-green-700 dark:text-green-400">${product.ecopoints_cost}</span></div></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center">By confirming, ${product.ecopoints_cost} EcoPoints will be deducted from your balance.</p><button id="confirm-purchase-btn" onclick="confirmPurchase('${product.id}')" class="w-full btn-eco-gradient text-white font-bold py-3.5 px-4 rounded-xl mb-3 shadow-lg">Confirm & Pay ₹${product.discounted_price}</button>`;
+    els.purchaseModalOverlay.classList.remove('hidden');
+    setTimeout(() => els.purchaseModal.classList.remove('translate-y-full'), 10);
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const closePurchaseModal = () => {
+    els.purchaseModal.classList.add('translate-y-full');
+    setTimeout(() => els.purchaseModalOverlay.classList.add('hidden'), 300);
+};
+
+export const confirmPurchase = async (productId) => {
+    try {
+        const product = getProduct(productId);
+        if (!product || state.currentUser.current_points < product.ecopoints_cost) { alert("You do not have enough points."); return; }
+        const confirmBtn = document.getElementById('confirm-purchase-btn');
+        confirmBtn.disabled = true; confirmBtn.textContent = 'Processing...';
+        
+        const { data: orderData, error: orderError } = await supabase.from('orders').insert({ user_id: state.currentUser.id, store_id: product.store_id, status: 'pending', total_points: product.ecopoints_cost, total_price: product.discounted_price, requires_approval: false }).select().single();
+        if (orderError) throw orderError;
+        
+        const { error: itemError } = await supabase.from('order_items').insert({ order_id: orderData.id, product_id: product.id, quantity: 1, price_each: product.discounted_price, points_each: product.ecopoints_cost });
+        if (itemError) throw itemError;
+        
+        const { error: confirmError } = await supabase.from('orders').update({ status: 'confirmed' }).eq('id', orderData.id);
+        if (confirmError) throw confirmError;
+        
+        closePurchaseModal();
+        await Promise.all([refreshUserData(), loadUserRewardsData()]);
+        window.showPage('my-rewards');
+    } catch (err) { console.error('Purchase Failed:', err); alert(`Purchase failed: ${err.message}`); }
+};
+
+export const loadUserRewardsData = async () => {
+    try {
+        const { data, error } = await supabase.from('orders').select(`id, created_at, status, order_items ( products ( id, name, product_images ( image_url ), stores ( name ) ) )`).eq('user_id', state.currentUser.id).order('created_at', { ascending: false });
+        if (error) return;
+        state.userRewards = data.map(order => {
+            const item = order.order_items[0]; if (!item) return null;
+            return { userRewardId: order.id, purchaseDate: formatDate(order.created_at), status: order.status, productName: item.products.name, storeName: item.products.stores.name, productImage: (item.products.product_images[0] && item.products.product_images[0].image_url) || getPlaceholderImage() };
+        }).filter(Boolean);
+        if (document.getElementById('my-rewards').classList.contains('active')) renderMyRewardsPage();
+    } catch (err) { console.error('User Rewards Load Error:', err); }
+};
+
+export const renderMyRewardsPage = () => {
+    els.allRewardsList.innerHTML = '';
+    
+    if (state.userRewards.length === 0) { 
+        els.allRewardsList.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="shopping-bag" class="w-8 h-8 text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">No orders yet</h3>
+                <p class="text-sm text-gray-500 mt-1 max-w-[200px]">Visit the store to redeem your first reward!</p>
+                <button onclick="showPage('rewards')" class="mt-4 px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-full">Go to Store</button>
+            </div>`; 
         return; 
     }
 
-    state.departmentLeaderboard.forEach((dept, index) => {
-        container.innerHTML += `
-            <div class="glass-card p-4 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-3 border border-gray-100 dark:border-gray-700" onclick="showDepartmentDetail('${dept.name}')">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900/60 dark:to-green-900/60 flex items-center justify-center mr-4 text-sm font-bold text-emerald-800 dark:text-emerald-100 shadow-sm">#${index + 1}</span>
-                        <div>
-                            <p class="font-bold text-lg text-gray-900 dark:text-gray-100">${dept.name}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${dept.studentCount} Students</p>
+    state.userRewards.forEach(ur => {
+        // Status Badge Logic
+        let statusBadge = '';
+        if(ur.status === 'confirmed') {
+            statusBadge = `<span class="flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 uppercase tracking-wide">Ready</span>`;
+        } else if (ur.status === 'redeemed') {
+            statusBadge = `<span class="flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">Used</span>`;
+        } else {
+            statusBadge = `<span class="flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase tracking-wide">${ur.status}</span>`;
+        }
+
+        // Render Enhanced Card
+        els.allRewardsList.innerHTML += `
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-4 flex flex-col gap-3 relative overflow-hidden">
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-[11px] font-semibold text-gray-400 flex items-center">
+                        <i data-lucide="calendar" class="w-3 h-3 mr-1"></i> ${ur.purchaseDate}
+                    </span>
+                    ${statusBadge}
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <div class="w-16 h-16 flex-shrink-0 rounded-xl bg-gray-50 dark:bg-gray-700 overflow-hidden border border-gray-100 dark:border-gray-600">
+                        <img src="${ur.productImage}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100'">
+                    </div>
+                    <div class="flex-grow min-w-0 py-0.5">
+                        <h4 class="text-sm font-bold text-gray-900 dark:text-white leading-snug line-clamp-2">${ur.productName}</h4>
+                        <div class="flex items-center mt-1.5">
+                            <div class="w-4 h-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mr-1.5">
+                                <i data-lucide="store" class="w-2.5 h-2.5 text-gray-500 dark:text-gray-400"></i>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${ur.storeName}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-lg font-extrabold text-green-600 dark:text-green-400">${dept.averageScore}</p>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Avg Score</p>
-                    </div>
+                </div>
+
+                <div class="pt-3 mt-1 border-t border-gray-50 dark:border-gray-700/50">
+                    ${ur.status === 'confirmed' 
+                        ? `<button onclick="openRewardQrModal('${ur.userRewardId}')" class="w-full flex items-center justify-center py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-gray-900 font-bold text-sm shadow-md active:scale-95 transition-all">
+                            <i data-lucide="qr-code" class="w-4 h-4 mr-2"></i> View QR Code
+                           </button>` 
+                        : `<button disabled class="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 font-semibold text-sm cursor-not-allowed">
+                            ${ur.status === 'redeemed' ? 'Already Redeemed' : 'Processing...'}
+                           </button>`
+                    }
                 </div>
             </div>`;
     });
     if(window.lucide) window.lucide.createIcons();
 };
 
-export const showDepartmentDetail = (deptName) => {
-    const deptData = state.departmentLeaderboard.find(d => d.name === deptName);
-    if (!deptData) return;
-
-    // Sort students by points (High to Low)
-    const sortedStudents = deptData.students.sort((a, b) => b.points - a.points);
-
-    const studentsHTML = sortedStudents.length === 0 
-        ? `<p class="text-center text-gray-500 py-10">No active students in this department.</p>` 
-        : sortedStudents.map((s, idx) => `
-            <div class="glass-card p-3 rounded-2xl flex items-center justify-between border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <div class="flex items-center gap-4">
-                    <div class="relative">
-                        <img src="${s.img || getPlaceholderImage('60x60', s.initials)}" class="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm">
-                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-600">
-                            ${idx + 1}
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                            ${s.name} ${getTickImg(s.tick_type)}
-                        </p>
-                        <div class="flex items-center mt-0.5">
-                            <i data-lucide="flame" class="w-3 h-3 text-orange-500 fill-orange-500 mr-1"></i>
-                            <span class="text-xs font-semibold text-orange-600 dark:text-orange-400">${s.streak} Day Streak</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <span class="text-sm font-extrabold text-green-600 dark:text-green-400">${s.points}</span>
-                    <span class="text-[10px] text-gray-400 block font-medium">PTS</span>
-                </div>
-            </div>
-        `).join('');
-
-    els.departmentDetailPage.innerHTML = `
-        <div class="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-10 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-            <div class="flex items-center">
-                <button onclick="showPage('leaderboard')" class="mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <i data-lucide="arrow-left" class="w-5 h-5 text-gray-700 dark:text-gray-200"></i>
-                </button>
-                <div>
-                    <h2 class="text-xl font-extrabold text-gray-900 dark:text-gray-100">${deptName}</h2>
-                    <p class="text-xs text-gray-500 font-medium">Avg Score: <span class="text-green-600 font-bold">${deptData.averageScore}</span></p>
-                </div>
-            </div>
-        </div>
-        <div class="p-4 space-y-3 pb-20">
-            ${studentsHTML}
-        </div>`;
-
-    window.showPage('department-detail-page');
-    if(window.lucide) window.lucide.createIcons();
+export const renderEcoPointsPage = () => {
+    const u = state.currentUser;
+    if (!u) return;
 };
 
-export const renderStudentLeaderboard = () => {
-    if (state.leaderboard.length === 0) return;
-    const sorted = [...state.leaderboard];
-    const rank1 = sorted[0], rank2 = sorted[1], rank3 = sorted[2];
-    const rest = sorted.slice(3);
-
-    // Podium Renderer
-    const renderChamp = (u, rank) => {
-        if (!u) return '';
-        return `
-            <div class="badge ${rank === 1 ? 'gold' : rank === 2 ? 'silver' : 'bronze'}">
-                ${u.profile_img_url ? `<img src="${u.profile_img_url}" class="w-full h-full object-cover">` : u.initials}
-            </div>
-            <div class="champ-name">${u.name} ${getTickImg(u.tick_type)}</div>
-            <div class="champ-points">${u.lifetime_points} pts</div>
-            <div class="rank">${rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'}</div>
-        `;
-    }
-
-    els.lbPodium.innerHTML = `
-        <div class="podium">
-            <div class="champ">${renderChamp(rank2, 2)}</div>
-            <div class="champ">${renderChamp(rank1, 1)}</div>
-            <div class="champ">${renderChamp(rank3, 3)}</div>
-        </div>`;
-
-    els.lbList.innerHTML = '';
-    rest.forEach((user, index) => {
-        els.lbList.innerHTML += `
-            <div class="item ${user.isCurrentUser ? 'is-me' : ''}">
-                <div class="user">
-                    <span class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-3 text-xs font-bold text-gray-600 dark:text-gray-300">#${index + 4}</span>
-                    <div class="circle">${user.profile_img_url ? `<img src="${user.profile_img_url}" class="w-full h-full object-cover">` : user.initials}</div>
-                    <div class="user-info">
-                        <strong>${user.name} ${user.isCurrentUser ? '(You)' : ''} ${getTickImg(user.tick_type)}</strong>
-                        <span class="sub-class">${user.course}</span>
-                    </div>
-                </div>
-                <div class="points-display">${user.lifetime_points} pts</div>
-            </div>`;
-    });
-};
-
-window.showLeaderboardTab = showLeaderboardTab;
-window.showDepartmentDetail = showDepartmentDetail;
+// --- ASSIGN TO WINDOW AT THE VERY END ---
+window.renderRewardsWrapper = renderRewards;
+window.showProductDetailPage = showProductDetailPage;
+window.openPurchaseModal = openPurchaseModal;
+window.closePurchaseModal = closePurchaseModal;
+window.confirmPurchase = confirmPurchase;
+window.renderMyRewardsPageWrapper = renderMyRewardsPage;
+window.openRewardQrModal = openRewardQrModal;
+window.closeQrModal = closeQrModal;
+window.renderEcoPointsPageWrapper = renderEcoPointsPage;
