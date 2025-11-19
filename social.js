@@ -7,12 +7,12 @@ let currentLeaderboardTab = 'student';
 export const loadLeaderboardData = async () => {
     try {
         // 1. Fetch Users + Streak Data
-        // We join 'user_streaks' to get the current streak for the new UI requirement
+        // FIX: Added '!user_streaks_user_id_fkey' to specify the exact relationship
         const { data, error } = await supabase
             .from('users')
             .select(`
                 id, full_name, course, lifetime_points, profile_img_url, tick_type,
-                user_streaks ( current_streak )
+                user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
             .order('lifetime_points', { ascending: false });
 
@@ -24,7 +24,10 @@ export const loadLeaderboardData = async () => {
             name: u.full_name,
             initials: getUserInitials(u.full_name),
             isCurrentUser: u.id === state.currentUser.id,
-            streak: u.user_streaks ? u.user_streaks.current_streak : 0
+            // Access streak safely (it might be an array or object depending on relationship type, usually object here)
+            streak: (u.user_streaks && u.user_streaks.current_streak) 
+                ? u.user_streaks.current_streak 
+                : (Array.isArray(u.user_streaks) && u.user_streaks[0] ? u.user_streaks[0].current_streak : 0)
         }));
 
         // 3. Process Department Leaderboard (New Formula: Avg Score)
@@ -33,7 +36,6 @@ export const loadLeaderboardData = async () => {
         data.forEach(user => {
             // Extract Course Name (e.g., "FY BCOM" -> "BCOM")
             let cleanCourse = user.course ? user.course.trim() : 'General';
-            // Simple logic to remove Year prefix if it exists (FY, SY, TY)
             if (cleanCourse.match(/^(FY|SY|TY)\s/i)) {
                 cleanCourse = cleanCourse.split(' ').slice(1).join(' '); 
             }
@@ -50,13 +52,18 @@ export const loadLeaderboardData = async () => {
             deptMap[cleanCourse].totalPoints += (user.lifetime_points || 0);
             deptMap[cleanCourse].studentCount += 1;
             
+            // Handle streak safely again
+            const streakVal = (user.user_streaks && user.user_streaks.current_streak) 
+                ? user.user_streaks.current_streak 
+                : (Array.isArray(user.user_streaks) && user.user_streaks[0] ? user.user_streaks[0].current_streak : 0);
+
             deptMap[cleanCourse].students.push({
                 name: user.full_name,
                 points: user.lifetime_points,
                 img: user.profile_img_url,
                 tick_type: user.tick_type,
                 initials: getUserInitials(user.full_name),
-                streak: user.user_streaks ? user.user_streaks.current_streak : 0
+                streak: streakVal
             });
         });
 
