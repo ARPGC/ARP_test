@@ -227,8 +227,6 @@ const submitQuizAnswer = async (selectedIndex, correctIndex, points) => {
     });
 
     if (isCorrect) {
-        await supabase.rpc('increment_points', { user_id: state.currentUser.id, amount: points }); // Assuming you have this or handle via triggers
-        // Fallback manual insert if RPC doesn't exist or handled via Ledger trigger
         await supabase.from('points_ledger').insert({
             user_id: state.currentUser.id,
             source_type: 'quiz',
