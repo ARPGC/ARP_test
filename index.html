@@ -73,7 +73,7 @@
         <div class="p-4">
             <button id="logout-button" class="w-full bg-red-100 text-red-700 font-bold py-3 px-4 rounded-lg hover:bg-red-200 dark:bg-red-800 dark:text-red-100 dark:hover:bg-red-700 flex items-center justify-center"><i data-lucide="log-out" class="w-5 h-5 mr-2"></i><span>Log Out</span></button>
         </div>
-        <div class="p-6 border-t border-gray-200 dark:border-gray-700"><p class="text-xs text-center text-gray-400 dark:text-gray-500">EcoCampus v8.3</p></div>
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700"><p class="text-xs text-center text-gray-400 dark:text-gray-500">EcoCampus v8.4</p></div>
     </div>
 
     <div class="app-container bg-white dark:bg-gray-950 h-full flex flex-col">
@@ -169,7 +169,7 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Test your knowledge (+10 pts)</p>
                             </div>
                         </div>
-                        <button onclick="openEcoQuizModal()" class="px-4 py-2 rounded-full bg-brand-600 text-white text-xs font-bold hover:bg-brand-500 shadow-md shadow-brand-500/30">Play Now</button>
+                        <button id="btn-quiz-play" onclick="openEcoQuizModal()" class="px-4 py-2 rounded-full bg-brand-600 text-white text-xs font-bold hover:bg-brand-500 shadow-md shadow-brand-500/30">Play Now</button>
                     </div>
                 </div>
 
@@ -217,8 +217,8 @@
                     </form>
                 </div>
             </div>
-
-            <div id="change-password" class="page p-6">
+            
+             <div id="change-password" class="page p-6">
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
                 <div class="glass-card p-6 rounded-2xl">
                     <form id="change-password-form" class="space-y-6">
@@ -228,6 +228,7 @@
                     </form>
                 </div>
             </div>
+
 
             <div id="store-detail-page" class="page dark:bg-gray-900"></div>
             <div id="product-detail-page" class="page dark:bg-gray-900"></div>
