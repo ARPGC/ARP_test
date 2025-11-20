@@ -8,8 +8,14 @@ import { els } from './utils.js';
 // 2. Paste it inside the quotes below:
 const GEMINI_API_KEY = 'AIzaSyDnt02vXZKe0LXdMg9eXvqdxMGYdgNJCCU'; 
 
-// FIX: Switched to 'gemini-pro' which is more stable for all key types
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+// List of models to try in order (Fallback mechanism)
+const MODELS = [
+    'gemini-1.5-flash',
+    'gemini-pro',
+    'gemini-1.5-pro'
+];
+
+const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 // ==========================================
 // 🧠 AI LOGIC
@@ -47,7 +53,7 @@ const fetchAIResponse = async (userMessage) => {
         return "⚠️ API Key missing. Please add it in chatbot.js (Line 9).";
     }
 
-    const prompt = {
+    const payload = {
         contents: [{
             parts: [{
                 text: getSystemPrompt() + `\n\nUser: ${userMessage}\nEcoBot:`
@@ -55,27 +61,36 @@ const fetchAIResponse = async (userMessage) => {
         }]
     };
 
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(prompt)
-        });
-
-        const data = await response.json();
+    // Try models one by one
+    for (const model of MODELS) {
+        const url = `${BASE_URL}${model}:generateContent?key=${GEMINI_API_KEY}`;
         
-        if (data.error) {
-            console.error("Gemini API Error:", data.error);
-            throw new Error(data.error.message);
+        try {
+            console.log(`Attempting with model: ${model}...`);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                console.warn(`Model ${model} failed:`, errData.error?.message || response.statusText);
+                continue; // Try next model
+            }
+
+            const data = await response.json();
+            
+            // Success! Extract and return text
+            return data.candidates[0].content.parts[0].text;
+
+        } catch (error) {
+            console.warn(`Network error with ${model}:`, error);
+            // Continue to next model
         }
-
-        // Extract text from Gemini response (Handle standard structure)
-        return data.candidates[0].content.parts[0].text;
-
-    } catch (error) {
-        console.error("AI Connection Error:", error);
-        return "I'm having trouble connecting to the green network right now. 🌱 (Check Console for API Error)";
     }
+
+    return "I'm having trouble connecting to the green network. 🌱 (All AI models failed. Check your API Key limits or internet connection.)";
 };
 
 // ==========================================
