@@ -4,11 +4,11 @@ import { els } from './utils.js';
 // ==========================================
 // ⚙️ CONFIGURATION
 // ==========================================
-// 1. Get key from: https://platform.openai.com/api-keys
-// 2. Ensure you have billing credits ($5 min)
-const OPENAI_API_KEY = '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'; 
+// 1. Get FREE key: https://console.groq.com/keys
+// 2. Paste it inside the quotes below:
+const GROQ_API_KEY = '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'; 
 
-const API_URL = 'https://api.openai.com/v1/chat/completions';
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ==========================================
 // 🧠 AI LOGIC
@@ -42,12 +42,12 @@ const getSystemPrompt = () => {
 };
 
 const fetchAIResponse = async (userMessage) => {
-    if (!OPENAI_API_KEY || OPENAI_API_KEY.includes('PASTE_YOUR')) {
-        return "⚠️ API Key missing. Please add your OpenAI Key in chatbot.js.";
+    if (!GROQ_API_KEY || GROQ_API_KEY.includes('PASTE_YOUR')) {
+        return "⚠️ API Key missing. Please get a free key from console.groq.com and paste it in chatbot.js";
     }
 
     const payload = {
-        model: "gpt-3.5-turbo", // or "gpt-4" if you have access and budget
+        model: "llama3-8b-8192", // Free, fast, and smart model
         messages: [
             { role: "system", content: getSystemPrompt() },
             { role: "user", content: userMessage }
@@ -61,7 +61,7 @@ const fetchAIResponse = async (userMessage) => {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify(payload)
         });
@@ -69,12 +69,8 @@ const fetchAIResponse = async (userMessage) => {
         const data = await response.json();
         
         if (!response.ok) {
-            console.error("OpenAI API Error:", data);
-            // Handle common OpenAI errors
-            if (data.error?.code === 'insufficient_quota') return "⚠️ OpenAI Error: You have run out of credits (Check platform.openai.com billing).";
-            if (data.error?.code === 'invalid_api_key') return "⚠️ OpenAI Error: Invalid API Key.";
-            
-            return `❌ OpenAI Error: ${data.error?.message || 'Unknown error'}`;
+            console.error("Groq API Error:", data);
+            return `❌ Error: ${data.error?.message || 'Unknown error'}`;
         }
 
         return data.choices[0].message.content;
@@ -95,7 +91,6 @@ const chatInput = document.getElementById('chatbot-input');
 const modal = document.getElementById('chatbot-modal');
 const modalContent = document.getElementById('chatbot-modal-content');
 
-// Add a message to the chat window
 const appendMessage = (text, sender) => {
     const div = document.createElement('div');
     div.className = 'flex w-full mb-4 animate-fade-in';
@@ -106,7 +101,6 @@ const appendMessage = (text, sender) => {
                 <p class="text-sm">${text}</p>
             </div>`;
     } else {
-        // Bot message
         div.innerHTML = `
             <div class="flex items-end">
                 <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-6 h-6 mr-2 mb-1 object-contain">
@@ -117,21 +111,18 @@ const appendMessage = (text, sender) => {
     }
     
     chatOutput.appendChild(div);
-    chatOutput.scrollTop = chatOutput.scrollHeight; // Auto scroll to bottom
+    chatOutput.scrollTop = chatOutput.scrollHeight; 
 };
 
-// Handle Form Submit
 if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = chatInput.value.trim();
         if (!message) return;
 
-        // 1. Show User Message
         appendMessage(message, 'user');
         chatInput.value = '';
         
-        // 2. Show Typing Indicator
         const typingId = 'typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
@@ -150,19 +141,13 @@ if (chatForm) {
         chatOutput.appendChild(typingDiv);
         chatOutput.scrollTop = chatOutput.scrollHeight;
 
-        // 3. Fetch AI Response
         const botResponse = await fetchAIResponse(message);
 
-        // 4. Remove Typing & Show Response
         const typingEl = document.getElementById(typingId);
         if(typingEl) typingEl.remove();
         appendMessage(botResponse, 'bot');
     });
 }
-
-// ==========================================
-// 🚪 MODAL LOGIC
-// ==========================================
 
 window.openChatbotModal = () => {
     modal.classList.remove('invisible', 'opacity-0');
@@ -182,7 +167,6 @@ window.closeChatbotModal = () => {
     }, 300);
 };
 
-// Simple Markdown Parser
 const marked = {
     parse: (text) => {
         if(!text) return '';
