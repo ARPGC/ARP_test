@@ -6,7 +6,7 @@ import { els } from './utils.js';
 // ==========================================
 // 1. Get FREE key: https://console.groq.com/keys
 // 2. Paste it inside the quotes below:
-const GROQ_API_KEY = 'PASTE_YOUR_GROQ_KEY_HERE'; 
+const GROQ_API_KEY = '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'; 
 
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
