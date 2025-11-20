@@ -69,6 +69,9 @@ const renderCheckinButtonState = () => {
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
     const checkinModal = document.getElementById('checkin-modal');
+    
+    // FIX: Add 'open' class so CSS knows to slide the content up
+    checkinModal.classList.add('open');
     checkinModal.classList.remove('invisible', 'opacity-0');
     
     const calendarContainer = document.getElementById('checkin-modal-calendar');
@@ -94,6 +97,8 @@ export const openCheckinModal = () => {
 
 export const closeCheckinModal = () => {
     const checkinModal = document.getElementById('checkin-modal');
+    // FIX: Remove 'open' class to trigger slide-down animation
+    checkinModal.classList.remove('open');
     checkinModal.classList.add('invisible', 'opacity-0');
 };
 
