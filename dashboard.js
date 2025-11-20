@@ -69,8 +69,6 @@ const renderCheckinButtonState = () => {
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
     const checkinModal = document.getElementById('checkin-modal');
-    
-    // FIX: Add 'open' class so CSS knows to slide the content up
     checkinModal.classList.add('open');
     checkinModal.classList.remove('invisible', 'opacity-0');
     
@@ -97,7 +95,6 @@ export const openCheckinModal = () => {
 
 export const closeCheckinModal = () => {
     const checkinModal = document.getElementById('checkin-modal');
-    // FIX: Remove 'open' class to trigger slide-down animation
     checkinModal.classList.remove('open');
     checkinModal.classList.add('invisible', 'opacity-0');
 };
@@ -108,17 +105,33 @@ export const handleDailyCheckin = async () => {
     checkinButton.textContent = 'Checking in...';
 
     try {
+        // 1. DB Insert
         const { error } = await supabase.from('daily_checkins').insert({ user_id: state.currentUser.id, points_awarded: state.checkInReward });
         if (error) throw error;
+
+        // 2. OPTIMISTIC UPDATE (Key Fix: Update UI state immediately)
         state.currentUser.isCheckedInToday = true;
+        // Optimistically increment streak so user sees the new number immediately
+        state.currentUser.checkInStreak = (state.currentUser.checkInStreak || 0) + 1;
+        
+        // 3. Update Visuals Immediately
         closeCheckinModal();
-        await Promise.all([refreshUserData(), loadDashboardData()]);
-        renderCheckinButtonState();
+        renderCheckinButtonState(); 
+
+        // 4. Background Fetch (Sync data without blocking UI)
+        await refreshUserData(); // Updates the points in header
+        loadDashboardData(); // Silent re-fetch to ensure consistency
+
     } catch (err) {
         console.error('Check-in error:', err.message);
         alert(`Failed to check in: ${err.message}`);
         checkinButton.disabled = false;
         checkinButton.textContent = `Check-in & Earn ${state.checkInReward} Points`;
+        
+        // Revert optimistic state on error
+        state.currentUser.isCheckedInToday = false;
+        state.currentUser.checkInStreak = Math.max(0, (state.currentUser.checkInStreak || 1) - 1);
+        renderCheckinButtonState();
     }
 };
 
