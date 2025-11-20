@@ -437,7 +437,8 @@
 
     <!-- Full Screen EcoBuddy Chat Interface -->
     <div id="chatbot-modal" class="fixed inset-0 z-50 bg-white dark:bg-gray-950 flex flex-col transform translate-y-full transition-transform duration-300 ease-in-out">
-        <!-- Header -->
+        
+        <!-- 1. Modern Gradient Header -->
         <div class="bg-gradient-to-r from-green-600 to-teal-600 p-4 flex items-center justify-between shadow-lg flex-shrink-0 z-10">
             <div class="flex items-center gap-3">
                 <div class="relative">
@@ -456,7 +457,7 @@
             </button>
         </div>
 
-        <!-- Chat Message Area (Scrollable) -->
+        <!-- 2. Chat Message Area (Scrollable) -->
         <div id="chatbot-messages" class="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 scroll-smooth">
             <!-- Dynamic messages will appear here -->
             <div class="text-center py-6">
@@ -464,7 +465,7 @@
             </div>
         </div>
 
-        <!-- Input Area (Fixed Bottom) -->
+        <!-- 3. Input Area (Fixed Bottom) -->
         <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 pb-safe">
             <form id="chatbot-form" class="relative flex items-end gap-2">
                 <div class="relative flex-grow">
