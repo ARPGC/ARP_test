@@ -108,12 +108,14 @@ const loadChatHistory = async () => {
             .from('chat_history')
             .select('*')
             .eq('user_id', state.currentUser.id)
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: false }) // Get latest first
+            .limit(20); // Only load last 20 messages
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-            data.forEach(msg => appendMessageUI(msg.message, msg.role, false)); // false = no animation for history
+            // Reverse to show oldest to newest
+            data.reverse().forEach(msg => appendMessageUI(msg.message, msg.role, false)); // false = no animation for history
             setTimeout(() => chatOutput.scrollTop = chatOutput.scrollHeight, 100);
         } else {
             // If no history, show welcome message
