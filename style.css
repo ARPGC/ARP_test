@@ -24,6 +24,12 @@ html, body {
 *, *::before, *::after {
     box-shadow: none !important;
 }
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
 
 /* Re-enable shadows only for specific elements */
 .shadow-lg, .champ, .badge, .list .item, .btn-eco-gradient {
