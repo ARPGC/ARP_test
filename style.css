@@ -700,36 +700,26 @@ header, nav {
 }
 
 /* =========================================
-   9. CHATBOT UI STYLES (Glassmorphism)
+   9. CHATBOT UI STYLES
    ========================================= */
 
-/* Message Bubbles for Glass Theme */
-.msg-bubble {
-    padding: 12px 18px;
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    backdrop-filter: blur(5px);
-    max-width: 85%;
-    line-height: 1.5;
+/* Message Animation */
+@keyframes slideUp {
+    from { transform: translateY(15px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.animate-slideUp {
+    animation: slideUp 0.35s ease forwards;
 }
 
-.msg-user {
-    background: linear-gradient(135deg, #10B981, #059669);
-    color: white;
-    border-bottom-right-radius: 4px;
-    margin-left: auto; /* Aligns right */
+/* Floating Orbs */
+@keyframes float {
+    0% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(40px,30px) scale(1.1); }
+    100% { transform: translate(0,0) scale(1); }
 }
-
-.msg-bot {
-    background: rgba(255, 255, 255, 0.85);
-    color: #1f2937;
-    border: 1px solid rgba(255,255,255,0.9);
-    border-bottom-left-radius: 4px;
-}
-.dark .msg-bot {
-    background: rgba(31, 41, 55, 0.9);
-    color: #e5e7eb;
-    border-color: rgba(255,255,255,0.1);
+.animate-float {
+    animation: float 18s infinite ease-in-out;
 }
 
 /* Typing Animation Dots */
@@ -747,13 +737,4 @@ header, nav {
 @keyframes typingBounce {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
-}
-
-/* Message Entry Animation */
-@keyframes messagePop {
-    from { opacity: 0; transform: translateY(10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.animate-message {
-    animation: messagePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
