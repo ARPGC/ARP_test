@@ -203,22 +203,34 @@ if (chatForm) {
 }
 
 // ==========================================
-// 🚪 MODAL LOGIC
+// 🚪 MODAL LOGIC (Full Screen Transition)
 // ==========================================
 
 window.openChatbotModal = () => {
-    modal.classList.remove('hidden'); // Remove hidden if it was there
-    // Slight delay to allow transition
+    const modal = document.getElementById('chatbot-modal');
+    
+    // 1. Make it visible (but still off-screen)
+    modal.classList.remove('invisible'); 
+    
+    // 2. Animate it up (Slide in)
     requestAnimationFrame(() => {
         modal.classList.remove('translate-y-full');
     });
     
-    // Load history every time it opens
+    // 3. Load History
     loadChatHistory();
 };
 
 window.closeChatbotModal = () => {
+    const modal = document.getElementById('chatbot-modal');
+    
+    // 1. Slide it down
     modal.classList.add('translate-y-full');
+    
+    // 2. Wait for animation to finish, then hide functionality
+    setTimeout(() => {
+        modal.classList.add('invisible');
+    }, 500); // Matches the duration-500 class in HTML
 };
 
 // ==========================================
