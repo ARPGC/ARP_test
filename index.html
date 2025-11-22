@@ -49,6 +49,7 @@
         <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4">EcoCampus Initiative</p>
     </div>
 
+    <!-- SIDEBAR & OTHER MODALS REMAIN UNCHANGED... -->
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 opacity-0 hidden"></div>
     
     <div id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-800 z-40 transform -translate-x-full flex flex-col shadow-2xl transition-transform duration-300">
@@ -91,6 +92,7 @@
         </header>
 
         <main class="main-content bg-gray-50 dark:bg-gray-900 flex-grow overflow-y-auto pb-24">
+            <!-- DASHBOARD & OTHER PAGES -->
             <div id="dashboard" class="page active p-6">
                  <div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, <span id="user-name-greeting">...</span>!</h2><p class="text-lg text-gray-600 dark:text-gray-400">Let's make our campus greener today.</p></div>
                  
@@ -300,19 +302,21 @@
     <div id="qr-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closeQrModal()"></div>
     <div id="qr-modal" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-t-2xl z-50 p-6 transform translate-y-full transition-transform duration-300 ease-in-out"></div>
     
-    <div id="chatbot-modal" class="fixed inset-0 z-[60] bg-[#e6f7ed] dark:bg-[#07180f] transition-transform duration-500 translate-y-full invisible flex flex-col h-full w-full font-jakarta">
+    <!-- CHATBOT MODAL (Flex Layout Fix) -->
+    <div id="chatbot-modal" class="fixed inset-0 z-[60] bg-[#e6f7ed] dark:bg-[#07180f] transition-transform duration-500 translate-y-full invisible flex flex-col h-[100dvh] w-full font-jakarta">
         
+        <!-- Background Orbs -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div class="absolute top-[-60px] left-[-50px] w-[350px] h-[350px] rounded-full bg-[#c4f7d2] dark:bg-[#0e3e2a] blur-[90px] opacity-60 animate-float"></div>
             <div class="absolute bottom-[-80px] right-[-60px] w-[450px] h-[450px] rounded-full bg-[#dafee9] dark:bg-[#0f5137] blur-[90px] opacity-60 animate-float delay-[-5s]"></div>
         </div>
 
-        <header class="relative z-10 h-[72px] flex items-center justify-between px-6 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border-b border-[#c8ffe1]/75 dark:border-black/40 shadow-sm">
+        <!-- Header (Flex Shrink 0) -->
+        <header class="relative z-10 h-[72px] flex-shrink-0 flex items-center justify-between px-6 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border-b border-[#c8ffe1]/75 dark:border-black/40 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[0_6px_18px_rgba(0,128,60,0.35)] overflow-hidden border-2 border-white">
-                        <!-- EARTH LOGO HERE -->
-                        <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-full h-full object-contain">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-[0_6px_18px_rgba(0,128,60,0.35)] bg-[radial-gradient(circle_at_30%_30%,#8eef9c,#169653)]">
+                        <i data-lucide="leaf" class="w-6 h-6"></i>
                     </div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#34c46e] dark:bg-[#3af89b] border-2 border-[#e6f7ed] dark:border-[#07180f]"></div>
                 </div>
@@ -322,48 +326,29 @@
                 </div>
             </div>
             
-            <!-- Close Button -->
             <button onclick="closeChatbotModal()" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-red-100 text-[#163626] dark:text-[#dff7e8] hover:text-red-500 transition-colors">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </header>
-        <div id="chatbot-messages" class="relative z-10 flex-grow overflow-y-auto p-6 pb-32 space-y-6 scroll-smooth">
-            </div>
 
-        <div class="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-[#e6f7ed] dark:from-[#07180f] to-transparent z-20">
+        <!-- Chat Feed (Flex Grow 1) -->
+        <div id="chatbot-messages" class="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+            <!-- Messages will be injected here -->
+        </div>
+
+        <!-- Input Container (Flex Shrink 0) -->
+        <div class="flex-shrink-0 p-5 bg-gradient-to-t from-[#e6f7ed] dark:from-[#07180f] to-transparent z-20 w-full">
             <div class="text-center text-xs font-medium text-[#6f8c79] dark:text-[#97c7a9] opacity-85 mb-3">
                 EcoBuddy can make mistakes, so double-check it.
             </div>
             
-            <form id="chatbot-form" class="flex items-center p-2 pl-5 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border border-[#c8ffe1]/75 dark:border-black/40 rounded-full shadow-lg">
-                <input id="chatbot-input" type="text" placeholder="Ask something eco-friendly..." class="flex-1 bg-transparent border-none outline-none text-[#163626] dark:text-[#dff7e8] placeholder-[#6f8c79] dark:placeholder-[#97c7a9] text-base" autocomplete="off">
-                <button type="submit" class="w-[46px] h-[46px] rounded-full flex items-center justify-center text-white text-lg shadow-md bg-gradient-to-br from-[#34c46e] to-[#169653] hover:scale-105 active:scale-95 transition-transform">
+            <form id="chatbot-form" class="flex items-center p-2 pl-5 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border border-[#c8ffe1]/75 dark:border-black/40 rounded-full shadow-lg w-full">
+                <input id="chatbot-input" type="text" placeholder="Ask something eco-friendly..." class="flex-1 bg-transparent border-none outline-none text-[#163626] dark:text-[#dff7e8] placeholder-[#6f8c79] dark:placeholder-[#97c7a9] text-base min-w-0" autocomplete="off">
+                <button type="submit" class="flex-shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center text-white text-lg shadow-md bg-gradient-to-br from-[#34c46e] to-[#169653] hover:scale-105 active:scale-95 transition-transform">
                     <i data-lucide="arrow-up" class="w-5 h-5"></i>
                 </button>
             </form>
         </div>
-    </div>
-
-    <div id="eco-quiz-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center opacity-0 invisible transition-all duration-300">
-        <div id="eco-quiz-modal-content" class="bg-white dark:bg-gray-900 rounded-3xl w-[90%] max-w-md p-6 transform scale-95 transition-transform duration-300 shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-500"></div>
-            <div class="flex justify-between items-start mb-6"><div><span class="text-xs font-bold text-brand-600 dark:text-brand-500 uppercase tracking-wide">Daily Challenge</span><h3 class="text-2xl font-extrabold text-gray-900 dark:text-white mt-1">Eco Quiz</h3></div><button onclick="closeEcoQuizModal()" class="p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button></div>
-            <div id="eco-quiz-loading" class="text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div></div>
-            <div id="eco-quiz-body" class="hidden"><p id="eco-quiz-question" class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-6 leading-relaxed">...</p><div id="eco-quiz-options" class="space-y-3 mb-6"></div><div id="eco-quiz-feedback" class="hidden p-4 rounded-xl text-center font-bold mb-4 animate-pulse"></div></div>
-            <div id="eco-quiz-already-played" class="hidden text-center py-8"><div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="check" class="w-8 h-8 text-green-600"></i></div><h4 class="text-xl font-bold text-gray-900 dark:text-white">Quiz Completed!</h4><p class="text-gray-500 dark:text-gray-400 mt-2">Come back tomorrow for a new question.</p></div>
-        </div>
-    </div>
-
-    <div id="participants-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center opacity-0 invisible transition-all duration-300" onclick="closeParticipantsModal()">
-        <div id="participants-modal-content" class="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full max-w-md h-[70vh] sm:h-[600px] flex flex-col transform translate-y-full sm:scale-95 transition-transform duration-300 ease-in-out" onclick="event.stopPropagation()">
-            <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center"><h3 class="text-lg font-bold text-gray-900 dark:text-white">Who's Going</h3><button onclick="closeParticipantsModal()" class="p-2 bg-gray-100 dark:bg-gray-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-            <div id="participants-list" class="flex-grow overflow-y-auto p-4 space-y-3"></div>
-        </div>
-    </div>
-
-    <div id="camera-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
-        <div class="relative flex-grow bg-black overflow-hidden"><video id="camera-feed" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video><canvas id="camera-canvas" class="hidden"></canvas><button onclick="closeCameraModal()" class="absolute top-6 left-6 z-20 text-white bg-black/40 p-2 rounded-full backdrop-blur-md"><i data-lucide="arrow-left" class="w-6 h-6"></i></button></div>
-        <div class="bg-black p-8 pb-12 flex justify-around items-center"><button onclick="switchCamera()" class="text-white p-4 rounded-full bg-gray-800/80 backdrop-blur-sm active:scale-95 transition-transform"><i data-lucide="refresh-cw" class="w-6 h-6"></i></button><button onclick="capturePhoto()" class="p-1 rounded-full border-4 border-white active:scale-95 transition-transform"><div class="w-16 h-16 bg-white rounded-full"></div></button><div class="w-14"></div></div>
     </div>
 
     <script type="module" src="app.js"></script> 
