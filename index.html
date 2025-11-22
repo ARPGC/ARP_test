@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- UPDATED VIEWPORT: interactive-widget=resizes-content helps with keyboard resizing -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>EcoCampus - Green Initiative</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -39,7 +40,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-inter">
+<body class="bg-gray-50 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden"> <!-- Ensure body fits viewport -->
     <input type="file" id="profile-upload-input" accept="image/*" class="hidden">
 
     <div id="app-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
@@ -315,8 +316,9 @@
         <header class="relative z-10 h-[72px] flex-shrink-0 flex items-center justify-between px-6 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border-b border-[#c8ffe1]/75 dark:border-black/40 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="relative">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-[0_6px_18px_rgba(0,128,60,0.35)] bg-[radial-gradient(circle_at_30%_30%,#8eef9c,#169653)]">
-                        <i data-lucide="leaf" class="w-6 h-6"></i>
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[0_6px_18px_rgba(0,128,60,0.35)] overflow-hidden border-2 border-white">
+                        <!-- EARTH LOGO HERE -->
+                        <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-full h-full object-contain">
                     </div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#34c46e] dark:bg-[#3af89b] border-2 border-[#e6f7ed] dark:border-[#07180f]"></div>
                 </div>
