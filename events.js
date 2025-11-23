@@ -1,11 +1,27 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getPlaceholderImage, getTickImg } from './utils.js';
+import { els, formatDate, getPlaceholderImage, getTickImg, logActivity, cacheGet, cacheSet } from './utils.js';
 
 export const loadEventsData = async () => {
     try {
-        // Fetch events with attendees
-        // We use the specific foreign key name to avoid ambiguous relationship errors
+        const CACHE_KEY = `events_list`;
+
+        // 1. Fast Load: Cache
+        const cachedEvents = await cacheGet(CACHE_KEY);
+        if (cachedEvents) {
+            // Re-hydrate Date objects (JSON makes them strings)
+            state.events = cachedEvents.map(e => ({
+                ...e,
+                dateObj: new Date(e.start_at)
+            }));
+            
+            if (document.getElementById('events').classList.contains('active')) {
+                renderEventsPage(false); // Render without logging view again
+            }
+            updateDashboardEvent();
+        }
+
+        // 2. Network Load: Fresh Data
         const { data: events, error } = await supabase
             .from('events')
             .select(`
@@ -19,14 +35,15 @@ export const loadEventsData = async () => {
 
         if (error) throw error;
 
-        state.events = events.map(e => {
+        // Process Fresh Data
+        const processedEvents = events.map(e => {
             const rawAttendees = e.event_attendance || [];
             
             // Map attendees safely
             const attendees = rawAttendees
                 .filter(a => a.status === 'registered' || a.status === 'confirmed')
                 .map(a => a.users)
-                .filter(u => u !== null); // Filter out any nulls
+                .filter(u => u !== null); 
             
             // Check my status
             const myAttendance = rawAttendees.find(a => a.users && a.users.id === state.currentUser.id);
@@ -48,14 +65,21 @@ export const loadEventsData = async () => {
             };
         });
 
+        // Update State & Cache
+        state.events = processedEvents;
+        await cacheSet(CACHE_KEY, processedEvents);
+
         if (document.getElementById('events').classList.contains('active')) renderEventsPage();
         updateDashboardEvent();
 
     } catch (err) { console.error('Events Load Error:', err); }
 };
 
-export const renderEventsPage = () => {
+export const renderEventsPage = (shouldLog = true) => {
     els.eventsList.innerHTML = '';
+    
+    if (shouldLog) logActivity('page_view', 'events', 'Viewed Events Page');
+
     if (state.events.length === 0) { 
         els.eventsList.innerHTML = `<p class="text-sm text-center text-gray-500 mt-10">No upcoming events.</p>`; 
         return; 
@@ -125,6 +149,12 @@ export const renderEventsPage = () => {
 };
 
 export const handleRSVP = async (eventId) => {
+    // Network Check
+    if (!navigator.onLine) {
+        alert("You need internet access to RSVP.");
+        return;
+    }
+
     const btn = event.target;
     const originalText = btn.innerText;
     btn.innerText = 'Processing...';
@@ -137,21 +167,26 @@ export const handleRSVP = async (eventId) => {
             status: 'registered'
         });
         if (error) throw error;
+        
+        logActivity('event', 'rsvp', `User registered for event ${eventId}`);
+        
+        // Invalidate cache and reload
         await loadEventsData();
         alert("You have successfully registered!");
+
     } catch (err) {
         console.error("RSVP Error:", err);
+        logActivity('error', 'rsvp_fail', err.message);
         alert("Failed to RSVP.");
         btn.innerText = originalText;
         btn.disabled = false;
     }
 };
 
-// FIX: Improved Modal Visibility Logic
 export const openParticipantsModal = (eventId) => {
+    logActivity('ui_interaction', 'event_participants', `Viewed participants for event ${eventId}`);
     const eventData = state.events.find(e => e.id === eventId);
-    // Allow opening even if empty list so user sees it's empty (or we can handle logic differently)
-    // But checking length > 0 is fine.
+    
     if (!eventData || !eventData.attendees || eventData.attendees.length === 0) {
         return; 
     }
@@ -170,11 +205,8 @@ export const openParticipantsModal = (eventId) => {
         </div>
     `).join('');
 
-    // 1. Show the overlay
+    // Show Modal
     modal.classList.remove('invisible', 'opacity-0');
-    
-    // 2. Animate the content up
-    // We remove the 'translate-y-full' (hidden down) and add 'translate-y-0' (shown)
     setTimeout(() => {
         content.classList.remove('translate-y-full');
         content.classList.add('translate-y-0');
@@ -185,11 +217,9 @@ export const closeParticipantsModal = () => {
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
 
-    // 1. Animate content down
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
 
-    // 2. Hide overlay after animation finishes
     setTimeout(() => {
         modal.classList.add('invisible', 'opacity-0');
     }, 300);
@@ -198,6 +228,8 @@ export const closeParticipantsModal = () => {
 const updateDashboardEvent = () => {
     const card = document.getElementById('dashboard-event-card');
     if (!card) return;
+    
+    // Filter for future events
     const upcoming = state.events.filter(e => new Date(e.start_at) > new Date())[0];
 
     if (!upcoming) {
