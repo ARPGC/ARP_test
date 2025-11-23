@@ -61,69 +61,104 @@ export const renderRewards = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-// 3. Render Product Detail (FULL HEIGHT IMAGE)
+// 3. Render Product Detail (Full Height Image + Dark Mode Info Layout)
 export const showProductDetailPage = (productId) => {
     const product = getProduct(productId);
     if (!product) return;
 
-    // Use the first image for the "Full Height" hero
+    // Image & Data Setup
     const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : getPlaceholderImage();
     const canAfford = state.currentUser.current_points >= product.ecopoints_cost;
+    const highlights = product.highlights.length > 0 ? product.highlights : ['Verified Quality', 'Authentic Product', 'Student Favorite'];
+    const specs = product.specs.length > 0 ? product.specs : [{ spec_key: 'Type', spec_value: 'Standard' }, { spec_key: 'Availability', spec_value: 'In Stock' }];
 
+    // Render
     els.productDetailPage.innerHTML = `
-        <div class="relative w-full h-full bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar pb-32">
+        <div class="relative w-full h-full bg-[#0d1117] overflow-y-auto no-scrollbar pb-28">
             
-            <div class="relative w-full h-[70vh]">
+            <div class="relative w-full h-[60vh] flex-shrink-0">
                 <img src="${imageUrl}" class="w-full h-full object-cover" onerror="this.src='${getPlaceholderImage()}'">
                 
-                <button onclick="showPage('rewards')" class="absolute top-6 left-6 p-3 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-all z-20">
+                <button onclick="showPage('rewards')" class="absolute top-6 left-6 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-all z-20">
                     <i data-lucide="arrow-left" class="w-6 h-6"></i>
                 </button>
 
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none"></div>
+                <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0d1117] to-transparent"></div>
             </div>
 
-            <div class="relative -mt-16 z-10 bg-white dark:bg-gray-900 rounded-t-[2.5rem] px-6 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-[40vh]">
+            <div class="relative px-5 -mt-6 z-10">
                 
-                <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6 opacity-50"></div>
+                <div class="mb-6">
+                    <h1 class="text-2xl font-bold text-white mb-2 leading-tight">${product.name}</h1>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        ${product.description || 'No description available for this item.'}
+                    </p>
+                </div>
 
-                <div class="flex justify-between items-start mb-3">
-                    <h1 class="text-2xl font-black text-gray-900 dark:text-white leading-tight w-3/4">${product.name}</h1>
-                    <div class="flex flex-col items-end">
-                         <span class="text-xs text-gray-400 line-through">₹${product.original_price}</span>
-                         <span class="text-2xl font-black text-green-600 dark:text-green-400">₹${product.discounted_price}</span>
+                <div class="mb-8">
+                    <h3 class="text-base font-bold text-white mb-4">Highlights</h3>
+                    <div class="space-y-3">
+                        ${highlights.map(h => `
+                            <div class="flex items-start p-3 bg-[#11221c] rounded-2xl border border-[#1e4e38]">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <div class="w-5 h-5 rounded-full bg-[#00a86b] flex items-center justify-center">
+                                        <i data-lucide="check" class="w-3 h-3 text-white"></i>
+                                    </div>
+                                </div>
+                                <span class="ml-3 text-sm font-medium text-gray-200 leading-snug">${h}</span>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
-                    <img src="${product.storeLogo || getPlaceholderImage('40x40')}" class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-700">
-                    <div>
-                        <p class="text-xs text-gray-400 font-bold uppercase tracking-wide">Sold By</p>
-                        <p class="text-sm font-bold text-gray-800 dark:text-gray-200">${product.storeName}</p>
+                <div class="mb-8">
+                    <h3 class="text-base font-bold text-white mb-4">Specifications</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        ${specs.map(s => `
+                            <div class="bg-[#161b22] p-4 rounded-xl border border-gray-800">
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">${s.spec_key}</p>
+                                <p class="text-sm font-bold text-white line-clamp-1">${s.spec_value}</p>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
 
-                <div class="prose dark:prose-invert max-w-none mb-8">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Description</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">${product.description || 'No description available for this item.'}</p>
+                <div class="mb-4 p-5 bg-[#14142b] rounded-2xl border border-[#2d2d55]">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-indigo-400"></i>
+                        <h3 class="text-sm font-bold text-white">How to Redeem</h3>
+                    </div>
+                    <p class="text-xs text-indigo-200 leading-relaxed">
+                        Purchase this item using points. A QR code will be generated which you must show at the <strong>${product.storeName}</strong> counter to claim your item.
+                    </p>
                 </div>
             </div>
 
-            <div class="fixed bottom-0 left-0 right-0 p-5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-30 max-w-[420px] mx-auto">
+            <div class="fixed bottom-0 left-0 right-0 p-4 bg-[#0d1117] border-t border-gray-800 z-50 max-w-[420px] mx-auto flex items-center justify-between pb-6">
+                
+                <div>
+                    <p class="text-xs text-gray-500 line-through mb-0.5">₹${product.original_price}</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-black text-white">₹${product.discounted_price}</span>
+                        <span class="text-gray-500 text-sm">+</span>
+                        <div class="flex items-center text-[#00d685] font-bold text-lg">
+                            <i data-lucide="leaf" class="w-4 h-4 mr-1 fill-current"></i>
+                            <span>${product.ecopoints_cost}</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <button onclick="openPurchaseModal('${product.id}')" 
                     ${canAfford ? '' : 'disabled'}
-                    class="w-full btn-eco-gradient text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 text-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
-                    <span>${canAfford ? 'Redeem Now' : 'Not Enough Points'}</span>
-                    <div class="flex items-center bg-white/20 px-2 py-0.5 rounded-lg ml-1">
-                        <i data-lucide="leaf" class="w-5 h-5 mr-1 fill-white"></i>
-                        <span>${product.ecopoints_cost}</span>
-                    </div>
+                    class="bg-white text-black hover:bg-gray-200 font-bold py-3 px-6 rounded-xl flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span>${canAfford ? 'Redeem Now' : 'Low Points'}</span>
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
     `;
 
-    // !IMPORTANT: Switch page view
+    // Switch View
     window.showPage('product-detail-page');
     if(window.lucide) window.lucide.createIcons();
 };
@@ -132,7 +167,7 @@ export const showProductDetailPage = (productId) => {
 export const openPurchaseModal = (productId) => {
     const product = getProduct(productId);
     if (!product) return;
-    const imageUrl = (product.images && product.images[0]) ? product.images[0] : getPlaceholderImage('100x100');
+    const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : getPlaceholderImage('100x100');
     els.purchaseModal.innerHTML = `
         <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Confirm Redemption</h3><button onclick="closePurchaseModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="flex items-center mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl"><img src="${imageUrl}" class="w-16 h-16 object-cover rounded-lg mr-4"><div><h4 class="text-lg font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${product.name}</h4><div class="flex items-center font-bold text-gray-800 dark:text-gray-100 text-sm"><span class="text-green-700 dark:text-green-400">₹${product.discounted_price}</span><span class="mx-1 text-gray-400">+</span><i data-lucide="leaf" class="w-3 h-3 text-green-500 mr-1"></i><span class="text-green-700 dark:text-green-400">${product.ecopoints_cost}</span></div></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center">By confirming, ${product.ecopoints_cost} EcoPoints will be deducted from your balance.</p><button id="confirm-purchase-btn" onclick="confirmPurchase('${product.id}')" class="w-full btn-eco-gradient text-white font-bold py-3.5 px-4 rounded-xl mb-3 shadow-lg">Confirm & Pay ₹${product.discounted_price}</button>`;
     els.purchaseModalOverlay.classList.remove('hidden');
@@ -271,9 +306,7 @@ export const closeQrModal = () => {
     setTimeout(() => els.qrModalOverlay.classList.add('hidden'), 300);
 };
 
-// ==========================================
-// NEW ECO POINTS LOGIC (From previous turn)
-// ==========================================
+// 6. ECO POINTS LOGIC (Included for completeness based on previous steps)
 export const renderEcoPointsPage = () => {
     const u = state.currentUser;
     if (!u) return;
@@ -308,19 +341,14 @@ export const renderEcoPointsPage = () => {
             let borderClass = isLocked ? 'border-gray-200 dark:border-gray-700' : 'border-green-500';
             let opacityClass = isLocked ? 'opacity-50' : 'opacity-100';
 
-            // Last item shouldn't have the vertical line
             const isLast = i === state.levels.length - 1;
 
             return `
             <div class="flex gap-4 relative ${opacityClass}">
                 ${!isLast ? `<div class="absolute left-[11px] top-8 bottom-[-16px] w-0.5 bg-gray-200 dark:bg-gray-700"></div>` : ''}
-                
                 <div class="flex-shrink-0">
-                    <div class="w-6 h-6 rounded-full border-2 ${borderClass} bg-white dark:bg-gray-800 flex items-center justify-center text-xs font-bold ${colorClass} z-10 relative">
-                        ${l.level}
-                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 ${borderClass} bg-white dark:bg-gray-800 flex items-center justify-center text-xs font-bold ${colorClass} z-10 relative">${l.level}</div>
                 </div>
-                
                 <div class="pb-6">
                     <h4 class="font-bold text-sm ${isLocked ? 'text-gray-500' : 'text-green-700 dark:text-green-300'}">${l.title}</h4>
                     <p class="text-xs font-semibold text-gray-400 mb-1">${l.minPoints} - ${l.nextMin === Infinity ? '∞' : l.nextMin} Pts</p>
@@ -330,79 +358,43 @@ export const renderEcoPointsPage = () => {
         }).join('');
     }
 
-    // 4. Inject "How to Earn Points" Card (If missing)
+    // 4. Inject "How to Earn Points" Card
     const pageContainer = document.getElementById('ecopoints');
     let earnCard = document.getElementById('how-to-earn-card');
-    
-    // Create the card if it doesn't exist
     if (!earnCard && pageContainer) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
             <div id="how-to-earn-card" class="glass-card p-6 rounded-2xl mb-6">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">How to Earn Points</h3>
                 <div class="space-y-4">
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="recycle" class="w-5 h-5 text-green-500 mt-0.5"></i>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">Submit plastic at collection points.</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="calendar-heart" class="w-5 h-5 text-purple-500 mt-0.5"></i>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">Attend Green Club events and workshops.</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="medal" class="w-5 h-5 text-yellow-500 mt-0.5"></i>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">Complete special "Eco-Challenges".</p>
-                    </div>
+                    <div class="flex items-start gap-3"><i data-lucide="recycle" class="w-5 h-5 text-green-500 mt-0.5"></i><p class="text-sm text-gray-600 dark:text-gray-300">Submit plastic at collection points.</p></div>
+                    <div class="flex items-start gap-3"><i data-lucide="calendar-heart" class="w-5 h-5 text-purple-500 mt-0.5"></i><p class="text-sm text-gray-600 dark:text-gray-300">Attend Green Club events and workshops.</p></div>
+                    <div class="flex items-start gap-3"><i data-lucide="medal" class="w-5 h-5 text-yellow-500 mt-0.5"></i><p class="text-sm text-gray-600 dark:text-gray-300">Complete special "Eco-Challenges".</p></div>
                 </div>
-            </div>
-        `;
-        // Insert before Recent Activity
+            </div>`;
         const recentActivityCard = document.getElementById('ecopoints-recent-activity')?.parentElement;
-        if (recentActivityCard) {
-            pageContainer.insertBefore(tempDiv.firstElementChild, recentActivityCard);
-        }
+        if (recentActivityCard) { pageContainer.insertBefore(tempDiv.firstElementChild, recentActivityCard); }
     }
 
     // 5. Render Recent Transactions
     const historyContainer = document.getElementById('ecopoints-recent-activity');
     if (historyContainer) {
-        const recentHistory = state.history.slice(0, 5); // Show top 5
-        
+        const recentHistory = state.history.slice(0, 5); 
         if (recentHistory.length === 0) {
             historyContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-sm">No recent activity.</p>`;
         } else {
             historyContainer.innerHTML = recentHistory.map(h => `
                 <div class="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 last:border-0 pb-2 last:pb-0">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-                            <i data-lucide="${h.icon}" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold text-gray-800 dark:text-gray-200 line-clamp-1">${h.description}</p>
-                            <p class="text-[10px] text-gray-400">${h.date}</p>
-                        </div>
-                    </div>
-                    <span class="text-sm font-bold ${h.points >= 0 ? 'text-green-600' : 'text-red-500'}">
-                        ${h.points > 0 ? '+' : ''}${h.points}
-                    </span>
-                </div>
-            `).join('');
-            
-            // Add "View All" button footer if not present
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center"><i data-lucide="${h.icon}" class="w-4 h-4 text-gray-600 dark:text-gray-300"></i></div><div><p class="text-sm font-bold text-gray-800 dark:text-gray-200 line-clamp-1">${h.description}</p><p class="text-[10px] text-gray-400">${h.date}</p></div></div><span class="text-sm font-bold ${h.points >= 0 ? 'text-green-600' : 'text-red-500'}">${h.points > 0 ? '+' : ''}${h.points}</span>
+                </div>`).join('');
             if (!document.getElementById('view-all-history-btn')) {
-                historyContainer.innerHTML += `
-                    <div class="mt-3 text-right">
-                        <button id="view-all-history-btn" onclick="showPage('history')" class="text-xs font-bold text-green-600 hover:text-green-700">View All</button>
-                    </div>
-                `;
+                historyContainer.innerHTML += `<div class="mt-3 text-right"><button id="view-all-history-btn" onclick="showPage('history')" class="text-xs font-bold text-green-600 hover:text-green-700">View All</button></div>`;
             }
         }
     }
-    
     if(window.lucide) window.lucide.createIcons();
 };
 
-// 6. GLOBAL ASSIGNMENTS (CRITICAL)
 window.renderRewardsWrapper = renderRewards;
 window.showProductDetailPage = showProductDetailPage;
 window.openPurchaseModal = openPurchaseModal;
