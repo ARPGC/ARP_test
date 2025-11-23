@@ -1,10 +1,11 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, getPlaceholderImage, formatDate, getUserLevel, getIconForHistory } from './utils.js';
+import { els, getPlaceholderImage, formatDate, getUserLevel } from './utils.js';
 import { refreshUserData } from './app.js';
 
 const getProduct = (productId) => state.products.find(p => p.id === productId);
 
+// 1. Load Data
 export const loadStoreAndProductData = async () => {
     try {
         const { data, error } = await supabase.from('products').select(`
@@ -29,6 +30,7 @@ export const loadStoreAndProductData = async () => {
     } catch (err) { console.error('Product Load Error:', err); }
 };
 
+// 2. Render Grid
 export const renderRewards = () => {
     els.productGrid.innerHTML = '';
     let products = [...state.products];
@@ -59,30 +61,218 @@ export const renderRewards = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
+// 3. Render Product Detail (FULL HEIGHT IMAGE)
 export const showProductDetailPage = (productId) => {
     const product = getProduct(productId);
     if (!product) return;
-    // ... (Your existing product detail logic remains here - omitted for brevity but keeping functionality) ...
-    // NOTE: Copy your existing showProductDetailPage logic here if you replaced the whole file
-    // For this specific update, I will assume you merge this or I can provide the full file if needed.
-    // Assuming you have the previous code, I'll focus on the new renderEcoPointsPage below.
-    
-    // --> RE-INSERT YOUR EXISTING PRODUCT DETAIL CODE HERE <--
-    // If you need the full file again, let me know. I am focusing on the EcoPoints fix.
-    
-    // Re-implementation for context (simplified):
-    const images = (product.images && product.images.length > 0) ? product.images : [getPlaceholderImage()];
-    // ... rest of detail page logic ...
-    
-    // Call the original function if you pasted this over the old file, or just ensure the old function is here.
-    // For safety, I'll paste the full valid function in the final block.
-    
-    // (See full file content below for the complete code)
+
+    // Use the first image for the "Full Height" hero
+    const imageUrl = (product.images && product.images.length > 0) ? product.images[0] : getPlaceholderImage();
+    const canAfford = state.currentUser.current_points >= product.ecopoints_cost;
+
+    els.productDetailPage.innerHTML = `
+        <div class="relative w-full h-full bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar pb-32">
+            
+            <div class="relative w-full h-[70vh]">
+                <img src="${imageUrl}" class="w-full h-full object-cover" onerror="this.src='${getPlaceholderImage()}'">
+                
+                <button onclick="showPage('rewards')" class="absolute top-6 left-6 p-3 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-all z-20">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </button>
+
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none"></div>
+            </div>
+
+            <div class="relative -mt-16 z-10 bg-white dark:bg-gray-900 rounded-t-[2.5rem] px-6 py-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-[40vh]">
+                
+                <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6 opacity-50"></div>
+
+                <div class="flex justify-between items-start mb-3">
+                    <h1 class="text-2xl font-black text-gray-900 dark:text-white leading-tight w-3/4">${product.name}</h1>
+                    <div class="flex flex-col items-end">
+                         <span class="text-xs text-gray-400 line-through">₹${product.original_price}</span>
+                         <span class="text-2xl font-black text-green-600 dark:text-green-400">₹${product.discounted_price}</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                    <img src="${product.storeLogo || getPlaceholderImage('40x40')}" class="w-8 h-8 rounded-full border border-gray-100 dark:border-gray-700">
+                    <div>
+                        <p class="text-xs text-gray-400 font-bold uppercase tracking-wide">Sold By</p>
+                        <p class="text-sm font-bold text-gray-800 dark:text-gray-200">${product.storeName}</p>
+                    </div>
+                </div>
+
+                <div class="prose dark:prose-invert max-w-none mb-8">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Description</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">${product.description || 'No description available for this item.'}</p>
+                </div>
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 p-5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-30 max-w-[420px] mx-auto">
+                <button onclick="openPurchaseModal('${product.id}')" 
+                    ${canAfford ? '' : 'disabled'}
+                    class="w-full btn-eco-gradient text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 text-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+                    <span>${canAfford ? 'Redeem Now' : 'Not Enough Points'}</span>
+                    <div class="flex items-center bg-white/20 px-2 py-0.5 rounded-lg ml-1">
+                        <i data-lucide="leaf" class="w-5 h-5 mr-1 fill-white"></i>
+                        <span>${product.ecopoints_cost}</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    `;
+
+    // !IMPORTANT: Switch page view
+    window.showPage('product-detail-page');
+    if(window.lucide) window.lucide.createIcons();
 };
 
+// 4. Purchase Logic
+export const openPurchaseModal = (productId) => {
+    const product = getProduct(productId);
+    if (!product) return;
+    const imageUrl = (product.images && product.images[0]) ? product.images[0] : getPlaceholderImage('100x100');
+    els.purchaseModal.innerHTML = `
+        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Confirm Redemption</h3><button onclick="closePurchaseModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="flex items-center mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl"><img src="${imageUrl}" class="w-16 h-16 object-cover rounded-lg mr-4"><div><h4 class="text-lg font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${product.name}</h4><div class="flex items-center font-bold text-gray-800 dark:text-gray-100 text-sm"><span class="text-green-700 dark:text-green-400">₹${product.discounted_price}</span><span class="mx-1 text-gray-400">+</span><i data-lucide="leaf" class="w-3 h-3 text-green-500 mr-1"></i><span class="text-green-700 dark:text-green-400">${product.ecopoints_cost}</span></div></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center">By confirming, ${product.ecopoints_cost} EcoPoints will be deducted from your balance.</p><button id="confirm-purchase-btn" onclick="confirmPurchase('${product.id}')" class="w-full btn-eco-gradient text-white font-bold py-3.5 px-4 rounded-xl mb-3 shadow-lg">Confirm & Pay ₹${product.discounted_price}</button>`;
+    els.purchaseModalOverlay.classList.remove('hidden');
+    setTimeout(() => els.purchaseModal.classList.remove('translate-y-full'), 10);
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const closePurchaseModal = () => {
+    els.purchaseModal.classList.add('translate-y-full');
+    setTimeout(() => els.purchaseModalOverlay.classList.add('hidden'), 300);
+};
+
+export const confirmPurchase = async (productId) => {
+    try {
+        const product = getProduct(productId);
+        if (!product || state.currentUser.current_points < product.ecopoints_cost) { alert("You do not have enough points."); return; }
+        const confirmBtn = document.getElementById('confirm-purchase-btn');
+        confirmBtn.disabled = true; confirmBtn.textContent = 'Processing...';
+        
+        const { data: orderData, error: orderError } = await supabase.from('orders').insert({ user_id: state.currentUser.id, store_id: product.store_id, status: 'pending', total_points: product.ecopoints_cost, total_price: product.discounted_price, requires_approval: false }).select().single();
+        if (orderError) throw orderError;
+        
+        const { error: itemError } = await supabase.from('order_items').insert({ order_id: orderData.id, product_id: product.id, quantity: 1, price_each: product.discounted_price, points_each: product.ecopoints_cost });
+        if (itemError) throw itemError;
+        
+        const { error: confirmError } = await supabase.from('orders').update({ status: 'confirmed' }).eq('id', orderData.id);
+        if (confirmError) throw confirmError;
+        
+        closePurchaseModal();
+        await Promise.all([refreshUserData(), loadUserRewardsData()]);
+        window.showPage('my-rewards');
+    } catch (err) { console.error('Purchase Failed:', err); alert(`Purchase failed: ${err.message}`); }
+};
+
+// 5. My Rewards (Orders)
+export const loadUserRewardsData = async () => {
+    try {
+        const { data, error } = await supabase.from('orders').select(`id, created_at, status, order_items ( products ( id, name, product_images ( image_url ), stores ( name ) ) )`).eq('user_id', state.currentUser.id).order('created_at', { ascending: false });
+        if (error) return;
+        state.userRewards = data.map(order => {
+            const item = order.order_items[0]; if (!item) return null;
+            return { userRewardId: order.id, purchaseDate: formatDate(order.created_at), status: order.status, productName: item.products.name, storeName: item.products.stores.name, productImage: (item.products.product_images[0] && item.products.product_images[0].image_url) || getPlaceholderImage() };
+        }).filter(Boolean);
+        if (document.getElementById('my-rewards').classList.contains('active')) renderMyRewardsPage();
+    } catch (err) { console.error('User Rewards Load Error:', err); }
+};
+
+export const renderMyRewardsPage = () => {
+    els.allRewardsList.innerHTML = '';
+    
+    if (state.userRewards.length === 0) { 
+        els.allRewardsList.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 opacity-60">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="shopping-bag" class="w-8 h-8 text-gray-400"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No orders yet.</p>
+                <button onclick="showPage('rewards')" class="mt-4 text-brand-600 font-bold text-sm hover:underline">Visit Store</button>
+            </div>`; 
+        if(window.lucide) window.lucide.createIcons();
+        return; 
+    }
+
+    state.userRewards.forEach(ur => {
+        let statusBadge = '';
+        let actionButton = '';
+        const isConfirmed = ur.status === 'confirmed';
+        
+        if (isConfirmed) {
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 uppercase tracking-wide">Ready</span>`;
+            
+            actionButton = `
+                <button onclick="openRewardQrModal('${ur.userRewardId}')" class="flex items-center justify-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl shadow-lg shadow-gray-200 dark:shadow-none active:scale-95 transition-all w-full mt-3 group">
+                    <i data-lucide="qr-code" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-bold">Show QR Code</span>
+                </button>
+            `;
+        } else {
+            const color = ur.status === 'pending' ? 'yellow' : 'red';
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-${color}-100 text-${color}-700 dark:bg-${color}-900/40 dark:text-${color}-400 uppercase tracking-wide">${ur.status}</span>`;
+            actionButton = `
+                <button disabled class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 px-4 py-2.5 rounded-xl w-full mt-3 cursor-not-allowed">
+                    <span class="text-xs font-bold">Processing...</span>
+                </button>
+            `;
+        }
+
+        els.allRewardsList.innerHTML += `
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/20 dark:to-gray-700/0 rounded-full z-0"></div>
+                
+                <div class="relative z-10 flex gap-4">
+                    <div class="flex-shrink-0">
+                        <img src="${ur.productImage}" class="w-20 h-20 rounded-2xl object-cover border border-gray-100 dark:border-gray-700 shadow-sm" onerror="this.src='${getPlaceholderImage()}'">
+                    </div>
+                    
+                    <div class="flex-grow min-w-0">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate pr-2">${ur.storeName}</p>
+                            ${statusBadge}
+                        </div>
+                        <h3 class="text-sm font-black text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">${ur.productName}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${ur.purchaseDate}</p>
+                    </div>
+                </div>
+
+                <div class="relative mt-4 mb-1">
+                    <div class="absolute left-0 right-0 top-1/2 border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                    <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-4 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
+                    <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-4 h-4 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
+                </div>
+
+                <div class="pt-1 relative z-10">
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+    });
+    
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const openRewardQrModal = (userRewardId) => {
+    const ur = state.userRewards.find(r => r.userRewardId === userRewardId);
+    if (!ur) return;
+    const qrValue = `ecocampus-order:${userRewardId}-user:${state.currentUser.id}`;
+    els.qrModal.innerHTML = `
+        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Reward QR</h3><button onclick="closeQrModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Show this QR at <strong>${ur.storeName}</strong> to redeem <strong>${ur.productName}</strong>.</p><div class="flex justify-center mb-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrValue)}" class="rounded-lg border"></div><button onclick="closeQrModal()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg">Close</button>`;
+    els.qrModalOverlay.classList.remove('hidden');
+    setTimeout(() => els.qrModal.classList.remove('translate-y-full'), 10);
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const closeQrModal = () => {
+    els.qrModal.classList.add('translate-y-full');
+    setTimeout(() => els.qrModalOverlay.classList.add('hidden'), 300);
+};
 
 // ==========================================
-// ✅ NEW: ECO POINTS PAGE LOGIC
+// NEW ECO POINTS LOGIC (From previous turn)
 // ==========================================
 export const renderEcoPointsPage = () => {
     const u = state.currentUser;
@@ -212,150 +402,7 @@ export const renderEcoPointsPage = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-// ... (Rest of Purchase/Modal logic) ...
-// Ensure you include the rest of store.js exports below:
-
-export const openPurchaseModal = (productId) => {
-    const product = getProduct(productId);
-    if (!product) return;
-    const imageUrl = (product.images && product.images[0]) ? product.images[0] : getPlaceholderImage('100x100');
-    els.purchaseModal.innerHTML = `
-        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Confirm Redemption</h3><button onclick="closePurchaseModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="flex items-center mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl"><img src="${imageUrl}" class="w-16 h-16 object-cover rounded-lg mr-4"><div><h4 class="text-lg font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${product.name}</h4><div class="flex items-center font-bold text-gray-800 dark:text-gray-100 text-sm"><span class="text-green-700 dark:text-green-400">₹${product.discounted_price}</span><span class="mx-1 text-gray-400">+</span><i data-lucide="leaf" class="w-3 h-3 text-green-500 mr-1"></i><span class="text-green-700 dark:text-green-400">${product.ecopoints_cost}</span></div></div></div><p class="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center">By confirming, ${product.ecopoints_cost} EcoPoints will be deducted from your balance.</p><button id="confirm-purchase-btn" onclick="confirmPurchase('${product.id}')" class="w-full btn-eco-gradient text-white font-bold py-3.5 px-4 rounded-xl mb-3 shadow-lg">Confirm & Pay ₹${product.discounted_price}</button>`;
-    els.purchaseModalOverlay.classList.remove('hidden');
-    setTimeout(() => els.purchaseModal.classList.remove('translate-y-full'), 10);
-    if(window.lucide) window.lucide.createIcons();
-};
-
-export const closePurchaseModal = () => {
-    els.purchaseModal.classList.add('translate-y-full');
-    setTimeout(() => els.purchaseModalOverlay.classList.add('hidden'), 300);
-};
-
-export const confirmPurchase = async (productId) => {
-    try {
-        const product = getProduct(productId);
-        if (!product || state.currentUser.current_points < product.ecopoints_cost) { alert("You do not have enough points."); return; }
-        const confirmBtn = document.getElementById('confirm-purchase-btn');
-        confirmBtn.disabled = true; confirmBtn.textContent = 'Processing...';
-        
-        const { data: orderData, error: orderError } = await supabase.from('orders').insert({ user_id: state.currentUser.id, store_id: product.store_id, status: 'pending', total_points: product.ecopoints_cost, total_price: product.discounted_price, requires_approval: false }).select().single();
-        if (orderError) throw orderError;
-        
-        const { error: itemError } = await supabase.from('order_items').insert({ order_id: orderData.id, product_id: product.id, quantity: 1, price_each: product.discounted_price, points_each: product.ecopoints_cost });
-        if (itemError) throw itemError;
-        
-        const { error: confirmError } = await supabase.from('orders').update({ status: 'confirmed' }).eq('id', orderData.id);
-        if (confirmError) throw confirmError;
-        
-        closePurchaseModal();
-        await Promise.all([refreshUserData(), loadUserRewardsData()]);
-        window.showPage('my-rewards');
-    } catch (err) { console.error('Purchase Failed:', err); alert(`Purchase failed: ${err.message}`); }
-};
-
-export const loadUserRewardsData = async () => {
-    try {
-        const { data, error } = await supabase.from('orders').select(`id, created_at, status, order_items ( products ( id, name, product_images ( image_url ), stores ( name ) ) )`).eq('user_id', state.currentUser.id).order('created_at', { ascending: false });
-        if (error) return;
-        state.userRewards = data.map(order => {
-            const item = order.order_items[0]; if (!item) return null;
-            return { userRewardId: order.id, purchaseDate: formatDate(order.created_at), status: order.status, productName: item.products.name, storeName: item.products.stores.name, productImage: (item.products.product_images[0] && item.products.product_images[0].image_url) || getPlaceholderImage() };
-        }).filter(Boolean);
-        if (document.getElementById('my-rewards').classList.contains('active')) renderMyRewardsPage();
-    } catch (err) { console.error('User Rewards Load Error:', err); }
-};
-
-export const renderMyRewardsPage = () => {
-    els.allRewardsList.innerHTML = '';
-    
-    if (state.userRewards.length === 0) { 
-        els.allRewardsList.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-12 opacity-60">
-                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                    <i data-lucide="shopping-bag" class="w-8 h-8 text-gray-400"></i>
-                </div>
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No orders yet.</p>
-                <button onclick="showPage('rewards')" class="mt-4 text-brand-600 font-bold text-sm hover:underline">Visit Store</button>
-            </div>`; 
-        if(window.lucide) window.lucide.createIcons();
-        return; 
-    }
-
-    state.userRewards.forEach(ur => {
-        let statusBadge = '';
-        let actionButton = '';
-        const isConfirmed = ur.status === 'confirmed';
-        
-        if (isConfirmed) {
-            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 uppercase tracking-wide">Ready</span>`;
-            
-            actionButton = `
-                <button onclick="openRewardQrModal('${ur.userRewardId}')" class="flex items-center justify-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2.5 rounded-xl shadow-lg shadow-gray-200 dark:shadow-none active:scale-95 transition-all w-full mt-3 group">
-                    <i data-lucide="qr-code" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
-                    <span class="text-xs font-bold">Show QR Code</span>
-                </button>
-            `;
-        } else {
-            const color = ur.status === 'pending' ? 'yellow' : 'red';
-            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-${color}-100 text-${color}-700 dark:bg-${color}-900/40 dark:text-${color}-400 uppercase tracking-wide">${ur.status}</span>`;
-            actionButton = `
-                <button disabled class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 px-4 py-2.5 rounded-xl w-full mt-3 cursor-not-allowed">
-                    <span class="text-xs font-bold">Processing...</span>
-                </button>
-            `;
-        }
-
-        els.allRewardsList.innerHTML += `
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/20 dark:to-gray-700/0 rounded-full z-0"></div>
-                
-                <div class="relative z-10 flex gap-4">
-                    <div class="flex-shrink-0">
-                        <img src="${ur.productImage}" class="w-20 h-20 rounded-2xl object-cover border border-gray-100 dark:border-gray-700 shadow-sm" onerror="this.src='${getPlaceholderImage()}'">
-                    </div>
-                    
-                    <div class="flex-grow min-w-0">
-                        <div class="flex justify-between items-start mb-1">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate pr-2">${ur.storeName}</p>
-                            ${statusBadge}
-                        </div>
-                        <h3 class="text-sm font-black text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">${ur.productName}</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${ur.purchaseDate}</p>
-                    </div>
-                </div>
-
-                <div class="relative mt-4 mb-1">
-                    <div class="absolute left-0 right-0 top-1/2 border-t border-dashed border-gray-300 dark:border-gray-600"></div>
-                    <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-4 h-4 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
-                    <div class="absolute -right-6 top-1/2 -translate-y-1/2 w-4 h-4 bg-gray-50 dark:bg-gray-900 rounded-full"></div>
-                </div>
-
-                <div class="pt-1 relative z-10">
-                    ${actionButton}
-                </div>
-            </div>
-        `;
-    });
-    
-    if(window.lucide) window.lucide.createIcons();
-};
-
-export const openRewardQrModal = (userRewardId) => {
-    const ur = state.userRewards.find(r => r.userRewardId === userRewardId);
-    if (!ur) return;
-    const qrValue = `ecocampus-order:${userRewardId}-user:${state.currentUser.id}`;
-    els.qrModal.innerHTML = `
-        <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Reward QR</h3><button onclick="closeQrModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Show this QR at <strong>${ur.storeName}</strong> to redeem <strong>${ur.productName}</strong>.</p><div class="flex justify-center mb-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrValue)}" class="rounded-lg border"></div><button onclick="closeQrModal()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg">Close</button>`;
-    els.qrModalOverlay.classList.remove('hidden');
-    setTimeout(() => els.qrModal.classList.remove('translate-y-full'), 10);
-    if(window.lucide) window.lucide.createIcons();
-};
-
-export const closeQrModal = () => {
-    els.qrModal.classList.add('translate-y-full');
-    setTimeout(() => els.qrModalOverlay.classList.add('hidden'), 300);
-};
-
+// 6. GLOBAL ASSIGNMENTS (CRITICAL)
 window.renderRewardsWrapper = renderRewards;
 window.showProductDetailPage = showProductDetailPage;
 window.openPurchaseModal = openPurchaseModal;
