@@ -9,10 +9,6 @@ import { renderEventsPage } from './events.js';
 import { renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// ==========================================
-// 1. DOM & CONFIG
-// ==========================================
-
 export const els = {
     get pages() { return document.querySelectorAll('.page'); },
     get sidebar() { return document.getElementById('sidebar'); },
@@ -40,69 +36,38 @@ export const els = {
     get qrModal() { return document.getElementById('qr-modal'); }
 };
 
-// ==========================================
-// 2. OFFLINE CACHE ENGINE (localForage)
-// ==========================================
-
-// Wrapper to safely get data from localForage
+// --- OFFLINE CACHE ENGINE ---
 export const cacheGet = async (key) => {
     if (!window.localforage) return null;
-    try {
-        const data = await window.localforage.getItem(key);
-        // Optional: Add expiration logic here if needed in future
-        return data;
-    } catch (err) {
-        console.warn(`Cache GET failed for ${key}:`, err);
-        return null;
-    }
+    try { return await window.localforage.getItem(key); } 
+    catch (err) { console.warn(`Cache GET failed:`, err); return null; }
 };
 
-// Wrapper to safely set data to localForage
 export const cacheSet = async (key, value) => {
     if (!window.localforage) return;
-    try {
-        await window.localforage.setItem(key, value);
-    } catch (err) {
-        console.warn(`Cache SET failed for ${key}:`, err);
-    }
+    try { await window.localforage.setItem(key, value); } 
+    catch (err) { console.warn(`Cache SET failed:`, err); }
 };
 
-// ==========================================
-// 3. ACTIVITY LOGGING
-// ==========================================
-
-export const logActivity = async (actionType, description, metadata = null, refTable = null, refId = null) => {
-    // Don't log if user isn't logged in yet (unless it's a login attempt)
+// --- ACTIVITY LOGGING ---
+export const logActivity = async (actionType, description, metadata = null) => {
     if (!state.currentUser && actionType !== 'auth') return;
-    
-    // If offline, skip logging (or in V2, queue it)
     if (!navigator.onLine) return;
-
-    const userId = state.currentUser?.id;
-
     try {
-        // Fire and forget - don't await this in UI code
         supabase.from('user_activity_log').insert({
-            user_id: userId,
+            user_id: state.currentUser?.id,
             action_type: actionType,
             description: description,
-            metadata: metadata ? JSON.stringify(metadata) : null,
-            ref_table: refTable,
-            ref_id: refId
-        }).then(({ error }) => {
-            if (error) console.warn("Activity Log Error:", error.message);
-        });
-    } catch (err) {
-        // suppress errors to not break app flow
-    }
+            metadata: metadata ? JSON.stringify(metadata) : null
+        }).then(() => {});
+    } catch (err) {}
 };
 
-// ==========================================
-// 4. PERFORMANCE UTILS
-// ==========================================
-
-// Lazy Loading Image Observer
+// --- PERFORMANCE UTILS ---
 export const setupLazyImages = () => {
+    // Fix: Ensure we select all lazy images
+    const images = document.querySelectorAll('.lazy-img');
+    
     if ('IntersectionObserver' in window) {
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
@@ -118,53 +83,38 @@ export const setupLazyImages = () => {
                 }
             });
         });
-
-        document.querySelectorAll('.lazy-img').forEach(img => {
-            imageObserver.observe(img);
-        });
+        images.forEach(img => imageObserver.observe(img));
     } else {
-        // Fallback for very old browsers
-        document.querySelectorAll('.lazy-img').forEach(img => {
+        // Fallback
+        images.forEach(img => {
             const src = img.getAttribute('data-src');
             if (src) img.src = src;
         });
     }
 };
 
-// Debounce Function for Search
+// Use this export for internal calls only
 export const debounce = (func, wait) => {
     let timeout;
     return function(...args) {
-        const context = this;
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
+        timeout = setTimeout(() => func.apply(this, args), wait);
     };
 };
 
-// Low Data Mode Detection
 export const isLowDataMode = () => {
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (conn) {
-        if (conn.saveData === true) return true;
-        if (conn.effectiveType && (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g')) return true;
-    }
+    if (conn && (conn.saveData === true || conn.effectiveType?.includes('2g'))) return true;
     return false;
 };
 
-// ==========================================
-// 5. FORMATTING & HELPERS
-// ==========================================
-
-export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
-    // If low data mode, return a tiny placeholder or empty pixel
-    if (isLowDataMode()) return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
-    return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
-};
+// --- FORMATTING ---
+export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
 
 export const getTickImg = (tickType) => {
     if (!tickType) return '';
     const url = TICK_IMAGES[tickType.toLowerCase()];
-    return url ? `<img src="${url}" class="tick-icon" alt="${tickType} tick">` : '';
+    return url ? `<img src="${url}" class="tick-icon" alt="${tickType}">` : '';
 };
 
 export const getUserLevel = (points) => {
@@ -187,20 +137,13 @@ export const getUserLevel = (points) => {
     return { ...current, progress, progressText };
 };
 
-// IST Date Logic
-export const getTodayIST = () => {
-    // 'en-CA' format is always YYYY-MM-DD
-    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-};
+export const getTodayIST = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
 export const formatDate = (dateString, options = {}) => {
     if (!dateString) return '...';
-    const defaultOptions = { 
-        year: 'numeric', month: 'short', day: 'numeric',
-        timeZone: 'Asia/Kolkata' 
-    };
-    const finalOptions = { ...defaultOptions, ...options };
-    return new Date(dateString).toLocaleDateString('en-IN', finalOptions);
+    return new Date(dateString).toLocaleDateString('en-IN', { 
+        year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata', ...options 
+    });
 };
 
 export const getIconForHistory = (type) => {
@@ -209,20 +152,16 @@ export const getIconForHistory = (type) => {
 };
 
 export const getIconForChallenge = (type) => {
-    const icons = { 'Quiz': 'brain', 'Upload': 'camera', 'selfie': 'camera', 'spot': 'eye' };
+    const icons = { 'Quiz': 'brain', 'Upload': 'camera', 'selfie': 'camera' };
     return icons[type] || 'award';
 };
 
-export const getUserInitials = (fullName) => {
-    if (!fullName) return '..';
-    return fullName.split(' ').map(n => n[0]).join('').toUpperCase();
-};
+export const getUserInitials = (fullName) => fullName ? fullName.split(' ').map(n => n[0]).join('').toUpperCase() : '..';
 
 export const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    
     try {
         const res = await fetch(CLOUDINARY_API_URL, { method: 'POST', body: formData });
         const data = await res.json();
@@ -231,26 +170,19 @@ export const uploadToCloudinary = async (file) => {
     } catch (err) { console.error("Cloudinary Upload Error:", err); throw err; }
 };
 
-// ==========================================
-// 6. NAVIGATION
-// ==========================================
-
+// --- NAVIGATION ---
 export const showPage = (pageId, addToHistory = true) => {
     els.pages.forEach(p => p.classList.remove('active'));
-    
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
-    // Clear sub-pages content to save memory
+    // Cleanup sub-pages
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
         if(els.storeDetailPage) els.storeDetailPage.innerHTML = ''; 
         if(els.productDetailPage) els.productDetailPage.innerHTML = '';
     }
-    if (pageId !== 'department-detail-page' && els.departmentDetailPage) {
-        els.departmentDetailPage.innerHTML = '';
-    }
+    if (pageId !== 'department-detail-page' && els.departmentDetailPage) els.departmentDetailPage.innerHTML = '';
 
-    // Update Tab Bar
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
         btn.classList.toggle('active', onclickVal && onclickVal.includes(`'${pageId}'`));
@@ -258,9 +190,7 @@ export const showPage = (pageId, addToHistory = true) => {
 
     document.querySelector('.main-content').scrollTop = 0;
 
-    if (addToHistory) {
-        window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
-    }
+    if (addToHistory) window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
 
     // Dispatch Renders
     if (pageId === 'dashboard') { if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); renderDashboard(); } 
@@ -275,18 +205,13 @@ export const showPage = (pageId, addToHistory = true) => {
     else { if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); }
 
     toggleSidebar(true); 
-    
-    // Trigger lazy load check on page change
-    setTimeout(setupLazyImages, 100);
+    setTimeout(setupLazyImages, 100); // Trigger Lazy Load
     if(window.lucide) window.lucide.createIcons();
 };
 
 window.addEventListener('popstate', (event) => {
-    if (event.state && event.state.pageId) {
-        showPage(event.state.pageId, false);
-    } else {
-        showPage('dashboard', false); 
-    }
+    if (event.state && event.state.pageId) showPage(event.state.pageId, false);
+    else showPage('dashboard', false); 
 });
 
 export const toggleSidebar = (forceClose = false) => {
