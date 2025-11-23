@@ -22,7 +22,7 @@ body {
     --tw-shadow: 0 0 #0000 !important;
     --tw-shadow-colored: 0 0 #0000 !important;
     
-    /* New Leaderboard Tokens */
+    /* Leaderboard Tokens */
     --radius: 24px;
     --gold: #D4AF37;
     --silver: #C0C0C0;
@@ -40,9 +40,10 @@ body {
 }
 
 /* =========================================
-   2. DESKTOP SUPPORT (New Addition)
+   2. DESKTOP RESPONSIVE LAYOUT
    ========================================= */
-@media (min-width: 480px) {
+@media (min-width: 1024px) {
+    /* 1. Layout Structure: Desktop Background */
     body {
         display: flex;
         align-items: center;
@@ -56,15 +57,32 @@ body {
         background-image: radial-gradient(#1e293b 1px, transparent 1px);
     }
     
+    /* 2. Sidebar: Permanent on Left */
+    #sidebar {
+        transform: translateX(0) !important; /* Always show */
+        width: 280px !important;
+        position: relative !important;
+        box-shadow: none !important;
+        border-right: 1px solid #e5e7eb;
+        z-index: 10 !important;
+    }
+    .dark #sidebar {
+        border-right: 1px solid #1f2937;
+    }
+    #sidebar-overlay { display: none !important; } /* No overlay needed */
+
+    /* 3. Main App Container: Simulates a floating app window */
     .app-container {
         height: 92vh !important;
-        max-height: 850px;
+        max-height: 900px;
         width: 100%;
-        max-width: 400px; /* Slightly narrower for phone feel */
+        max-width: 1200px !important; /* Wide layout */
         border-radius: 32px;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 8px rgba(255, 255, 255, 0.5);
-        overflow: hidden; /* Clip content to rounded corners */
+        overflow: hidden; 
         background-color: #fff;
+        flex-direction: row !important; /* Side-by-side layout */
+        margin: 0 !important;
     }
     .dark .app-container {
         background-color: #030712;
@@ -72,23 +90,79 @@ body {
         border: 1px solid #1f2937;
     }
 
-    /* Adjust fixed elements to stay inside the container */
-    #sidebar { position: absolute; }
-    #sidebar-overlay { position: absolute; border-radius: 32px; }
-    .glass-bottom-bar { position: absolute; border-radius: 0 0 32px 32px; max-width: 100%; }
-    
-    /* Modals need to be absolute relative to container, not fixed to viewport */
-    #checkin-modal, #purchase-modal, #qr-modal, #camera-modal, #eco-quiz-modal, #chatbot-modal {
-        position: absolute;
-        border-radius: 32px;
+    /* 4. Main Content Area */
+    .main-content {
+        padding-bottom: 20px !important; /* Remove mobile safe area */
+    }
+
+    /* 5. Hide Mobile-Only Elements */
+    #sidebar-toggle-btn { display: none !important; }
+    .glass-bottom-bar { display: none !important; }
+
+    /* 6. Modals: Center Popup instead of Bottom Sheet */
+    #checkin-modal, 
+    #purchase-modal-overlay, 
+    #qr-modal-overlay,
+    #eco-quiz-modal {
+        position: absolute !important; /* Relative to app container */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        border-radius: 32px; /* Match container radius */
+    }
+
+    #checkin-modal-content, 
+    #purchase-modal, 
+    #qr-modal,
+    #eco-quiz-modal-content {
+        position: relative;
+        transform: translateY(0) !important; /* No slide up */
+        border-radius: 24px !important;
+        max-width: 400px !important;
+        width: 100%;
+        margin: auto;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        bottom: auto !important; left: auto !important; right: auto !important;
     }
     
-    /* Fix loading screen radius */
-    #app-loading { border-radius: 32px; }
+    /* 7. Camera Modal: Floating Center */
+    #camera-modal {
+        position: absolute !important;
+        max-width: 500px;
+        height: 80%;
+        margin: auto;
+        border-radius: 24px;
+        overflow: hidden;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+
+    /* 8. Chatbot: Slide from Right (Drawer) */
+    #chatbot-modal {
+        position: absolute !important;
+        width: 400px !important;
+        left: auto !important;
+        right: 0 !important;
+        border-left: 1px solid #e5e7eb;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+        border-radius: 0 32px 32px 0; /* Match container right side */
+    }
+    
+    /* Scrollbars */
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-track { background: transparent; }
+    .main-content::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    .dark .main-content::-webkit-scrollbar-thumb { background-color: #334155; }
 }
 
+/* =========================================
+   3. SHARED CONTAINER STYLES
+   ========================================= */
 .app-container {
-    max-width: 420px;
+    max-width: 420px; /* Mobile Default */
     margin: auto;
     height: 100%;
     display: flex;
@@ -108,12 +182,11 @@ header, nav {
     scroll-behavior: smooth;
     position: relative;
     padding-bottom: 100px; /* Mobile Safe Area */
-    /* Performance: Rendering Optimization */
-    content-visibility: auto;
+    content-visibility: auto; /* Performance Optimization */
 }
 
 /* =========================================
-   3. ANIMATIONS & TRANSITIONS
+   4. ANIMATIONS & TRANSITIONS
    ========================================= */
 @keyframes slideInRight {
     from { opacity: 0; transform: translateX(20px); }
@@ -146,8 +219,8 @@ header, nav {
 /* Lazy Load Blur Effect */
 .lazy-img {
     transition: filter 0.4s ease-in-out, opacity 0.4s ease-in-out;
-    filter: blur(8px);
-    opacity: 0.6;
+    filter: blur(10px);
+    opacity: 0;
 }
 .lazy-img.loaded {
     filter: blur(0);
@@ -155,7 +228,7 @@ header, nav {
 }
 
 /* =========================================
-   4. SIDEBAR & NAVIGATION
+   5. SIDEBAR & NAVIGATION
    ========================================= */
 #sidebar {
     transition: transform 0.3s ease-in-out;
@@ -190,7 +263,7 @@ header, nav {
 #theme-toggle-btn > span { transition: transform 0.3s ease-in-out; }
 
 /* =========================================
-   5. GLASSMORPHISM & CARDS
+   6. GLASSMORPHISM & CARDS
    ========================================= */
 .glass-card {
     background: rgba(255, 255, 255, 0.76);
@@ -237,7 +310,7 @@ header, nav {
 }
 
 /* =========================================
-   6. LEADERBOARD DESIGN (Eco Warriors)
+   7. LEADERBOARD DESIGN
    ========================================= */
 
 /* Leaf Particles (Overlay) */
@@ -486,7 +559,7 @@ header, nav {
 }
 
 /* =========================================
-   7. MODALS & UTILITIES
+   8. MODALS & UTILITIES
    ========================================= */
 /* Check-in Completed State */
 .checkin-completed {
@@ -508,7 +581,6 @@ header, nav {
     display: none !important;
 }
 
-/* FIX: Force the 'Success' card to show when completed */
 .checkin-completed .checkin-show-on-complete {
     display: flex !important;
 }
@@ -606,7 +678,7 @@ header, nav {
 }
 
 /* =========================================
-   8. NEW STYLES (Avatar, Poster, Quiz)
+   9. AVATAR, POSTER, QUIZ, ICONS
    ========================================= */
 
 /* Avatar Stack for Events */
@@ -732,12 +804,12 @@ header, nav {
 }
 
 /* =========================================
-   9. NAVIGATION & REWARDS UPDATES
+   10. NAVIGATION & REWARDS UPDATES
    ========================================= */
 
-/* Nav Item Tweaks for 5 columns */
+/* Nav Item Tweaks */
 .nav-item span {
-    font-size: 10px; /* Adjusted for 5 items */
+    font-size: 10px; 
     letter-spacing: 0.2px;
     font-weight: 700;
 }
@@ -770,7 +842,7 @@ header, nav {
 }
 
 /* =========================================
-   10. CHATBOT UI STYLES
+   11. CHATBOT UI STYLES
    ========================================= */
 
 /* Message Animation */
