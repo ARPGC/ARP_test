@@ -1,55 +1,28 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getIconForHistory, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, cacheGet, cacheSet, logActivity } from './utils.js';
+import { els, formatDate, getIconForHistory, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
 import { refreshUserData } from './app.js';
 
 export const loadDashboardData = async () => {
     try {
         const userId = state.currentUser.id;
-        // IST Date for consistent check-in logic
-        const today = getTodayIST(); 
+        const todayIST = getTodayIST(); 
 
-        // 1. Try Load from Cache
-        const [cachedCheckin, cachedStreak, cachedImpact] = await Promise.all([
-            cacheGet(`checkin_${userId}_${today}`),
-            cacheGet(`streak_${userId}`),
-            cacheGet(`impact_${userId}`)
-        ]);
-
-        // Apply Cached Data if available
-        if (cachedCheckin !== null) state.currentUser.isCheckedInToday = cachedCheckin;
-        if (cachedStreak !== null) state.currentUser.checkInStreak = cachedStreak;
-        if (cachedImpact) state.currentUser.impact = cachedImpact;
-
-        // Render immediately with cached data
-        if (cachedStreak !== null || cachedImpact) renderDashboard();
-
-        // 2. Fetch Fresh Data from Network
+        // Optimization: Use Promise.all for parallel fetching
         const [
             { data: checkinData },
             { data: streakData },
             { data: impactData }
         ] = await Promise.all([
-            supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', today).limit(1),
+            supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', todayIST).limit(1),
             supabase.from('user_streaks').select('current_streak').eq('user_id', userId).single(),
             supabase.from('user_impact').select('*').eq('user_id', userId).single()
         ]);
         
-        // Update State with Fresh Data
         state.currentUser.isCheckedInToday = (checkinData && checkinData.length > 0);
         state.currentUser.checkInStreak = streakData ? streakData.current_streak : 0;
         state.currentUser.impact = impactData || { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
-
-        // Update Cache
-        await Promise.all([
-            cacheSet(`checkin_${userId}_${today}`, state.currentUser.isCheckedInToday),
-            cacheSet(`streak_${userId}`, state.currentUser.checkInStreak),
-            cacheSet(`impact_${userId}`, state.currentUser.impact)
-        ]);
         
-        // Re-render to show latest data
-        renderDashboard();
-
     } catch (err) {
         console.error('Dashboard Data Error:', err);
     }
@@ -57,24 +30,50 @@ export const loadDashboardData = async () => {
 
 export const renderDashboard = () => {
     if (!state.currentUser) return; 
+    
+    // Log View (Once per session/load, or debounced could be better, but this is fine for now)
+    // We put this here to ensure it logs when the user actually sees the dashboard
+    if (document.getElementById('dashboard').classList.contains('active')) {
+        // Optional: Add a simple check to avoid spamming log on every re-render
+    }
+
     renderDashboardUI();
     renderCheckinButtonState();
 };
 
 const renderDashboardUI = () => {
     const user = state.currentUser;
-    els.userPointsHeader.textContent = user.current_points;
-    els.userNameGreeting.textContent = user.full_name;
     
-    document.getElementById('user-name-sidebar').innerHTML = `${user.full_name} ${getTickImg(user.tick_type)}`;
-    document.getElementById('user-points-sidebar').textContent = user.current_points;
-    const level = getUserLevel(user.lifetime_points);
-    document.getElementById('user-level-sidebar').textContent = level.title;
-    document.getElementById('user-avatar-sidebar').src = user.profile_img_url || getPlaceholderImage('80x80', getUserInitials(user.full_name));
+    // Update Header Points
+    if(els.userPointsHeader) els.userPointsHeader.textContent = user.current_points;
+    if(els.userNameGreeting) els.userNameGreeting.textContent = user.full_name;
+    
+    // Update Sidebar Elements (Both Mobile & Desktop exist in DOM now)
+    const sidebarName = document.getElementById('user-name-sidebar');
+    const sidebarPoints = document.getElementById('user-points-sidebar');
+    const sidebarLevel = document.getElementById('user-level-sidebar');
+    const sidebarAvatar = document.getElementById('user-avatar-sidebar');
 
-    document.getElementById('impact-recycled').textContent = `${(user.impact?.total_plastic_kg || 0).toFixed(1)} kg`;
-    document.getElementById('impact-co2').textContent = `${(user.impact?.co2_saved_kg || 0).toFixed(1)} kg`;
-    document.getElementById('impact-events').textContent = user.impact?.events_attended || 0;
+    if (sidebarName) sidebarName.innerHTML = `${user.full_name} ${getTickImg(user.tick_type)}`;
+    if (sidebarPoints) sidebarPoints.textContent = user.current_points;
+    
+    if (sidebarLevel) {
+        const level = getUserLevel(user.lifetime_points);
+        sidebarLevel.textContent = level.title;
+    }
+    
+    if (sidebarAvatar) {
+        sidebarAvatar.src = user.profile_img_url || getPlaceholderImage('80x80', getUserInitials(user.full_name));
+    }
+
+    // Impact Stats
+    const impactRecycled = document.getElementById('impact-recycled');
+    const impactCo2 = document.getElementById('impact-co2');
+    const impactEvents = document.getElementById('impact-events');
+
+    if(impactRecycled) impactRecycled.textContent = `${(user.impact?.total_plastic_kg || 0).toFixed(1)} kg`;
+    if(impactCo2) impactCo2.textContent = `${(user.impact?.co2_saved_kg || 0).toFixed(1)} kg`;
+    if(impactEvents) impactEvents.textContent = user.impact?.events_attended || 0;
 };
 
 const renderCheckinButtonState = () => {
@@ -86,6 +85,8 @@ const renderCheckinButtonState = () => {
     if(postEl) postEl.textContent = streak;
     
     const btn = els.dailyCheckinBtn;
+    if (!btn) return;
+
     if (state.currentUser.isCheckedInToday) {
         btn.classList.add('checkin-completed'); 
         btn.classList.remove('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
@@ -99,6 +100,10 @@ const renderCheckinButtonState = () => {
 
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
+    
+    // Log Interaction
+    logUserActivity('ui_interaction', 'Opened check-in modal');
+
     const checkinModal = document.getElementById('checkin-modal');
     checkinModal.classList.add('open');
     checkinModal.classList.remove('invisible', 'opacity-0');
@@ -106,6 +111,7 @@ export const openCheckinModal = () => {
     const calendarContainer = document.getElementById('checkin-modal-calendar');
     calendarContainer.innerHTML = '';
     
+    // Visual Calendar (Local Time for display is fine, creates better UX)
     const today = new Date(); 
     
     for (let i = -3; i <= 3; i++) {
@@ -126,8 +132,6 @@ export const openCheckinModal = () => {
             Check-in &amp; Earn ${state.checkInReward} Points
         </button>
     `;
-    
-    logActivity('view_checkin_modal');
 };
 
 export const closeCheckinModal = () => {
@@ -138,8 +142,10 @@ export const closeCheckinModal = () => {
 
 export const handleDailyCheckin = async () => {
     const checkinButton = document.querySelector('#checkin-modal-button-container button');
-    checkinButton.disabled = true;
-    checkinButton.textContent = 'Checking in...';
+    if(checkinButton) {
+        checkinButton.disabled = true;
+        checkinButton.textContent = 'Checking in...';
+    }
 
     const optimisticStreak = (state.currentUser.checkInStreak || 0) + 1;
 
@@ -151,59 +157,58 @@ export const handleDailyCheckin = async () => {
             points_awarded: state.checkInReward,
             checkin_date: todayIST 
         });
+        
         if (error) throw error;
 
-        closeCheckinModal();
+        // Log Success
+        logUserActivity('checkin_success', `Daily check-in completed. Streak: ${optimisticStreak}`);
 
-        // Log Activity
-        logActivity('daily_checkin', { streak: optimisticStreak, points: state.checkInReward });
+        closeCheckinModal();
 
         // Optimistic Update
         state.currentUser.checkInStreak = optimisticStreak;
         state.currentUser.isCheckedInToday = true;
+        state.currentUser.current_points += state.checkInReward; // Optimistic points add
         
-        // Update Cache immediately
-        await Promise.all([
-            cacheSet(`checkin_${state.currentUser.id}_${todayIST}`, true),
-            cacheSet(`streak_${state.currentUser.id}`, optimisticStreak)
-        ]);
-
         renderCheckinButtonState();
+        renderDashboardUI(); // Update points immediately
+
+        // Background sync to ensure consistency
         await refreshUserData(); 
 
     } catch (err) {
         console.error('Check-in error:', err.message);
+        logUserActivity('checkin_error', err.message);
         alert(`Failed to check in: ${err.message}`);
-        checkinButton.disabled = false;
-        checkinButton.textContent = `Check-in & Earn ${state.checkInReward} Points`;
+        
+        if(checkinButton) {
+            checkinButton.disabled = false;
+            checkinButton.textContent = `Check-in & Earn ${state.checkInReward} Points`;
+        }
     }
 };
 
 export const loadHistoryData = async () => {
     try {
-        const userId = state.currentUser.id;
+        // Optimization: Limit to last 20 items for performance
+        const { data, error } = await supabase
+            .from('points_ledger')
+            .select('*')
+            .eq('user_id', state.currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
 
-        // 1. Cache
-        const cachedHistory = await cacheGet(`history_${userId}`);
-        if (cachedHistory) {
-            state.history = cachedHistory;
-            if (document.getElementById('history').classList.contains('active')) renderHistory();
-        }
-
-        // 2. Network
-        const { data, error } = await supabase.from('points_ledger').select('*').eq('user_id', userId).order('created_at', { ascending: false });
         if (error) return;
 
         state.history = data.map(item => ({
-            type: item.source_type, description: item.description, points: item.points_delta,
+            type: item.source_type, 
+            description: item.description, 
+            points: item.points_delta,
             date: formatDate(item.created_at), 
             icon: getIconForHistory(item.source_type)
         }));
-
-        // 3. Cache & Render
-        await cacheSet(`history_${userId}`, state.history);
+        
         if (document.getElementById('history').classList.contains('active')) renderHistory();
-
     } catch (err) { console.error('History Load Error:', err); }
 };
 
@@ -218,7 +223,7 @@ export const renderHistory = () => {
             <div class="glass-card p-3 rounded-xl flex items-center justify-between">
                 <div class="flex items-center">
                     <span class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-3"><i data-lucide="${h.icon}" class="w-5 h-5 text-gray-700 dark:text-gray-200"></i></span>
-                    <div><p class="text-sm font-semibold text-gray-800 dark:text-gray-100">${h.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${h.date}</p></div>
+                    <div><p class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">${h.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${h.date}</p></div>
                 </div>
                 <span class="text-sm font-bold ${h.points >= 0 ? 'text-green-600' : 'text-red-500'}">${h.points > 0 ? '+' : ''}${h.points}</span>
             </div>`;
@@ -229,45 +234,82 @@ export const renderHistory = () => {
 export const renderProfile = () => {
     const u = state.currentUser;
     if (!u) return;
+    
+    // Log View
+    logUserActivity('view_profile', 'Viewed profile page');
+
     const l = getUserLevel(u.lifetime_points);
-    document.getElementById('profile-name').innerHTML = `${u.full_name} ${getTickImg(u.tick_type)}`;
-    document.getElementById('profile-email').textContent = u.email;
-    document.getElementById('profile-avatar').src = u.profile_img_url || getPlaceholderImage('112x112', getUserInitials(u.full_name));
-    document.getElementById('profile-level-title').textContent = l.title;
-    document.getElementById('profile-level-number').textContent = l.level;
-    document.getElementById('profile-level-progress').style.width = l.progress + '%';
-    document.getElementById('profile-student-id').textContent = u.student_id;
-    document.getElementById('profile-course').textContent = u.course;
-    document.getElementById('profile-email-personal').textContent = u.email;
+    
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
+    const avatarEl = document.getElementById('profile-avatar');
+    
+    if(nameEl) nameEl.innerHTML = `${u.full_name} ${getTickImg(u.tick_type)}`;
+    if(emailEl) emailEl.textContent = u.email;
+    if(avatarEl) avatarEl.src = u.profile_img_url || getPlaceholderImage('112x112', getUserInitials(u.full_name));
+
+    const levelTitle = document.getElementById('profile-level-title');
+    const levelNum = document.getElementById('profile-level-number');
+    const levelProg = document.getElementById('profile-level-progress');
+    const levelNext = document.getElementById('profile-level-next');
+
+    if(levelTitle) levelTitle.textContent = l.title;
+    if(levelNum) levelNum.textContent = l.level;
+    if(levelProg) levelProg.style.width = l.progress + '%';
+    if(levelNext) levelNext.textContent = l.progressText;
+
+    const studentId = document.getElementById('profile-student-id');
+    const course = document.getElementById('profile-course');
+    const emailPersonal = document.getElementById('profile-email-personal');
+    
+    if(studentId) studentId.textContent = u.student_id;
+    if(course) course.textContent = u.course;
+    if(emailPersonal) emailPersonal.textContent = u.email;
 };
 
 export const setupFileUploads = () => {
     const profileInput = document.getElementById('profile-upload-input');
     if (profileInput) {
-        profileInput.addEventListener('change', async (e) => {
+        // Remove existing listener to avoid duplicates if re-initialized
+        const newProfileInput = profileInput.cloneNode(true);
+        profileInput.parentNode.replaceChild(newProfileInput, profileInput);
+
+        newProfileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            
             const avatarEl = document.getElementById('profile-avatar');
             const originalSrc = avatarEl.src;
             avatarEl.style.opacity = '0.5';
+            
             try {
+                // Log Start
+                logUserActivity('upload_profile_pic_start', 'Started uploading profile picture');
+                
                 const imageUrl = await uploadToCloudinary(file);
                 const { error } = await supabase.from('users').update({ profile_img_url: imageUrl }).eq('id', state.currentUser.id);
                 if (error) throw error;
                 
                 state.currentUser.profile_img_url = imageUrl;
+                
+                // Update Sidebar avatar immediately too
+                const sidebarAvatar = document.getElementById('user-avatar-sidebar');
+                if(sidebarAvatar) sidebarAvatar.src = imageUrl;
+
                 renderProfile();
                 renderDashboardUI(); 
                 
-                logActivity('profile_update', { type: 'avatar' });
                 alert('Profile picture updated!');
+                logUserActivity('upload_profile_pic_success', 'Profile picture updated');
+
             } catch (err) {
                 console.error('Profile Upload Failed:', err);
                 alert('Failed to upload profile picture.');
                 avatarEl.src = originalSrc; 
+                logUserActivity('upload_profile_pic_error', err.message);
             } finally {
                 avatarEl.style.opacity = '1';
-                profileInput.value = ''; 
+                newProfileInput.value = ''; 
             }
         });
     }
