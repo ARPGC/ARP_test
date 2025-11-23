@@ -15,7 +15,7 @@ const EDGE_FUNCTION_URL = 'https://aggqmjxhnsbmsymwblqg.supabase.co/functions/v1
 const getSystemPrompt = () => {
     const user = state.currentUser || { full_name: 'Eco-Warrior', current_points: 0, course: 'General' };
 
-    // Format Live Data (Safely)
+    // Format Live Data
     const activeEvents = state.events && state.events.length > 0 
         ? state.events.map(e => `• ${e.title} (${new Date(e.start_at).toLocaleDateString()})`).join('\n')
         : "No events right now.";
@@ -51,9 +51,9 @@ const getSystemPrompt = () => {
 };
 
 const fetchAIResponse = async (userMessage) => {
-    // 1. Offline Check
+    // 1. Check Offline Status
     if (!navigator.onLine) {
-        return "🔌 I'm currently offline! Please check your internet connection to chat with me.";
+        return "🔌 I'm currently offline. Please reconnect to the internet to chat!";
     }
 
     try {
@@ -80,27 +80,38 @@ const fetchAIResponse = async (userMessage) => {
 
     } catch (error) {
         console.error("AI Fetch Error:", error);
-        logActivity('error', 'chatbot_fail', error.message);
-        return "🔌 My brain is having a hiccup (Server Error). Try again later!";
+        return "🔌 My brain is offline (Server Error). Try again later!";
     }
 };
 
 // ==========================================
-// 💾 SUPABASE HISTORY LOGIC (Cache-then-Network)
+// 💾 SUPABASE HISTORY LOGIC
 // ==========================================
 
 const saveMessageToDB = async (role, message) => {
     if (!state.currentUser) return;
-    
-    // Don't try to save if offline, just let it live in UI
-    if (!navigator.onLine) return;
-
     try {
-        await supabase.from('chat_history').insert({
-            user_id: state.currentUser.id,
-            role: role,
-            message: message
-        });
+        // Optimistically update local cache
+        const currentHistory = (await cacheGet('chat_history')) || [];
+        const newMsg = { 
+            role, 
+            message, 
+            created_at: new Date().toISOString(), 
+            user_id: state.currentUser.id 
+        };
+        // Add to front (since we reverse later) or end depending on your sort
+        // Supabase query is desc, so new items are at top. 
+        // We'll just invalidate cache next load or append if we want complex logic.
+        // For simplicity, we won't manually update the cache array here to avoid sync issues,
+        // but we rely on the next load.
+
+        if (navigator.onLine) {
+            await supabase.from('chat_history').insert({
+                user_id: state.currentUser.id,
+                role: role,
+                message: message
+            });
+        }
     } catch (err) {
         console.error("Save Chat Error:", err);
     }
@@ -110,30 +121,16 @@ const loadChatHistory = async () => {
     if (!state.currentUser) return;
     
     const chatOutput = document.getElementById('chatbot-messages');
-    const CACHE_KEY = `chat_history_${state.currentUser.id}`;
-    
-    // Helper to render a list of messages
-    const renderMessages = (messages) => {
-        chatOutput.innerHTML = `<div class="text-center py-6"><p class="text-xs text-gray-400 dark:text-gray-600">Messages are secured with end-to-end encryption.</p></div>`;
-        if (messages && messages.length > 0) {
-            // Clone to avoid reversing in place if using cached ref
-            [...messages].reverse().forEach(msg => appendMessageUI(msg.message, msg.role, false)); 
-            setTimeout(() => chatOutput.scrollTop = chatOutput.scrollHeight, 100);
-        } else {
-            appendMessageUI(`Hi ${state.currentUser.full_name}! I'm EcoBuddy. Ask me anything about BKBNC or saving the planet! 🌱`, 'bot');
-        }
-    };
+    chatOutput.innerHTML = `<div class="text-center py-6"><p class="text-xs text-gray-400 dark:text-gray-600">Messages are secured with end-to-end encryption.</p></div>`;
 
-    // 1. Fast Load: Cache
-    const cachedHistory = await cacheGet(CACHE_KEY);
-    if (cachedHistory) {
-        renderMessages(cachedHistory);
-    } else {
-        chatOutput.innerHTML = `<div class="text-center py-6"><p class="text-xs text-gray-400">Loading chat history...</p></div>`;
-    }
-
-    // 2. Network Load: Fresh Data
     try {
+        // A. Load from Cache First (Offline First)
+        const cachedHistory = await cacheGet('chat_history');
+        if (cachedHistory && cachedHistory.length > 0) {
+            renderChatMessages(cachedHistory);
+        }
+
+        // B. Fetch from Network
         const { data, error } = await supabase
             .from('chat_history')
             .select('*')
@@ -143,15 +140,26 @@ const loadChatHistory = async () => {
 
         if (error) throw error;
 
-        if (data) {
-            // Update Cache
-            await cacheSet(CACHE_KEY, data);
-            // Re-render to ensure latest sync
-            renderMessages(data);
+        // C. Update Cache & Render
+        if (data && data.length > 0) {
+            await cacheSet('chat_history', data);
+            // Only re-render if we didn't have cache, or if network is different (simple overwrite here)
+            // To prevent jumpiness, we clear and re-render
+            chatOutput.innerHTML = `<div class="text-center py-6"><p class="text-xs text-gray-400 dark:text-gray-600">Messages are secured with end-to-end encryption.</p></div>`;
+            renderChatMessages(data);
+        } else if (!cachedHistory) {
+            appendMessageUI(`Hi ${state.currentUser.full_name}! I'm EcoBuddy. Ask me anything about BKBNC or saving the planet! 🌱`, 'bot');
         }
     } catch (err) {
         console.error("Load History Error:", err);
     }
+};
+
+const renderChatMessages = (data) => {
+    // Data comes in DESC (newest first), so reverse for display
+    [...data].reverse().forEach(msg => appendMessageUI(msg.message, msg.role, false)); 
+    const chatOutput = document.getElementById('chatbot-messages');
+    setTimeout(() => chatOutput.scrollTop = chatOutput.scrollHeight, 100);
 };
 
 // ==========================================
@@ -205,13 +213,11 @@ if (chatForm) {
         appendMessageUI(message, 'user');
         chatInput.value = '';
         
-        // 2. Log Activity
-        logActivity('chat', 'send_message', 'User sent message to EcoBuddy');
-        
-        // 3. DB: Save User Message (Fire & Forget)
+        // 2. DB: Save User Message
         saveMessageToDB('user', message);
+        logActivity('chat_sent', { length: message.length });
 
-        // 4. UI: Show Typing
+        // 3. UI: Show Typing
         const typingId = 'typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
@@ -229,15 +235,15 @@ if (chatForm) {
         chatOutput.appendChild(typingDiv);
         chatOutput.scrollTop = chatOutput.scrollHeight;
 
-        // 5. API: Fetch Response (Via Edge Function)
+        // 4. API: Fetch Response (Via Edge Function)
         const botResponse = await fetchAIResponse(message);
 
-        // 6. UI: Remove Typing & Show Response
+        // 5. UI: Remove Typing & Show Response
         const typingEl = document.getElementById(typingId);
         if(typingEl) typingEl.remove();
         appendMessageUI(botResponse, 'bot');
 
-        // 7. DB: Save Bot Response
+        // 6. DB: Save Bot Response
         saveMessageToDB('bot', botResponse);
     });
 }
@@ -247,13 +253,13 @@ if (chatForm) {
 // ==========================================
 
 window.openChatbotModal = () => {
-    logActivity('ui_interaction', 'open_chatbot', 'Opened EcoBuddy Interface');
     const modal = document.getElementById('chatbot-modal');
     modal.classList.remove('invisible'); 
     requestAnimationFrame(() => {
         modal.classList.remove('translate-y-full');
     });
     loadChatHistory();
+    logActivity('chat_open');
 };
 
 window.closeChatbotModal = () => {
