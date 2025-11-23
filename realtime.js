@@ -4,9 +4,19 @@ import { loadDashboardData, renderDashboard } from './dashboard.js';
 import { loadStoreAndProductData, renderRewards } from './store.js';
 import { loadEventsData, renderEventsPage } from './events.js';
 import { loadChallengesData, renderChallengesPage } from './challenges.js';
-import { debounce, logActivity } from './utils.js';
+import { logActivity } from './utils.js';
 
-// Debounce refetch functions to prevent spamming if many updates happen at once
+// FIX: Local debounce to avoid circular dependency with utils.js
+const debounce = (func, wait) => {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+};
+
+// Debounce refetch functions
 const refreshDashboard = debounce(() => {
     console.log('⚡ Realtime: Refreshing Dashboard');
     loadDashboardData().then(() => renderDashboard());
@@ -44,7 +54,7 @@ export const initializeRealtime = () => {
 
     console.log('🔌 Initializing Supabase Realtime...');
 
-    // 1. User Specific Updates (Points, Check-ins, Orders)
+    // 1. User Specific Updates
     supabase.channel('user-updates')
         .on(
             'postgres_changes',
@@ -71,7 +81,7 @@ export const initializeRealtime = () => {
              if (status === 'SUBSCRIBED') console.log('✅ User Channel Subscribed');
         });
 
-    // 2. Global App Updates (Products, Events, Challenges)
+    // 2. Global App Updates
     supabase.channel('global-updates')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, refreshStore)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, refreshEvents)
