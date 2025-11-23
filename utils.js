@@ -1,3 +1,4 @@
+import { supabase } from './supabase-client.js';
 import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from './state.js';
 import { renderDashboard } from './dashboard.js';
 import { renderRewards, renderMyRewardsPage } from './store.js';
@@ -8,7 +9,10 @@ import { renderEventsPage } from './events.js';
 import { renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// DOM Cache
+// ==========================================
+// 1. DOM & CONFIG
+// ==========================================
+
 export const els = {
     get pages() { return document.querySelectorAll('.page'); },
     get sidebar() { return document.getElementById('sidebar'); },
@@ -36,7 +40,126 @@ export const els = {
     get qrModal() { return document.getElementById('qr-modal'); }
 };
 
-export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
+// ==========================================
+// 2. OFFLINE CACHE ENGINE (localForage)
+// ==========================================
+
+// Wrapper to safely get data from localForage
+export const cacheGet = async (key) => {
+    if (!window.localforage) return null;
+    try {
+        const data = await window.localforage.getItem(key);
+        // Optional: Add expiration logic here if needed in future
+        return data;
+    } catch (err) {
+        console.warn(`Cache GET failed for ${key}:`, err);
+        return null;
+    }
+};
+
+// Wrapper to safely set data to localForage
+export const cacheSet = async (key, value) => {
+    if (!window.localforage) return;
+    try {
+        await window.localforage.setItem(key, value);
+    } catch (err) {
+        console.warn(`Cache SET failed for ${key}:`, err);
+    }
+};
+
+// ==========================================
+// 3. ACTIVITY LOGGING
+// ==========================================
+
+export const logActivity = async (actionType, description, metadata = null, refTable = null, refId = null) => {
+    // Don't log if user isn't logged in yet (unless it's a login attempt)
+    if (!state.currentUser && actionType !== 'auth') return;
+    
+    // If offline, skip logging (or in V2, queue it)
+    if (!navigator.onLine) return;
+
+    const userId = state.currentUser?.id;
+
+    try {
+        // Fire and forget - don't await this in UI code
+        supabase.from('user_activity_log').insert({
+            user_id: userId,
+            action_type: actionType,
+            description: description,
+            metadata: metadata ? JSON.stringify(metadata) : null,
+            ref_table: refTable,
+            ref_id: refId
+        }).then(({ error }) => {
+            if (error) console.warn("Activity Log Error:", error.message);
+        });
+    } catch (err) {
+        // suppress errors to not break app flow
+    }
+};
+
+// ==========================================
+// 4. PERFORMANCE UTILS
+// ==========================================
+
+// Lazy Loading Image Observer
+export const setupLazyImages = () => {
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    if (src) {
+                        img.src = src;
+                        img.classList.add('loaded');
+                        img.removeAttribute('data-src');
+                    }
+                    observer.unobserve(img);
+                }
+            });
+        });
+
+        document.querySelectorAll('.lazy-img').forEach(img => {
+            imageObserver.observe(img);
+        });
+    } else {
+        // Fallback for very old browsers
+        document.querySelectorAll('.lazy-img').forEach(img => {
+            const src = img.getAttribute('data-src');
+            if (src) img.src = src;
+        });
+    }
+};
+
+// Debounce Function for Search
+export const debounce = (func, wait) => {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+};
+
+// Low Data Mode Detection
+export const isLowDataMode = () => {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn) {
+        if (conn.saveData === true) return true;
+        if (conn.effectiveType && (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g')) return true;
+    }
+    return false;
+};
+
+// ==========================================
+// 5. FORMATTING & HELPERS
+// ==========================================
+
+export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
+    // If low data mode, return a tiny placeholder or empty pixel
+    if (isLowDataMode()) return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
+    return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
+};
 
 export const getTickImg = (tickType) => {
     if (!tickType) return '';
@@ -64,26 +187,21 @@ export const getUserLevel = (points) => {
     return { ...current, progress, progressText };
 };
 
-// --- NEW: IST DATE LOGIC ---
-
-// 1. Get Today's Date string (YYYY-MM-DD) specifically for IST
+// IST Date Logic
 export const getTodayIST = () => {
     // 'en-CA' format is always YYYY-MM-DD
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 };
 
-// 2. Format any date string to show in IST
 export const formatDate = (dateString, options = {}) => {
     if (!dateString) return '...';
     const defaultOptions = { 
         year: 'numeric', month: 'short', day: 'numeric',
-        timeZone: 'Asia/Kolkata' // FORCE IST
+        timeZone: 'Asia/Kolkata' 
     };
     const finalOptions = { ...defaultOptions, ...options };
     return new Date(dateString).toLocaleDateString('en-IN', finalOptions);
 };
-
-// ---------------------------
 
 export const getIconForHistory = (type) => {
     const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket', 'quiz': 'brain' };
@@ -113,17 +231,26 @@ export const uploadToCloudinary = async (file) => {
     } catch (err) { console.error("Cloudinary Upload Error:", err); throw err; }
 };
 
+// ==========================================
+// 6. NAVIGATION
+// ==========================================
+
 export const showPage = (pageId, addToHistory = true) => {
     els.pages.forEach(p => p.classList.remove('active'));
     
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
+    // Clear sub-pages content to save memory
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
-        els.storeDetailPage.innerHTML = ''; els.productDetailPage.innerHTML = '';
+        if(els.storeDetailPage) els.storeDetailPage.innerHTML = ''; 
+        if(els.productDetailPage) els.productDetailPage.innerHTML = '';
     }
-    if (pageId !== 'department-detail-page') els.departmentDetailPage.innerHTML = '';
+    if (pageId !== 'department-detail-page' && els.departmentDetailPage) {
+        els.departmentDetailPage.innerHTML = '';
+    }
 
+    // Update Tab Bar
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
         btn.classList.toggle('active', onclickVal && onclickVal.includes(`'${pageId}'`));
@@ -135,6 +262,7 @@ export const showPage = (pageId, addToHistory = true) => {
         window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     }
 
+    // Dispatch Renders
     if (pageId === 'dashboard') { if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); renderDashboard(); } 
     else if (pageId === 'leaderboard') { showLeaderboardTab('student'); } 
     else if (pageId === 'rewards') { if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); window.renderRewardsWrapper && window.renderRewardsWrapper(); } 
@@ -147,6 +275,9 @@ export const showPage = (pageId, addToHistory = true) => {
     else { if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); }
 
     toggleSidebar(true); 
+    
+    // Trigger lazy load check on page change
+    setTimeout(setupLazyImages, 100);
     if(window.lucide) window.lucide.createIcons();
 };
 
@@ -170,5 +301,6 @@ export const toggleSidebar = (forceClose = false) => {
     }
 };
 
+// Attach globals
 window.showPage = showPage;
 window.toggleSidebar = toggleSidebar;
