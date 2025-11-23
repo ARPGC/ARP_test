@@ -14,8 +14,6 @@ export let state = {
     currentUser: null, 
     userAuth: null,    
     checkInReward: 10,
-    
-    // Data Stores
     leaderboard: [],
     departmentLeaderboard: [],
     stores: [],
@@ -24,11 +22,9 @@ export let state = {
     dailyChallenges: [],
     events: [],
     userRewards: [],   
+    featuredEvent: null, // Explicitly initialized for Dashboard logic
     
-    // UI Config
-    activePage: 'dashboard',
-    
-    // Game Levels
+    // Level Configuration
     levels: [
         { level: 1, title: 'Green Starter', minPoints: 0, nextMin: 1001, desc: "Just beginning your eco-journey. Every point counts!" },
         { level: 2, title: 'Eco Learner', minPoints: 1001, nextMin: 2001, desc: "You're building green habits. Keep up the momentum!" },
