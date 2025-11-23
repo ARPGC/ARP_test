@@ -3,9 +3,11 @@
    ========================================= */
 html, body {
     height: 100%;
+    width: 100%;
     overflow: hidden; /* Prevent body scroll, handle in .main-content */
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
 }
 
 /* Remove default shadows to allow custom implementation */
@@ -32,18 +34,51 @@ html, body {
 
 
 /* Re-enable shadows only for specific elements */
-.shadow-lg, .champ, .badge, .list .item, .btn-eco-gradient {
-   /* Shadows handled by specific classes */
+.shadow-lg, .champ, .badge, .list .item, .btn-eco-gradient, .shadow-sm, .shadow-md, .shadow-2xl {
+   /* Shadows handled by Tailwind classes generally, but we reset global above */
+}
+
+/* Desktop-First Layout Fix:
+   On mobile, this fills the screen.
+   On desktop, this centers the app like a phone.
+*/
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f3f4f6; /* Light gray background for desktop void */
+}
+.dark body {
+    background-color: #111827; /* Dark gray background for desktop void */
 }
 
 .app-container {
-    max-width: 420px;
-    margin: auto;
+    width: 100%;
     height: 100%;
+    max-width: 420px; /* Phone width limit */
     display: flex;
     flex-direction: column;
     position: relative;
     overflow-x: hidden;
+    background-color: #fff;
+}
+.dark .app-container {
+    background-color: #030712; /* Gray-950 */
+}
+
+/* Desktop Enhancements */
+@media (min-width: 768px) {
+    .app-container {
+        height: 95vh;
+        border-radius: 2rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden; /* Clip content to rounded corners */
+        border: 8px solid #fff;
+    }
+    .dark .app-container {
+        border-color: #1f2937;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
 }
 
 header, nav {
@@ -57,6 +92,7 @@ header, nav {
     scroll-behavior: smooth;
     position: relative;
     padding-bottom: 100px; /* Mobile Safe Area */
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
 }
 
 /* =========================================
@@ -90,6 +126,15 @@ header, nav {
     animation: pulse-points 0.4s ease-out;
 }
 
+/* Lazy Loading Fade In */
+.lazy-img {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+}
+.lazy-img.loaded {
+    opacity: 1;
+}
+
 /* =========================================
    3. SIDEBAR & NAVIGATION
    ========================================= */
@@ -98,10 +143,18 @@ header, nav {
     overflow-y: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /* Ensure sidebar stays within app bounds on desktop visual */
+    position: absolute; 
+    height: 100%;
 }
 #sidebar::-webkit-scrollbar { display: none; }
 
-#sidebar-overlay { transition: opacity 0.3s ease-in-out; }
+#sidebar-overlay { 
+    transition: opacity 0.3s ease-in-out;
+    position: absolute; /* Constrain to app container */
+    height: 100%;
+    width: 100%;
+}
 
 /* Active States */
 .sidebar-nav-item.active {
@@ -158,6 +211,9 @@ header, nav {
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    position: absolute; /* Stick to bottom of app container */
+    bottom: 0;
+    width: 100%;
 }
 .dark .glass-bottom-bar {
     background: rgba(15, 23, 42, 0.98);
@@ -444,7 +500,6 @@ header, nav {
     display: none !important;
 }
 
-/* FIX #1: Force the 'Success' card to show when completed */
 .checkin-completed .checkin-show-on-complete {
     display: flex !important;
 }
@@ -465,6 +520,9 @@ header, nav {
 /* Modal Transitions */
 #camera-modal, #checkin-modal, #chatbot-modal, #eco-quiz-modal, #purchase-modal, #qr-modal {
     transition: opacity 0.3s ease-in-out, visibility 0.3s;
+    position: absolute; /* Constrain to app container */
+    height: 100%;
+    width: 100%;
 }
 #camera-modal.open, #checkin-modal.open, #chatbot-modal.open, #eco-quiz-modal.open {
     opacity: 1;
@@ -484,6 +542,9 @@ header, nav {
     opacity: 1;
     visibility: visible;
     transition: opacity 0.5s ease-out;
+    position: absolute; /* Constrain to app container */
+    height: 100%;
+    width: 100%;
 }
 #app-loading.loaded {
     opacity: 0;
@@ -520,25 +581,6 @@ header, nav {
 .dark .leaderboard-tab-btn.active {
     background-color: #1f2937;
     color: #34D399;
-}
-
-/* Slider for Product Details */
-.slider-container {
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-}
-.slider-item {
-    scroll-snap-align: center;
-}
-.slider-dot {
-    transition: all 0.3s ease;
-}
-.slider-dot.active {
-    background-color: #10B981;
-    transform: scale(1.25);
-}
-.dark .slider-dot.active {
-    background-color: #34D399;
 }
 
 /* =========================================
