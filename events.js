@@ -1,28 +1,17 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getPlaceholderImage, getTickImg, logActivity, cacheGet, cacheSet } from './utils.js';
+import { els, formatDate, getPlaceholderImage, getTickImg, cacheGet, cacheSet, logActivity } from './utils.js';
 
 export const loadEventsData = async () => {
     try {
-        const CACHE_KEY = `events_list`;
-
-        // 1. Fast Load: Cache
-        const cachedEvents = await cacheGet(CACHE_KEY);
+        // 1. Try Cache First
+        const cachedEvents = await cacheGet('events_data');
         if (cachedEvents) {
-            // Re-hydrate Date objects (JSON makes them strings)
-            state.events = cachedEvents.map(e => ({
-                ...e,
-                dateObj: new Date(e.start_at)
-            }));
-            
-            // Render immediately if on events page, but don't log the view again
-            if (document.getElementById('events').classList.contains('active')) {
-                renderEventsPage(false); 
-            }
-            updateDashboardEvent();
+            processEvents(cachedEvents);
         }
 
-        // 2. Network Load: Fresh Data
+        // 2. Fetch Fresh Data (Network)
+        // We use the specific foreign key name to avoid ambiguous relationship errors
         const { data: events, error } = await supabase
             .from('events')
             .select(`
@@ -36,51 +25,52 @@ export const loadEventsData = async () => {
 
         if (error) throw error;
 
-        // Process Fresh Data
-        const processedEvents = events.map(e => {
-            const rawAttendees = e.event_attendance || [];
-            
-            // Map attendees safely
-            const attendees = rawAttendees
-                .filter(a => a.status === 'registered' || a.status === 'confirmed')
-                .map(a => a.users)
-                .filter(u => u !== null); 
-            
-            // Check my status
-            const myAttendance = rawAttendees.find(a => a.users && a.users.id === state.currentUser.id);
-            let myStatus = 'upcoming'; 
-            if (myAttendance) {
-                if (myAttendance.status === 'confirmed') myStatus = 'attended';
-                else if (myAttendance.status === 'absent') myStatus = 'missed';
-                else myStatus = 'going';
-            }
-
-            return {
-                ...e,
-                dateObj: new Date(e.start_at),
-                displayDate: formatDate(e.start_at, { month: 'short', day: 'numeric' }),
-                displayTime: formatDate(e.start_at, { hour: 'numeric', minute: 'numeric', hour12: true }),
-                attendees: attendees,
-                attendeeCount: attendees.length,
-                myStatus: myStatus
-            };
-        });
-
-        // Update State & Cache
-        state.events = processedEvents;
-        await cacheSet(CACHE_KEY, processedEvents);
-
-        if (document.getElementById('events').classList.contains('active')) renderEventsPage();
-        updateDashboardEvent();
+        // 3. Update Cache & Render
+        await cacheSet('events_data', events);
+        processEvents(events);
 
     } catch (err) { console.error('Events Load Error:', err); }
 };
 
-export const renderEventsPage = (shouldLog = true) => {
-    if (!els.eventsList) return;
+const processEvents = (eventsData) => {
+    state.events = eventsData.map(e => {
+        const rawAttendees = e.event_attendance || [];
+        
+        // Map attendees safely
+        const attendees = rawAttendees
+            .filter(a => a.status === 'registered' || a.status === 'confirmed')
+            .map(a => a.users)
+            .filter(u => u !== null); // Filter out any nulls
+        
+        // Check my status
+        const myAttendance = rawAttendees.find(a => a.users && a.users.id === state.currentUser.id);
+        let myStatus = 'upcoming'; 
+        if (myAttendance) {
+            if (myAttendance.status === 'confirmed') myStatus = 'attended';
+            else if (myAttendance.status === 'absent') myStatus = 'missed';
+            else myStatus = 'going';
+        }
+
+        return {
+            ...e,
+            dateObj: new Date(e.start_at),
+            displayDate: formatDate(e.start_at, { month: 'short', day: 'numeric' }),
+            displayTime: formatDate(e.start_at, { hour: 'numeric', minute: 'numeric', hour12: true }),
+            attendees: attendees,
+            attendeeCount: attendees.length,
+            myStatus: myStatus
+        };
+    });
+
+    if (document.getElementById('events').classList.contains('active')) renderEventsPage();
+    updateDashboardEvent();
+};
+
+export const renderEventsPage = () => {
     els.eventsList.innerHTML = '';
     
-    if (shouldLog) logActivity('page_view', 'events', 'Viewed Events Page');
+    // Log View
+    logActivity('view_page', { page: 'events' });
 
     if (state.events.length === 0) { 
         els.eventsList.innerHTML = `<p class="text-sm text-center text-gray-500 mt-10">No upcoming events.</p>`; 
@@ -95,7 +85,7 @@ export const renderEventsPage = (shouldLog = true) => {
         
         e.attendees.slice(0, showMax).forEach(u => {
             const img = u.profile_img_url || getPlaceholderImage('50x50', (u.full_name || 'U')[0]);
-            avatarsHtml += `<img src="${img}" alt="${u.full_name}">`;
+            avatarsHtml += `<img src="${img}" alt="${u.full_name}" loading="lazy">`;
         });
         if (extraCount > 0) {
             avatarsHtml += `<div class="more-count">+${extraCount}</div>`;
@@ -117,7 +107,7 @@ export const renderEventsPage = (shouldLog = true) => {
         els.eventsList.innerHTML += `
             <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div class="event-poster-container mb-4 relative">
-                    <img src="${e.poster_url || 'https://placehold.co/600x400/png'}" class="event-poster-img">
+                    <img data-src="${e.poster_url || 'https://placehold.co/600x400/png'}" class="event-poster-img lazy-img" src="${getPlaceholderImage('600x400', 'Loading')}">
                     <div class="absolute top-3 left-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-center shadow-sm min-w-[50px]">
                         <p class="text-xs font-bold text-red-500 uppercase tracking-wide">${e.dateObj.toLocaleString('default', { month: 'short' })}</p>
                         <p class="text-xl font-black text-gray-900 dark:text-white leading-none">${e.dateObj.getDate()}</p>
@@ -147,16 +137,13 @@ export const renderEventsPage = (shouldLog = true) => {
             </div>
         `;
     });
+    
+    // Setup lazy loading for new elements
+    if(window.setupLazyImagesWrapper) window.setupLazyImagesWrapper();
     if(window.lucide) window.lucide.createIcons();
 };
 
 export const handleRSVP = async (eventId) => {
-    // Network Check
-    if (!navigator.onLine) {
-        alert("You need internet access to RSVP.");
-        return;
-    }
-
     const btn = event.target;
     const originalText = btn.innerText;
     btn.innerText = 'Processing...';
@@ -170,15 +157,12 @@ export const handleRSVP = async (eventId) => {
         });
         if (error) throw error;
         
-        logActivity('event', 'rsvp', `User registered for event ${eventId}`);
-        
-        // Invalidate cache and reload
+        logActivity('rsvp_event', { event_id: eventId, status: 'success' });
         await loadEventsData();
         alert("You have successfully registered!");
-
     } catch (err) {
         console.error("RSVP Error:", err);
-        logActivity('error', 'rsvp_fail', err.message);
+        logActivity('rsvp_event', { event_id: eventId, status: 'failed', error: err.message });
         alert("Failed to RSVP.");
         btn.innerText = originalText;
         btn.disabled = false;
@@ -186,25 +170,19 @@ export const handleRSVP = async (eventId) => {
 };
 
 export const openParticipantsModal = (eventId) => {
-    // FIX: Guard clause to prevent crash if modal elements don't exist in DOM
+    const eventData = state.events.find(e => e.id === eventId);
+    
+    if (!eventData || !eventData.attendees || eventData.attendees.length === 0) {
+        return; 
+    }
+
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
     const list = document.getElementById('participants-list');
     
-    if (!modal || !content || !list) {
-        console.warn("Participants modal elements missing");
-        return;
-    }
-
-    logActivity('ui_interaction', 'event_participants', `Viewed participants for event ${eventId}`);
-    const eventData = state.events.find(e => e.id === eventId);
-    
-    // Allow opening even if empty list so user sees it's empty
-    if (!eventData) return;
-
-    list.innerHTML = (eventData.attendees || []).map(u => `
+    list.innerHTML = eventData.attendees.map(u => `
         <div class="flex items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0">
-            <img src="${u.profile_img_url || getPlaceholderImage('40x40', u.full_name[0])}" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 mr-3">
+            <img src="${u.profile_img_url || getPlaceholderImage('40x40', u.full_name[0])}" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 mr-3" loading="lazy">
             <div>
                 <p class="text-sm font-bold text-gray-900 dark:text-white flex items-center">${u.full_name} ${getTickImg(u.tick_type)}</p>
                 <p class="text-xs text-gray-500">Student</p>
@@ -212,27 +190,27 @@ export const openParticipantsModal = (eventId) => {
         </div>
     `).join('');
 
-    if (eventData.attendees && eventData.attendees.length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-500 py-4 text-sm">No participants yet.</p>`;
-    }
-
-    // Show Modal
+    // 1. Show the overlay
     modal.classList.remove('invisible', 'opacity-0');
+    
+    // 2. Animate the content up
     setTimeout(() => {
         content.classList.remove('translate-y-full');
         content.classList.add('translate-y-0');
     }, 10);
+    
+    logActivity('view_participants', { event_id: eventId });
 };
 
 export const closeParticipantsModal = () => {
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
-    
-    if (!modal || !content) return;
 
+    // 1. Animate content down
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
 
+    // 2. Hide overlay after animation finishes
     setTimeout(() => {
         modal.classList.add('invisible', 'opacity-0');
     }, 300);
@@ -241,8 +219,6 @@ export const closeParticipantsModal = () => {
 const updateDashboardEvent = () => {
     const card = document.getElementById('dashboard-event-card');
     if (!card) return;
-    
-    // Filter for future events
     const upcoming = state.events.filter(e => new Date(e.start_at) > new Date())[0];
 
     if (!upcoming) {
