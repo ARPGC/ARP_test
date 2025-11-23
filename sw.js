@@ -22,7 +22,7 @@ const ASSETS_TO_CACHE = [
     'https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js'
 ];
 
-// Install Event: Cache App Shell
+// Install Event: Cache App Shells
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
