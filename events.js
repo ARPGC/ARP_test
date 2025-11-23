@@ -15,8 +15,9 @@ export const loadEventsData = async () => {
                 dateObj: new Date(e.start_at)
             }));
             
+            // Render immediately if on events page, but don't log the view again
             if (document.getElementById('events').classList.contains('active')) {
-                renderEventsPage(false); // Render without logging view again
+                renderEventsPage(false); 
             }
             updateDashboardEvent();
         }
@@ -76,6 +77,7 @@ export const loadEventsData = async () => {
 };
 
 export const renderEventsPage = (shouldLog = true) => {
+    if (!els.eventsList) return;
     els.eventsList.innerHTML = '';
     
     if (shouldLog) logActivity('page_view', 'events', 'Viewed Events Page');
@@ -184,18 +186,23 @@ export const handleRSVP = async (eventId) => {
 };
 
 export const openParticipantsModal = (eventId) => {
-    logActivity('ui_interaction', 'event_participants', `Viewed participants for event ${eventId}`);
-    const eventData = state.events.find(e => e.id === eventId);
-    
-    if (!eventData || !eventData.attendees || eventData.attendees.length === 0) {
-        return; 
-    }
-
+    // FIX: Guard clause to prevent crash if modal elements don't exist in DOM
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
     const list = document.getElementById('participants-list');
     
-    list.innerHTML = eventData.attendees.map(u => `
+    if (!modal || !content || !list) {
+        console.warn("Participants modal elements missing");
+        return;
+    }
+
+    logActivity('ui_interaction', 'event_participants', `Viewed participants for event ${eventId}`);
+    const eventData = state.events.find(e => e.id === eventId);
+    
+    // Allow opening even if empty list so user sees it's empty
+    if (!eventData) return;
+
+    list.innerHTML = (eventData.attendees || []).map(u => `
         <div class="flex items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0">
             <img src="${u.profile_img_url || getPlaceholderImage('40x40', u.full_name[0])}" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 mr-3">
             <div>
@@ -204,6 +211,10 @@ export const openParticipantsModal = (eventId) => {
             </div>
         </div>
     `).join('');
+
+    if (eventData.attendees && eventData.attendees.length === 0) {
+        list.innerHTML = `<p class="text-center text-gray-500 py-4 text-sm">No participants yet.</p>`;
+    }
 
     // Show Modal
     modal.classList.remove('invisible', 'opacity-0');
@@ -216,6 +227,8 @@ export const openParticipantsModal = (eventId) => {
 export const closeParticipantsModal = () => {
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
+    
+    if (!modal || !content) return;
 
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
