@@ -16,7 +16,7 @@ const debounce = (func, wait) => {
     };
 };
 
-// Debounce refetch functions
+// Debounce refetch functions to prevent spamming if many updates happen at once
 const refreshDashboard = debounce(() => {
     console.log('⚡ Realtime: Refreshing Dashboard');
     loadDashboardData().then(() => renderDashboard());
@@ -54,7 +54,7 @@ export const initializeRealtime = () => {
 
     console.log('🔌 Initializing Supabase Realtime...');
 
-    // 1. User Specific Updates
+    // 1. User Specific Updates (Points, Check-ins, Orders)
     supabase.channel('user-updates')
         .on(
             'postgres_changes',
@@ -81,7 +81,7 @@ export const initializeRealtime = () => {
              if (status === 'SUBSCRIBED') console.log('✅ User Channel Subscribed');
         });
 
-    // 2. Global App Updates
+    // 2. Global App Updates (Products, Events, Challenges)
     supabase.channel('global-updates')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, refreshStore)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, refreshEvents)
