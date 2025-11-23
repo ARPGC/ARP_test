@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoCampus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - EcoCampus</title>
+    
+    <meta name="theme-color" content="#10B981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <link rel="preconnect" href="https://aggqmjxhnsbmsymwblqg.supabase.co">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Link to your shared stylesheet -->
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -22,65 +30,79 @@
             },
         }
     </script>
-    <style>
-        /* Add specific login page styles if needed */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f3f4f6;
-        }
-        .dark body {
-            background-color: #111827;
-        }
-        .form-container {
-            max-width: 400px;
-            width: 100%;
-        }
-    </style>
 </head>
-<body class="dark:bg-gray-900">
+<body class="bg-gray-100 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden flex items-center justify-center">
 
-    <div class="form-container p-6">
-        <div class="text-center mb-8">
-            <img src="https://i.ibb.co/GLJzFsX/Untitled-1.png" class="w-24 h-24 mx-auto mb-4" alt="EcoBirla Logo">
-            <h1 class="text-3xl font-extrabold text-green-700 dark:text-green-500">EcoCampus</h1>
-            <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-1">
-                A BKBNC GREEN CLUB INITIATIVE
-            </p>
+    <div class="w-full h-full md:h-auto md:max-w-[420px] bg-white dark:bg-gray-950 md:rounded-3xl md:shadow-2xl p-8 flex flex-col justify-center relative overflow-hidden">
+        
+        <div class="absolute top-[-50px] left-[-50px] w-40 h-40 bg-green-100 dark:bg-green-900/20 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+        <div class="absolute bottom-[-20px] right-[-20px] w-60 h-60 bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+
+        <div class="relative z-10">
+            <div class="text-center mb-10">
+                <div class="w-28 h-28 mx-auto mb-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center shadow-lg shadow-green-500/10">
+                    <img src="https://i.ibb.co/67MXS1wX/1763474740707.png" class="w-20 h-20 object-contain" alt="EcoCampus Logo">
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">EcoCampus</h1>
+                <p class="text-sm font-medium text-green-600 dark:text-green-400 mt-1">
+                    A BKBNC GREEN CLUB INITIATIVE
+                </p>
+            </div>
+
+            <div class="mb-6">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Welcome Back!</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Please sign in with your Student ID.</p>
+            </div>
+
+            <div id="auth-message" class="text-sm text-center mb-6 h-5 font-semibold transition-all duration-300"></div>
+
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label for="login-studentid" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">Student ID</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="user" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="text" id="login-studentid" required pattern="\d{7}" maxlength="7" placeholder="e.g. 5207872" class="block w-full pl-10 pr-4 py-3.5 border-2 border-gray-100 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-0 bg-gray-50 dark:bg-gray-800 transition-colors font-semibold tracking-wide">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="login-password" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="block w-full pl-10 pr-4 py-3.5 border-2 border-gray-100 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-0 bg-gray-50 dark:bg-gray-800 transition-colors">
+                    </div>
+                </div>
+
+                <button type="submit" id="login-button" class="w-full btn-eco-gradient text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-green-500/20 hover:shadow-green-500/30 hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center mt-4">
+                    <span class="btn-text text-lg">Sign In</span>
+                    <i data-lucide="loader-circle" class="w-6 h-6 animate-spin hidden ml-2"></i>
+                </button>
+            </form>
+            
+            <div class="mt-8 text-center">
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    Having trouble? Contact the Green Club rep.
+                </p>
+            </div>
         </div>
-
-        <!-- Title -->
-        <h2 class="text-xl font-bold text-center text-gray-800 dark:text-gray-100 mb-4">Student Login</h2>
-
-        <!-- Error Message Display -->
-        <div id="auth-message" class="text-red-500 text-sm text-center mb-4 h-5"></div>
-
-        <!-- Login Form -->
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label for="login-studentid" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Student ID (7 Digits)</label>
-                <input type="text" id="login-studentid" required pattern="\d{7}" maxlength="7" placeholder="e.g. 5207872" class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-800 dark:text-white">
-            </div>
-            <div>
-                <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" id="login-password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-800 dark:text-white">
-            </div>
-            <button type="submit" id="login-button" class="w-full btn-eco-gradient text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:opacity-90 transition-transform active:scale-95 flex items-center justify-center">
-                <span class="btn-text">Login</span>
-                <i data-lucide="loader-circle" class="w-5 h-5 animate-spin hidden ml-2"></i>
-            </button>
-        </form>
-
     </div>
 
-    <!-- Import Supabase client and login logic -->
-    <!-- Make sure to use type="module" for ES6 imports -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="supabase-client.js"></script>
     <script type="module" src="login.js"></script>
+    
     <script>
+        // 1. Register Service Worker for Cache Strategy
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW fail:', err));
+            });
+        }
+        
+        // 2. Initialize Icons
         lucide.createIcons();
     </script>
 </body>
