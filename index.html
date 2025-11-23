@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    
     <title>EcoCampus - Green Initiative</title>
+    
     <meta name="theme-color" content="#10B981">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -239,7 +239,7 @@
                 </div>
             </div>
             
-            <div id="change-password" class="page p-6">
+             <div id="change-password" class="page p-6">
                 <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
                 <div class="glass-card p-6 rounded-2xl">
                     <form id="change-password-form" class="space-y-6">
@@ -306,6 +306,16 @@
         </nav>
     </div>
 
+    <div id="participants-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center opacity-0 invisible" onclick="closeParticipantsModal()">
+        <div id="participants-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md p-6 transform translate-y-full md:translate-y-10 transition-transform duration-300 max-h-[70vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">Who's Going?</h3>
+                <button onclick="closeParticipantsModal()" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 transition-colors"><i data-lucide="x" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+            <div id="participants-list" class="space-y-2 overflow-y-auto flex-grow"></div>
+        </div>
+    </div>
+
     <div id="checkin-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center opacity-0 invisible" onclick="closeCheckinModal()"><div id="checkin-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-2xl w-full max-w-md p-6 transform translate-y-full md:translate-y-10 transition-transform duration-300" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Daily Check-in</h3><button onclick="closeCheckinModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><p id="checkin-modal-streak" class="text-center text-5xl font-extrabold text-yellow-600 mb-6">0 Days</p><div id="checkin-modal-calendar" class="flex justify-center space-x-2 mb-6"></div><div id="checkin-modal-button-container"></div></div></div>
     
     <div id="purchase-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closePurchaseModal()"></div>
@@ -364,5 +374,17 @@
 
     <script type="module" src="app.js"></script> 
     <script type="module" src="chatbot.js"></script>
+    
+    <script>
+        // 1. Register Service Worker for Offline Capabilities
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW fail:', err));
+            });
+        }
+        
+        // 2. Initialize Icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>
