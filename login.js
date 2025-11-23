@@ -73,7 +73,13 @@ async function handleLogin(event) {
     const password = document.getElementById('login-password').value.trim();
 
     try {
-        // Step 1: Securely call the Edge Function
+        // 2. Clear any stale offline data before attempting login
+        // This fixes the "Unable to login after logout" bug
+        if (window.localforage) {
+            await window.localforage.clear();
+        }
+
+        // 3. Securely call the Edge Function
         const { data, error } = await supabase.functions.invoke('login-with-studentid', {
             body: { studentId, password },
         });
@@ -89,7 +95,7 @@ async function handleLogin(event) {
         } 
         
         if (data.session) {
-            // Step 2: The function returned a valid session.
+            // 4. The function returned a valid session.
             // We must manually set the session in the client-side library.
             const { error: sessionError } = await supabase.auth.setSession(data.session);
             
@@ -98,12 +104,8 @@ async function handleLogin(event) {
                 throw new Error("Login failed to establish session.");
             } else {
                 // Login successful
-                // Log success (we use a temporary ID or just 'unknown' if we can't parse user yet, 
-                // but usually session.user.id works)
-                const userId = data.session.user?.id || 'unknown_user';
-                
-                // We can't use the main logActivity from utils reliably here if modules aren't fully loaded,
-                // but we can try-catch it or just rely on the app init logging in index.html
+                // Log activity (we try/catch to ensure no crash if modules aren't fully ready)
+                try { logActivity('auth', 'login_success', `User ${studentId} logged in`); } catch(e){}
                 
                 window.location.replace('index.html');
             }
@@ -124,14 +126,19 @@ async function handleLogin(event) {
 /**
  * Checks if a user is already logged in.
  * If so, redirects them to the main app.
+ * If NOT, ensures the offline cache is cleared so we don't show old data.
  */
 async function checkUserSession() {
     const { data } = await supabase.auth.getSession();
     if (data.session) {
         // User is already logged in, redirect to index.html
         window.location.replace('index.html');
+    } else {
+        // If no session, ensures localForage is empty to prevent ghost data
+        if (window.localforage) {
+            await window.localforage.clear();
+        }
     }
-    // If no session, do nothing, let them log in.
 }
 
 // --- Event Listeners ---
