@@ -1,12 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from './state.js';
-import { renderDashboard } from './dashboard.js';
-import { renderRewards, renderMyRewardsPage } from './store.js';
-import { renderHistory } from './dashboard.js';
-import { renderEcoPointsPage } from './store.js';
-import { renderChallengesPage } from './challenges.js';
-import { renderEventsPage } from './events.js'; 
-import { renderProfile } from './dashboard.js';
+import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
 // --- PERFORMANCE & DATA UTILS ---
@@ -34,11 +28,8 @@ export const isLowDataMode = () => {
 // --- LOGGING UTILS ---
 
 export const logUserActivity = async (actionType, description, metadata = {}) => {
-    // Fail silently to avoid interrupting UX
     try {
         if (!state.currentUser) return;
-        
-        // Don't await this, let it run in background
         supabase.from('user_activity_log').insert({
             user_id: state.currentUser.id,
             action_type: actionType,
@@ -47,10 +38,7 @@ export const logUserActivity = async (actionType, description, metadata = {}) =>
         }).then(({ error }) => {
             if (error) console.warn("Activity log failed:", error.message);
         });
-
-    } catch (err) {
-        // Ignore logging errors
-    }
+    } catch (err) {}
 };
 
 // --- DOM CACHE ---
@@ -82,7 +70,6 @@ export const els = {
 };
 
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
-    // Optimization: Request smaller images on low data
     if (isLowDataMode()) {
         const dims = size.split('x').map(n => Math.floor(parseInt(n)/2)).join('x');
         return `https://placehold.co/${dims}/EBFBEE/166534?text=${text}&font=inter`;
@@ -92,7 +79,6 @@ export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
 
 export const getTickImg = (tickType) => {
     if (!tickType) return '';
-    // Optimization: Don't load high-res ticks on low data if possible (using same URL for now, but logic is ready)
     const url = TICK_IMAGES[tickType.toLowerCase()];
     return url ? `<img src="${url}" class="tick-icon" alt="${tickType} tick" loading="lazy">` : '';
 };
@@ -155,9 +141,6 @@ export const uploadToCloudinary = async (file) => {
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
-    // Low Data Optimization: Could add logic here to resize client-side before upload
-    // For now, we proceed as normal but log the attempt
-    
     try {
         logUserActivity('upload_start', 'User starting image upload');
         const res = await fetch(CLOUDINARY_API_URL, { method: 'POST', body: formData });
@@ -174,7 +157,6 @@ export const uploadToCloudinary = async (file) => {
 };
 
 export const showPage = (pageId, addToHistory = true) => {
-    // 1. Log Activity
     logUserActivity('view_page', `Mapsd to ${pageId}`);
 
     els.pages.forEach(p => p.classList.remove('active'));
@@ -182,11 +164,13 @@ export const showPage = (pageId, addToHistory = true) => {
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
+    // Clear Detail Pages
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
         els.storeDetailPage.innerHTML = ''; els.productDetailPage.innerHTML = '';
     }
     if (pageId !== 'department-detail-page') els.departmentDetailPage.innerHTML = '';
 
+    // Update Nav Active State
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
         btn.classList.toggle('active', onclickVal && onclickVal.includes(`'${pageId}'`));
@@ -199,46 +183,40 @@ export const showPage = (pageId, addToHistory = true) => {
     }
 
     // Logic Routing
+    if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); // Default hide
+
     if (pageId === 'dashboard') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         renderDashboard(); 
     } 
     else if (pageId === 'leaderboard') { 
         showLeaderboardTab('student'); 
     } 
     else if (pageId === 'rewards') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         window.renderRewardsWrapper && window.renderRewardsWrapper(); 
     } 
     else if (pageId === 'my-rewards') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         window.renderMyRewardsPageWrapper && window.renderMyRewardsPageWrapper(); 
     } 
     else if (pageId === 'history') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         renderHistory(); 
     } 
     else if (pageId === 'ecopoints') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         window.renderEcoPointsPageWrapper && window.renderEcoPointsPageWrapper(); 
     } 
     else if (pageId === 'challenges') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         window.renderChallengesPageWrapper && window.renderChallengesPageWrapper(); 
     } 
     else if (pageId === 'events') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         window.renderEventsPageWrapper && window.renderEventsPageWrapper(); 
     } 
     else if (pageId === 'profile') { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
         renderProfile(); 
     }
-    else { 
-        if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden'); 
+    else if (pageId === 'green-lens') { 
+        // FIX: Trigger Gallery Render explicitly
+        window.renderGalleryWrapper && window.renderGalleryWrapper();
     }
 
-    // Responsive Logic: Only close sidebar on mobile
     if (window.innerWidth < 1024) {
         toggleSidebar(true); 
     }
@@ -255,10 +233,6 @@ window.addEventListener('popstate', (event) => {
 });
 
 export const toggleSidebar = (forceClose = false) => {
-    // Desktop: Sidebar should mostly stay open unless explicitly toggled, 
-    // but typically we don't use 'overlay' on desktop. 
-    // This function mainly handles mobile overlay toggling.
-    
     if (forceClose) {
         els.sidebar.classList.add('-translate-x-full');
         els.sidebarOverlay.classList.add('opacity-0');
@@ -268,7 +242,6 @@ export const toggleSidebar = (forceClose = false) => {
         els.sidebarOverlay.classList.toggle('hidden');
         els.sidebarOverlay.classList.toggle('opacity-0');
         
-        // Log menu interaction
         const isOpening = !els.sidebar.classList.contains('-translate-x-full');
         if (isOpening) logUserActivity('ui_interaction', 'Opened Sidebar');
     }
