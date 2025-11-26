@@ -571,3 +571,25 @@ body.low-data-mode .animate-float {
 .typing-dot:nth-child(1) { animation-delay: -0.32s; }
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
 @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+/* Masonry Grid for Gallery */
+.masonry-grid {
+    column-count: 2;
+    column-gap: 1rem;
+}
+@media (min-width: 768px) {
+    .masonry-grid {
+        column-count: 3;
+    }
+}
+@media (min-width: 1024px) {
+    .masonry-grid {
+        column-count: 4;
+    }
+}
+
+/* Lightbox Transition */
+#gallery-modal {
+    transition: opacity 0.3s ease-in-out;
+    backdrop-filter: blur(10px);
+}
