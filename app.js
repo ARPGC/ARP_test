@@ -6,6 +6,7 @@ import { loadStoreAndProductData, loadUserRewardsData, renderRewards } from './s
 import { loadLeaderboardData } from './social.js';
 import { loadChallengesData } from './challenges.js';
 import { loadEventsData } from './events.js'; 
+import { loadGalleryData } from './gallery.js'; // <--- NEW IMPORT
 
 // Auth
 const checkAuth = async () => {
@@ -44,7 +45,8 @@ const initializeApp = async () => {
             loadHistoryData(),
             loadChallengesData(),
             loadEventsData(),
-            loadUserRewardsData()
+            loadUserRewardsData(),
+            loadGalleryData() // <--- NEW: Load Gallery Data
         ]);
         
         setupFileUploads();
