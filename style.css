@@ -593,3 +593,11 @@ body.low-data-mode .animate-float {
     transition: opacity 0.3s ease-in-out;
     backdrop-filter: blur(10px);
 }
+
+@keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+.animate-breathe {
+    animation: breathe 6s ease-in-out infinite;
+}
