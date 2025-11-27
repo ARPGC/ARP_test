@@ -53,7 +53,6 @@
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             if (conn && (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType))) {
                 document.body.classList.add('low-data-mode');
-                console.log('EcoCampus: Low Data Mode Active');
             }
         })();
     </script>
@@ -85,14 +84,11 @@
                 <button onclick="showPage('history')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="history" class="w-5 h-5 mr-3"></i>History</button>
                 <button onclick="showPage('leaderboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Leaderboard</button>
                 <button onclick="showPage('events')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="calendar" class="w-5 h-5 mr-3"></i>All Events</button>
-                
                 <button onclick="showPage('green-lens')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="aperture" class="w-5 h-5 mr-3"></i>GreenLens</button>
                 <button onclick="showPage('plastic-log')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="recycle" class="w-5 h-5 mr-3"></i>Plastic Log</button>
-                
                 <button onclick="showPage('challenges')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="camera" class="w-5 h-5 mr-3"></i>Challenges</button>
                 <button onclick="showPage('rewards')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="store" class="w-5 h-5 mr-3"></i>Store</button>
                 <button onclick="showPage('redeem-code')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="ticket" class="w-5 h-5 mr-3"></i>Redeem Code</button>
-                
                 <div class="pt-2 border-t border-gray-200 dark:border-gray-700"></div>
                 <button onclick="showPage('about')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="info" class="w-5 h-5 mr-3"></i>About Us</button>
                 <button onclick="showPage('help')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="help-circle" class="w-5 h-5 mr-3"></i>Help & Support</button>
@@ -180,23 +176,17 @@
                     </div>
                 </div>
 
-                <div id="green-lens" class="page p-6">
-    <div class="text-center max-w-2xl mx-auto mb-10">
-        <span class="text-green-600 dark:text-green-400 font-bold tracking-widest text-xs uppercase mb-2 block">Our Impact Gallery</span>
-        <h2 class="text-4xl font-extrabold text-gray-900 dark:text-white font-jakarta mb-4">
-            Campus Stories
-        </h2>
-        <p class="text-gray-600 dark:text-gray-300 text-lg">
-            Explore how BKBNC is transforming into a sustainable haven, one initiative at a time.
-        </p>
-    </div>
+                <div id="green-lens" class="page p-0 bg-white dark:bg-gray-950 min-h-full">
+                    <div class="py-12 px-6 text-center border-b border-gray-100 dark:border-gray-800">
+                        <span class="text-xs font-bold tracking-widest text-green-600 uppercase mb-2 block">Our Impact Gallery</span>
+                        <h2 class="text-4xl md:text-5xl font-black text-gray-900 dark:text-white font-jakarta mb-4">Campus Stories</h2>
+                        <p class="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-lg">Explore how BKBNC is transforming into a sustainable haven, one initiative at a time.</p>
+                    </div>
+                    <div id="gallery-feed" class="w-full">
+                        <div class="py-20 text-center text-gray-400">Loading stories...</div>
+                    </div>
+                </div>
 
-    <div id="gallery-grid">
-        <div class="col-span-full text-center py-20">
-            <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto"></div>
-        </div>
-    </div>
-</div>
                 <div id="plastic-log" class="page p-6">
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Plastic Log</h2>
                     <div id="plastic-log-content">
@@ -361,6 +351,7 @@
     <div id="purchase-modal" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-t-2xl z-50 p-6 transform translate-y-full transition-transform duration-300 ease-in-out"></div>
     <div id="qr-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closeQrModal()"></div>
     <div id="qr-modal" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-t-2xl z-50 p-6 transform translate-y-full transition-transform duration-300 ease-in-out"></div>
+    
     <div id="camera-modal" class="fixed inset-0 z-50 bg-black flex flex-col hidden">
         <div class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
             <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
