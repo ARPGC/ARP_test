@@ -98,7 +98,7 @@ export const renderGallery = () => {
             section.innerHTML = `
                 <div class="animate-slideUp max-w-4xl mx-auto">
                     <span class="inline-block px-4 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 text-xs font-bold tracking-widest uppercase mb-6">
-                        Our College's Initiative
+                        Our College Initiative
                     </span>
                     <h1 class="text-6xl md:text-9xl font-black text-gray-900 dark:text-white tracking-tighter font-jakarta leading-[0.9] mb-8">
                         Campus.<br>Reimagined.
