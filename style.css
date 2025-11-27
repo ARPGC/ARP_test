@@ -620,3 +620,25 @@ body.low-data-mode .animate-float {
 #green-lens .main-content {
     /* The JS handles the BG color */
 }
+/* Smooth Background Transitions */
+.main-content, #sidebar, header {
+    transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+    will-change: background-color;
+}
+
+/* Force White Text on Sidebar when background is dark (GreenLens) */
+#sidebar.force-dark-text .sidebar-nav-item,
+#sidebar.force-dark-text h2, 
+#sidebar.force-dark-text p,
+#sidebar.force-dark-text i {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+#sidebar.force-dark-text .sidebar-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+#sidebar.force-dark-text .border-b,
+#sidebar.force-dark-text .border-t {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
