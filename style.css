@@ -610,3 +610,13 @@ body.low-data-mode .animate-float {
 .font-jakarta {
     font-family: 'Plus Jakarta Sans', sans-serif;
 }
+/* Add this to your CSS */
+.main-content {
+    transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth 700ms transition */
+    will-change: background-color;
+}
+
+/* Ensure the header is transparent or blends in GreenLens */
+#green-lens .main-content {
+    /* The JS handles the BG color */
+}
