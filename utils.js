@@ -169,13 +169,23 @@ export const uploadToCloudinary = async (file) => {
 export const showPage = (pageId, addToHistory = true) => {
     logUserActivity('view_page', `Mapsd to ${pageId}`);
 
-    // 1. RESET BACKGROUND COLOR (Critical Fix for GreenLens)
-    // When leaving GreenLens, we must remove the specific background color
-    // so it doesn't persist on the Dashboard or other pages.
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        mainContent.style.backgroundColor = ''; 
+    // --- RESET BACKGROUNDS LOGIC (Critical for GreenLens) ---
+    // Resets the immersive colors on sidebar/header/main when leaving gallery
+    const main = document.querySelector('.main-content');
+    if (main) main.style.backgroundColor = ''; 
+    
+    const sb = document.getElementById('sidebar');
+    if (sb) {
+        sb.style.backgroundColor = '';
+        sb.classList.remove('force-dark-text');
     }
+    
+    const hd = document.querySelector('header');
+    if (hd) {
+        hd.style.backgroundColor = '';
+        hd.classList.remove('dark'); // Reset forced dark mode on header
+    }
+    // -----------------------------------------------------
 
     els.pages.forEach(p => p.classList.remove('active'));
     
@@ -232,7 +242,7 @@ export const showPage = (pageId, addToHistory = true) => {
         renderProfile(); 
     }
     else if (pageId === 'green-lens') { 
-        // Trigger Gallery Render via global wrapper from gallery.js
+        // Trigger Gallery Render
         window.renderGalleryWrapper && window.renderGalleryWrapper();
     }
     else if (pageId === 'plastic-log') {
