@@ -1,38 +1,39 @@
 import { state } from './state.js';
 import { logUserActivity, isLowDataMode } from './utils.js';
 
-// --- B. K. BIRLA COLLEGE REPORT DATA CONFIGURATION ---
+// --- B. K. BIRLA COLLEGE REPORT DATA (FROM PDF) ---
 const CAMPUS_STORIES = [
     {
         id: 'story-hero',
         isHero: true,
-        // Intro: Setting the stage
+        // FIX: Added dark mode background hex to prevent white-on-white text
         bgHex: '#ffffff', 
+        darkBgHex: '#111827', // Dark gray for dark mode
         isDark: false 
     },
     {
-        id: 'story-solar',
-        title: 'Harnessing the Sun.',
-        subtitle: 'Renewable Energy Infrastructure',
-        // Data Source: 160 kWp on Main Bldg, 36 kWp on IT Bldg , 50% energy fulfilled [cite: 163]
-        description: 'We have transitioned 50% of our campus energy consumption to renewables. With a 160 kWp Solar PV system on the Main Building and 36 kWp on the IT Building, we are conserving over 41 Tons of CO₂ annually.',
-        image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=80', 
-        // THEME: Solar Gold (Energy)
-        bgHex: '#422006', // Dark Bronze/Brown background
+        id: 'story-green-cover',
+        title: 'A Living Laboratory.',
+        subtitle: 'Green Campus & Biodiversity',
+        [cite_start]// Data from PDF: 49.53% green cover, 550+ trees, 1600+ plants [cite: 3, 4]
+        description: 'Spanning 20 acres, our campus maintains a 49.53% green cover. With over 550 trees, 1600+ potted plants, and a dedicated Biodiversity Park, we have created a thriving ecosystem that acts as the city’s green lung.',
+        image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80', 
+        // THEME: Deep Forest (Nature)
+        bgHex: '#064e3b', // Emerald-950
         isDark: true,
-        textClass: 'text-yellow-50', 
+        textClass: 'text-emerald-50',
         headingClass: 'text-white',
-        accentColor: 'bg-yellow-500', 
+        accentColor: 'bg-emerald-500',
         layout: 'normal', 
         imgShape: 'rounded-tr-[100px] rounded-bl-[100px]' 
     },
     {
         id: 'story-water',
-        title: 'Every Drop Reclaimed.',
-        subtitle: '300 KLD Water Treatment',
-        // Data Source: 300 KLD STP , Recycled for gardening [cite: 104], Rainwater Harvesting [cite: 135]
-        description: 'Our 300 KLD Sewage Treatment Plant (STP) recycles wastewater for gardening and flushing, ensuring zero discharge into water bodies. Scientifically designed rainwater harvesting pits further recharge our groundwater tables.',
-        image: 'https://images.unsplash.com/photo-1536094056285-ef3772276532?auto=format&fit=crop&w=1200&q=80', // Water reflection
+        title: 'Every Drop Counts.',
+        subtitle: 'Water Conservation',
+        [cite_start]// Data from PDF: Rainwater harvesting, STP/ETP, 4200+ students on Why Waste App [cite: 8, 10, 11]
+        description: 'Our scientifically designed rainwater harvesting pits recharge groundwater, while our STP & ETP systems ensure treated water is reused. Over 4200 students actively track their water footprint using the "Why Waste" App.',
+        image: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80',
         // THEME: Deep Ocean (Water)
         bgHex: '#083344', // Cyan-950
         isDark: true,
@@ -43,44 +44,44 @@ const CAMPUS_STORIES = [
         imgShape: 'rounded-full aspect-square object-cover shadow-[0_0_60px_-15px_rgba(6,182,212,0.3)]' 
     },
     {
+        id: 'story-energy',
+        title: 'Powered by Nature.',
+        subtitle: 'Renewable Energy',
+        [cite_start]// Data from PDF: Solar powering 50%, 100% LED, Sensor automation [cite: 13, 14, 15]
+        description: 'We have transitioned to a cleaner future. Our solar power plants now fulfill 50% of the campus energy needs. Combined with 100% LED lighting, BLDC fans, and sensor-based automation, we are minimizing our carbon footprint.',
+        image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=80', 
+        // THEME: Solar Gold (Energy)
+        bgHex: '#422006', // Dark Bronze
+        isDark: true,
+        textClass: 'text-yellow-50', 
+        headingClass: 'text-white',
+        accentColor: 'bg-yellow-500', 
+        layout: 'normal', 
+        imgShape: 'rounded-t-full' 
+    },
+    {
         id: 'story-waste',
-        title: 'Zero Waste, Full Circle.',
-        subtitle: 'Biogas & Plastic Recycling',
-        // Data Source: 6500L Biogas Digester , 600kg plastic exchanged for benches [cite: 82]
-        description: 'Our 6,500L Biogas Digester converts canteen waste into clean cooking gas. Furthermore, we collaborated with "Project Mumbai" to recycle over 1,500 kgs of plastic waste, exchanging it for functional recycled benches.',
-        image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=80', // Recycling
+        title: 'Zero Waste Mission.',
+        subtitle: 'Waste Management',
+        [cite_start]// Data from PDF: Biogas, PadCare, 200kg e-waste [cite: 18, 19, 20]
+        description: 'Our "Zero Waste" policy is in full effect. We convert organic waste into biogas, recycle sanitary waste via PadCare, and have responsibly recycled over 200 kg of e-waste. Colour-coded bins ensure strict segregation at the source.',
+        image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=80', 
         // THEME: Terracotta (Earth/Waste)
         bgHex: '#7c2d12', // Orange-900
         isDark: true,
         textClass: 'text-orange-50',
         headingClass: 'text-white',
         accentColor: 'bg-orange-400',
-        layout: 'normal', 
+        layout: 'reverse', 
         imgShape: 'rounded-[3rem] rotate-1' 
     },
     {
-        id: 'story-bio',
-        title: 'A Living Laboratory.',
-        subtitle: '49.53% Green Cover',
-        // Data Source: 49.53% Green Cover [cite: 9], 4254 sq m Biodiversity Park [cite: 26], 550 trees [cite: 127]
-        description: 'Spanning 20 acres, our campus maintains a 49.53% green cover. The 4,254 sq. metre Biodiversity Park and 550+ trees act as a natural lung for Kalyan city, preserving local flora and reducing ambient temperature.',
-        image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80', // Garden
-        // THEME: Deep Forest (Nature)
-        bgHex: '#064e3b', // Emerald-950
-        isDark: true,
-        textClass: 'text-emerald-50',
-        headingClass: 'text-white',
-        accentColor: 'bg-emerald-500',
-        layout: 'reverse', 
-        imgShape: 'rounded-t-full' 
-    },
-    {
-        id: 'story-digital',
-        title: 'The Paperless Era.',
-        subtitle: 'Digital Transformation',
-        // Data Source: Microsoft ERP attendance [cite: 86], Cloud storage [cite: 85]
-        description: 'We have minimized paper usage by migrating to Microsoft ERP for attendance and O-365 for communication. From cloud storage to digital note-taking, we are saving trees through technology.',
-        image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80', // Digital/Laptop
+        id: 'story-community',
+        title: 'Community Impact.',
+        subtitle: 'Social Responsibility',
+        [cite_start]// Data from PDF: 500+ saplings distributed, rural water monitoring [cite: 31, 32]
+        description: 'Our impact goes beyond the campus walls. We have distributed over 500 saplings to the community and actively monitor water quality in rural villages, ensuring clean and safe drinking water for all.',
+        image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1200&q=80', // Community
         // THEME: Slate Tech (Modern)
         bgHex: '#0f172a', // Slate-900
         isDark: true,
@@ -117,8 +118,10 @@ export const renderGallery = () => {
         
         if (item.isHero) {
             // HERO SECTION
-            section.className = "gallery-section pt-20 pb-32 px-6 text-center relative z-10";
+            // FIX: Added dark mode background classes to container
+            section.className = "gallery-section pt-20 pb-32 px-6 text-center relative z-10 bg-white dark:bg-gray-950";
             section.setAttribute('data-bg', item.bgHex);
+            section.setAttribute('data-bg-dark', item.darkBgHex); // Used by observer
             
             section.innerHTML = `
                 <div class="animate-slideUp max-w-4xl mx-auto">
@@ -126,7 +129,7 @@ export const renderGallery = () => {
                         Excellence in Greentech
                     </span>
                     <h1 class="text-5xl md:text-8xl font-black text-gray-900 dark:text-white tracking-tighter font-jakarta leading-[0.9] mb-8">
-                        B. K. Birla<br>Sustainable Campus.
+                        EcoCampus<br>Green Lens.
                     </h1>
                     <p class="text-xl text-gray-500 max-w-lg mx-auto mb-12 font-medium">
                         Transforming 20 acres into a zero-waste, energy-efficient model for the future.
@@ -143,6 +146,8 @@ export const renderGallery = () => {
             section.className = `gallery-section min-h-screen w-full flex flex-col ${flexDirection} items-center justify-center gap-12 lg:gap-24 px-6 lg:px-24 py-20 relative z-10`;
             
             section.setAttribute('data-bg', item.bgHex);
+            // For story sections, the dark bg is the same as the colored bg (immersive)
+            section.setAttribute('data-bg-dark', item.bgHex); 
 
             const imgHTML = `
                 <div class="w-full lg:w-1/2 flex justify-center items-center relative z-10">
@@ -186,6 +191,7 @@ export const renderGallery = () => {
     const footer = document.createElement('div');
     footer.className = "gallery-section min-h-[50vh] flex flex-col items-center justify-center text-center px-6 relative z-20";
     footer.setAttribute('data-bg', '#111827');
+    footer.setAttribute('data-bg-dark', '#000000');
     footer.innerHTML = `
         <h3 class="text-4xl font-bold text-white mb-6">Join the Movement.</h3>
         <p class="text-gray-400 mb-8 max-w-md">Contribute to our Net Zero Carbon emission goals today.</p>
@@ -211,7 +217,10 @@ const setupScrollObserver = () => {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                const bg = entry.target.getAttribute('data-bg');
+                // FIX: Check for Dark Mode specific BG color
+                const bg = document.documentElement.classList.contains('dark') 
+                    ? (entry.target.getAttribute('data-bg-dark') || entry.target.getAttribute('data-bg'))
+                    : entry.target.getAttribute('data-bg');
                 
                 if (bg) {
                     mainContent.style.backgroundColor = bg;
