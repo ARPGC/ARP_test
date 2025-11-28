@@ -88,7 +88,7 @@ const CAMPUS_STORIES = [
         id: 'story-mobility',
         title: 'Moving Responsibly.',
         subtitle: 'Green Mobility',
-        [cite_start]description: 'We encourage a lower carbon footprint through "No-Vehicle Days" [cite: 145] [cite_start]and a dedicated bicycle system for campus movement[cite: 150]. [cite_start]Our pedestrian-friendly pathways ensure that walking is always the best option[cite: 153].',
+        description: 'We encourage a lower carbon footprint through "No-Vehicle Days" [cite: 145] [cite_start]and a dedicated bicycle system for campus movement[cite: 150]. [cite_start]Our pedestrian-friendly pathways ensure that walking is always the best option[cite: 153].',
         image: 'https://images.unsplash.com/photo-1558522669-8dd3362fa64e?auto=format&fit=crop&w=1200&q=80', // Bicycle image
         // THEME: Urban Asphalt (Cool Gray)
         bgHex: '#374151',
