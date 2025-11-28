@@ -72,6 +72,36 @@ const CAMPUS_STORIES = [
         imgShape: 'rounded-[3rem] rotate-1' 
     },
     {
+        id: 'story-digital',
+        title: 'Paperless & Smart.',
+        subtitle: 'Digital Transformation',
+        description: 'We are saving trees through technology. [cite_start]With Microsoft ERP for attendance [cite: 118] [cite_start]and cloud storage for notes[cite: 117], we have drastically reduced paper use. [cite_start]Since 2018, we have also responsibly recycled over 202 kg of e-waste[cite: 142].',
+        image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+        // THEME: Tech Slate (Dark Blue/Grey)
+        bgHex: '#0f172a',
+        isDark: true,
+        textClass: 'text-slate-200',
+        headingClass: 'text-white',
+        accentColor: 'bg-indigo-500',
+        layout: 'normal', 
+        imgShape: 'rounded-xl' 
+    },
+    {
+        id: 'story-mobility',
+        title: 'Moving Responsibly.',
+        subtitle: 'Green Mobility',
+        description: 'We encourage a lower carbon footprint through "No-Vehicle Days" [cite: 145] [cite_start]and a dedicated bicycle system for campus movement[cite: 150]. [cite_start]Our pedestrian-friendly pathways ensure that walking is always the best option[cite: 153].',
+        image: 'https://images.unsplash.com/photo-1558522669-8dd3362fa64e?auto=format&fit=crop&w=1200&q=80', // Bicycle image
+        // THEME: Urban Asphalt (Cool Gray)
+        bgHex: '#374151',
+        isDark: true,
+        textClass: 'text-gray-100',
+        headingClass: 'text-white',
+        accentColor: 'bg-teal-400',
+        layout: 'reverse', 
+        imgShape: 'rounded-full border-4 border-gray-600' 
+    },
+    {
         id: 'story-community',
         title: 'Community Impact.',
         subtitle: 'Social Responsibility',
