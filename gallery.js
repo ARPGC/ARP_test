@@ -75,7 +75,7 @@ const CAMPUS_STORIES = [
         id: 'story-digital',
         title: 'Paperless & Smart.',
         subtitle: 'Digital Transformation',
-        description: 'We are saving trees through technology. [cite_start]With Microsoft ERP for attendance [cite: 118] [cite_start]and cloud storage for notes[cite: 117], we have drastically reduced paper use. [cite_start]Since 2018, we have also responsibly recycled over 202 kg of e-waste[cite: 142].',
+        description: 'We are saving trees through technology. With Microsoft ERP for attendance and cloud storage for notes, we have drastically reduced paper use. Since 2018, we have also responsibly recycled over 202 kg of e-waste.',
         image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
         // THEME: Tech Slate (Dark Blue/Grey)
         bgHex: '#0f172a',
@@ -90,7 +90,7 @@ const CAMPUS_STORIES = [
         id: 'story-mobility',
         title: 'Moving Responsibly.',
         subtitle: 'Green Mobility',
-        description: 'We encourage a lower carbon footprint through "No-Vehicle Days" [cite: 145] [cite_start]and a dedicated bicycle system for campus movement[cite: 150]. [cite_start]Our pedestrian-friendly pathways ensure that walking is always the best option[cite: 153].',
+        description: 'We encourage a lower carbon footprint through "No-Vehicle Days" and a dedicated bicycle system for campus movement. Our pedestrian-friendly pathways ensure that walking is always the best option.',
         image: 'https://images.unsplash.com/photo-1558522669-8dd3362fa64e?auto=format&fit=crop&w=1200&q=80', // Bicycle image
         // THEME: Urban Asphalt (Cool Gray)
         bgHex: '#374151',
