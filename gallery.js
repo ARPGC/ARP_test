@@ -15,7 +15,6 @@ const CAMPUS_STORIES = [
         id: 'story-green-cover',
         title: 'A Living Laboratory.',
         subtitle: 'Green Campus & Biodiversity',
-        [cite_start]// [cite: 3, 4, 5]
         description: 'Spanning 20 acres, our campus maintains a 49.53% green cover. With over 550 trees, 1600+ potted plants, and a dedicated Biodiversity Park, we have created a thriving ecosystem that acts as the city’s green lung.',
         image: 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=80', 
         // THEME: Deep Forest (Nature)
@@ -31,7 +30,6 @@ const CAMPUS_STORIES = [
         id: 'story-water',
         title: 'Every Drop Counts.',
         subtitle: 'Water Conservation',
-        [cite_start]// [cite: 8, 10, 11]
         description: 'Our scientifically designed rainwater harvesting pits recharge groundwater, while our 300 KLD STP ensures treated water is reused. Over 4200 students actively track their water footprint using the "Why Waste" App.',
         image: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80',
         // THEME: Deep Ocean (Water)
@@ -47,7 +45,6 @@ const CAMPUS_STORIES = [
         id: 'story-energy',
         title: 'Powered by Nature.',
         subtitle: 'Renewable Energy',
-        [cite_start]// [cite: 13, 14, 15]
         description: 'We have transitioned to a cleaner future. Our solar power plants now fulfill 50% of the campus energy needs. Combined with 100% LED lighting, BLDC fans, and sensor-based automation, we are minimizing our carbon footprint.',
         image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=80', 
         // THEME: Solar Gold (Energy)
@@ -63,7 +60,6 @@ const CAMPUS_STORIES = [
         id: 'story-waste',
         title: 'Zero Waste Mission.',
         subtitle: 'Waste Management',
-        [cite_start]// [cite: 17, 18, 19, 20]
         description: 'Our "Zero Waste" policy is in full effect. We convert organic waste into biogas (6500L digester), recycle sanitary waste via PadCare, and have responsibly recycled over 200 kg of e-waste. Colour-coded bins ensure strict segregation.',
         image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=80', 
         // THEME: Terracotta (Earth/Waste)
@@ -79,7 +75,6 @@ const CAMPUS_STORIES = [
         id: 'story-community',
         title: 'Community Impact.',
         subtitle: 'Social Responsibility',
-        [cite_start]// [cite: 30, 31, 32]
         description: 'Our impact goes beyond the campus walls. We have distributed over 500 saplings to the community and actively monitor water quality in rural villages, ensuring clean and safe drinking water for all.',
         image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1200&q=80', // Community
         // THEME: Slate Tech (Modern)
