@@ -13,7 +13,6 @@ const CAMPUS_STORIES = [
     },
    {
   id: "story-founder",
-  ishero: false,
   title: "A Tribute to Our Founder’s Vision",
   subtitle: "Heritage & Values",
   description:
