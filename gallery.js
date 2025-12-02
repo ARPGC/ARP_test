@@ -29,10 +29,10 @@ const CAMPUS_STORIES = [
 
     {
         id: 'story-green-cover',
-        title: 'A Living Laboratory.',
+        title: 'Green Lush Campus.',
         subtitle: 'Green Campus & Biodiversity',
         description: 'Spanning 20 acres, our campus maintains a 49.53% green cover. With over 550 trees, 1600+ potted plants, and a dedicated Biodiversity Park, we have created a thriving ecosystem that acts as the city’s green lung.',
-        image: 'https://i.ibb.co/Y4cgngks/IMG-2127-1.jpg', 
+        image: 'https://i.ibb.co/yc9mgZqy/DSC-4203-1.jpg', 
         // THEME: Deep Forest (Nature)
         bgHex: '#064e3b', // Emerald-950
         isDark: true,
