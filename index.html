@@ -415,7 +415,7 @@
     <script type="module" src="app.js"></script> 
     <script type="module" src="chatbot.js"></script>
 
-    <script>
+   <script>
         document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('chatbot-trigger-btn');
             const modal = document.getElementById('chatbot-modal');
@@ -450,16 +450,19 @@
             const modal = document.getElementById('chatbot-modal');
             if(!modal) return;
             
-            // Re-add Tailwind Hiding Classes
+            // 1. Re-add Tailwind Hiding Classes (Animation start)
             modal.classList.add('translate-y-full');
             modal.classList.remove('open');
             
-            // Reset Force Styles
+            // 2. Reset Force Styles so CSS takes over
+            // We set them to '' (empty) to remove the inline override
             modal.style.transform = ''; 
             
+            // Wait for animation to finish (300ms) then hide completely
             setTimeout(() => {
                 modal.classList.add('invisible');
-                modal.style.visibility = '';
+                // CRITICAL FIX: Clear these so 'invisible' class works again
+                modal.style.visibility = ''; 
                 modal.style.opacity = '';
             }, 300);
         };
