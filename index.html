@@ -345,14 +345,19 @@
 
 <div class="fixed z-40 bottom-24 lg:bottom-10 right-6 flex flex-col items-end pointer-events-none">
         
-       <button onclick="openChatbotModal()" id="chatbot-trigger-btn" class="fixed z-[60] bottom-24 lg:bottom-10 right-6 group outline-none focus:outline-none touch-manipulation transition-transform active:scale-95">
+      <button 
+        id="chatbot-trigger-btn"
+        onclick="if(window.openChatbotModal) window.openChatbotModal(); else console.log('Chatbot loading...');"
+        class="fixed z-[100] bottom-24 lg:bottom-10 right-6 w-16 h-16 group cursor-pointer outline-none focus:outline-none transition-transform active:scale-90"
+        style="-webkit-tap-highlight-color: transparent;"
+        aria-label="Open Chatbot">
         
-        <div class="relative w-16 h-16">
+        <div class="relative w-full h-full pointer-events-none">
             
             <div class="absolute inset-2 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
             
             <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" 
-                 alt="Open EcoBuddy" 
+                 alt="Bot" 
                  class="w-full h-full object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 ease-out group-hover:rotate-12 group-hover:scale-110">
                  
             <span class="absolute bottom-1 right-1 flex h-3.5 w-3.5 z-20">
