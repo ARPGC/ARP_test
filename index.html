@@ -345,28 +345,23 @@
 
 <div class="fixed z-40 bottom-24 lg:bottom-10 right-6 flex flex-col items-end pointer-events-none">
         
-       <div class="fixed z-50 bottom-24 lg:bottom-10 right-6 flex flex-col items-center gap-2 group cursor-pointer" onclick="openChatbotModal()">
+       <button onclick="openChatbotModal()" id="chatbot-trigger-btn" class="fixed z-[60] bottom-24 lg:bottom-10 right-6 group outline-none focus:outline-none touch-manipulation transition-transform active:scale-95">
         
-        <div class="animate-slideUp bg-white dark:bg-gray-800 px-5 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-none transform transition-transform duration-300 group-hover:-translate-y-1">
-            <span class="text-sm font-extrabold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent tracking-wide">
-                Ask Me!
-            </span>
-        </div>
-
-        <div class="relative w-16 h-16 transition-transform duration-300 group-active:scale-95">
+        <div class="relative w-16 h-16">
             
-            <div class="absolute inset-2 bg-emerald-400 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
+            <div class="absolute inset-2 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
             
             <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" 
-                 alt="AI Chatbot" 
-                 class="w-full h-full object-contain drop-shadow-2xl transform transition-all duration-700 ease-out group-hover:rotate-[360deg] group-hover:scale-110">
+                 alt="Open EcoBuddy" 
+                 class="w-full h-full object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 ease-out group-hover:rotate-12 group-hover:scale-110">
                  
-            <span class="absolute bottom-1 right-1 flex h-3 w-3">
+            <span class="absolute bottom-1 right-1 flex h-3.5 w-3.5 z-20">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-900"></span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-white dark:border-gray-900"></span>
             </span>
+            
         </div>
-    </div>
+    </button>
     </div>
     <div id="checkin-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center opacity-0 invisible" onclick="closeCheckinModal()"><div id="checkin-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md p-6 transform translate-y-full" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Daily Check-in</h3><button onclick="closeCheckinModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><p id="checkin-modal-streak" class="text-center text-5xl font-extrabold text-yellow-600 mb-6">0 Days</p><div id="checkin-modal-calendar" class="flex justify-center space-x-2 mb-6"></div><div id="checkin-modal-button-container"></div></div></div>
     <div id="purchase-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closePurchaseModal()"></div>
