@@ -93,8 +93,8 @@ const renderCheckinButtonState = () => {
         btn.onclick = openCheckinModal;
     }
 };
-
 // --- AQI LOGIC ---
+
 const initAQI = () => {
     const card = document.getElementById('dashboard-aqi-card');
     if (!card) return;
@@ -105,7 +105,7 @@ const initAQI = () => {
             card.innerHTML = `
                 <div class="glass-card p-4 rounded-xl flex items-center justify-center">
                     <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-gray-400 mr-2"></i>
-                    <span class="text-sm text-gray-500">Detecting Air Quality...</span>
+                    <span class="text-sm text-gray-500">Detecting Location...</span>
                 </div>`;
             
             navigator.geolocation.getCurrentPosition(
@@ -125,18 +125,25 @@ const initAQI = () => {
 const fetchAQI = async (lat, lon) => {
     const card = document.getElementById('dashboard-aqi-card');
     try {
-        const response = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
-        const data = await response.json();
-        const aqi = data.current.us_aqi;
+        // 1. Fetch AQI Data
+        const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
+        const aqiData = await aqiRes.json();
         
-        renderAQICard(card, aqi);
+        // 2. Fetch Location Name (Reverse Geocoding)
+        const locRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+        const locData = await locRes.json();
+        
+        const city = locData.locality || locData.city || "Campus Area";
+        const aqi = aqiData.current.us_aqi;
+        
+        renderAQICard(card, aqi, city);
     } catch (err) {
         console.error("AQI Fetch Error:", err);
         card.classList.add('hidden');
     }
 };
 
-const renderAQICard = (card, aqi) => {
+const renderAQICard = (card, aqi, city) => {
     let status = 'Good';
     let colorClass = 'from-green-100 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/20 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800';
     let icon = 'wind';
@@ -158,7 +165,10 @@ const renderAQICard = (card, aqi) => {
         <div class="bg-gradient-to-br ${colorClass} border p-5 rounded-2xl shadow-sm relative overflow-hidden animate-breathe">
             <div class="relative z-10 flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Air Quality Index</p>
+                    <div class="flex items-center gap-1 mb-1 opacity-70">
+                        <i data-lucide="map-pin" class="w-3 h-3"></i>
+                        <p class="text-xs font-bold uppercase tracking-wider">${city}</p>
+                    </div>
                     <h3 class="text-3xl font-black flex items-center gap-2">
                         ${aqi} <span class="text-lg font-medium opacity-80">(${status})</span>
                     </h3>
@@ -174,7 +184,6 @@ const renderAQICard = (card, aqi) => {
     `;
     if(window.lucide) window.lucide.createIcons();
 };
-
 // --- HISTORY & PROFILE ---
 
 export const loadHistoryData = async () => {
