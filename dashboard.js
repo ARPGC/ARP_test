@@ -174,7 +174,7 @@ const renderAQICard = (card, aqi) => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-// --- HISTORY & PROFILE ---
+// --- HISTORY & PROFILE (These were missing!) ---
 
 export const loadHistoryData = async () => {
     try {
@@ -293,67 +293,6 @@ export const setupFileUploads = () => {
             }
         });
     }
-};
-
-// --- PASSWORD CHANGE LOGIC (Requested Update) ---
-export const setupPasswordChange = () => {
-    const form = document.getElementById('change-password-form');
-    if (!form) return;
-
-    // Use replaceChild to ensure no duplicate event listeners if this is called multiple times
-    const newForm = form.cloneNode(true);
-    form.parentNode.replaceChild(newForm, form);
-
-    newForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newPasswordInput = document.getElementById('new-password');
-        const newPassword = newPasswordInput.value;
-        const btn = document.getElementById('change-password-button');
-        const msg = document.getElementById('password-message');
-
-        if (!newPassword || newPassword.length < 6) {
-             msg.textContent = "Password must be at least 6 characters.";
-             msg.className = "text-red-500 text-sm text-center font-bold";
-             return;
-        }
-
-        const originalBtnText = btn.innerText;
-        btn.disabled = true;
-        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4 inline mr-2"></i> Updating...`;
-        if(window.lucide) window.lucide.createIcons();
-        msg.textContent = "";
-
-        try {
-            // 1. Update Auth Password (Supabase Auth - Security)
-            const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-            if (authError) throw authError;
-
-            // 2. Update Plain Text in Database (Requirement)
-            // Note: This updates the row corresponding to the current logged-in user
-            const { error: dbError } = await supabase
-                .from('users')
-                .update({ password_plain: newPassword })
-                .eq('id', state.currentUser.id);
-
-            if (dbError) throw dbError;
-
-            // Success UI
-            msg.textContent = "Password updated successfully!";
-            msg.className = "text-green-500 text-sm text-center font-bold";
-            newPasswordInput.value = '';
-            
-            logUserActivity('password_change', 'User changed password');
-            alert("Success! Your password has been updated.");
-
-        } catch (err) {
-            console.error("Password Update Error:", err);
-            msg.textContent = err.message || "Failed to update password.";
-            msg.className = "text-red-500 text-sm text-center font-bold";
-        } finally {
-            btn.disabled = false;
-            btn.innerText = originalBtnText;
-        }
-    });
 };
 
 export const openCheckinModal = () => {
