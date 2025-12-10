@@ -45,10 +45,6 @@ export const renderPlasticLogPage = () => {
 
     const user = state.currentUser;
     const totalPlastic = user.impact?.total_plastic_kg || 0;
-    const co2Saved = user.impact?.co2_saved_kg || 0;
-    
-    // Fun Calculation: Approx 40 x 500ml PET bottles = 1kg
-    const bottlesSaved = Math.round(totalPlastic * 40); 
     
     // Milestone Calculation (Every 5kg is a milestone)
     const nextMilestone = Math.ceil((totalPlastic + 0.1) / 5) * 5;
@@ -88,29 +84,13 @@ export const renderPlasticLogPage = () => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-2 text-green-600 dark:text-green-400">
-                        <i data-lucide="weight" class="w-5 h-5"></i>
+            <div class="grid grid-cols-1 gap-4">
+                <div class="glass-card p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3 text-green-600 dark:text-green-400">
+                        <i data-lucide="weight" class="w-6 h-6"></i>
                     </div>
-                    <span class="text-2xl font-black text-gray-900 dark:text-white">${totalPlastic.toFixed(2)}</span>
-                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">KG Recycled</span>
-                </div>
-
-                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2 text-blue-600 dark:text-blue-400">
-                        <i data-lucide="cloud-off" class="w-5 h-5"></i>
-                    </div>
-                    <span class="text-2xl font-black text-gray-900 dark:text-white">${co2Saved.toFixed(2)}</span>
-                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">KG CO₂ Saved</span>
-                </div>
-
-                <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center text-center col-span-2 md:col-span-1">
-                    <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-2 text-orange-600 dark:text-orange-400">
-                        <i data-lucide="package-check" class="w-5 h-5"></i>
-                    </div>
-                    <span class="text-2xl font-black text-gray-900 dark:text-white">~${bottlesSaved}</span>
-                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Bottles Saved</span>
+                    <span class="text-4xl font-black text-gray-900 dark:text-white mb-1">${totalPlastic.toFixed(2)}</span>
+                    <span class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">KG Recycled</span>
                 </div>
             </div>
 
