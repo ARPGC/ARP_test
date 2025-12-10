@@ -18,6 +18,7 @@ export const debounce = (func, wait) => {
 };
 
 export const isLowDataMode = () => {
+    // Check navigator connection api
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn) {
         return (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType));
@@ -25,12 +26,29 @@ export const isLowDataMode = () => {
     return false;
 };
 
+// NEW: Image Optimization Helper
+export const getOptimizedImageUrl = (url, width = 400) => {
+    if (!url) return getPlaceholderImage();
+    
+    // Check if it's a Cloudinary URL
+    if (url.includes('cloudinary.com')) {
+        // Determine quality setting
+        const quality = isLowDataMode() ? 'q_auto:low,f_auto' : 'q_auto,f_auto';
+        const resize = `w_${isLowDataMode() ? Math.floor(width / 1.5) : width}`;
+        
+        // Inject transformation
+        // Matches the '/upload/' segment and inserts params after it
+        return url.replace('/upload/', `/upload/${quality},${resize}/`);
+    }
+    
+    return url;
+};
+
 // --- LOGGING UTILS ---
 
 export const logUserActivity = async (actionType, description, metadata = {}) => {
     try {
         if (!state.currentUser) return;
-        // Non-blocking insert
         supabase.from('user_activity_log').insert({
             user_id: state.currentUser.id,
             action_type: actionType,
@@ -39,9 +57,7 @@ export const logUserActivity = async (actionType, description, metadata = {}) =>
         }).then(({ error }) => {
             if (error) console.warn("Activity log failed:", error.message);
         });
-    } catch (err) {
-        // Fail silently to avoid disrupting UX
-    }
+    } catch (err) { }
 };
 
 // --- DOM CACHE ---
@@ -75,7 +91,6 @@ export const els = {
 // --- IMAGE & UI HELPERS ---
 
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
-    // Optimization: Request smaller images on low data
     if (isLowDataMode()) {
         const dims = size.split('x').map(n => Math.floor(parseInt(n)/2)).join('x');
         return `https://placehold.co/${dims}/EBFBEE/166534?text=${text}&font=inter`;
@@ -128,7 +143,7 @@ export const formatDate = (dateString, options = {}) => {
 // --- ICONS & INITIALS ---
 
 export const getIconForHistory = (type) => {
-    const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket', 'quiz': 'brain' };
+    const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket', 'quiz': 'brain', 'streak_restore': 'zap' };
     return icons[type] || 'help-circle';
 };
 
@@ -167,10 +182,8 @@ export const uploadToCloudinary = async (file) => {
 // --- NAVIGATION LOGIC ---
 
 export const showPage = (pageId, addToHistory = true) => {
-    logUserActivity('view_page', `Mapsd to ${pageId}`);
+    logUserActivity('view_page', `Mapped to ${pageId}`);
 
-    // --- RESET BACKGROUNDS LOGIC (Critical for GreenLens) ---
-    // Resets the immersive colors on sidebar/header/main when leaving gallery
     const main = document.querySelector('.main-content');
     if (main) main.style.backgroundColor = ''; 
     
@@ -183,22 +196,19 @@ export const showPage = (pageId, addToHistory = true) => {
     const hd = document.querySelector('header');
     if (hd) {
         hd.style.backgroundColor = '';
-        hd.classList.remove('dark'); // Reset forced dark mode on header
+        hd.classList.remove('dark'); 
     }
-    // -----------------------------------------------------
 
     els.pages.forEach(p => p.classList.remove('active'));
     
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
-    // Clear Detail Pages to prevent stale data
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
         els.storeDetailPage.innerHTML = ''; els.productDetailPage.innerHTML = '';
     }
     if (pageId !== 'department-detail-page') els.departmentDetailPage.innerHTML = '';
 
-    // Update Nav Active State
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
         btn.classList.toggle('active', onclickVal && onclickVal.includes(`'${pageId}'`));
@@ -210,50 +220,21 @@ export const showPage = (pageId, addToHistory = true) => {
         window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     }
 
-    // Reset Leaf Layer visibility
     if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
 
-    // Route Handling
-    if (pageId === 'dashboard') { 
-        renderDashboard(); 
-    } 
-    else if (pageId === 'leaderboard') { 
-        showLeaderboardTab('student'); 
-    } 
-    else if (pageId === 'rewards') { 
-        window.renderRewardsWrapper && window.renderRewardsWrapper(); 
-    } 
-    else if (pageId === 'my-rewards') { 
-        window.renderMyRewardsPageWrapper && window.renderMyRewardsPageWrapper(); 
-    } 
-    else if (pageId === 'history') { 
-        renderHistory(); 
-    } 
-    else if (pageId === 'ecopoints') { 
-        window.renderEcoPointsPageWrapper && window.renderEcoPointsPageWrapper(); 
-    } 
-    else if (pageId === 'challenges') { 
-        window.renderChallengesPageWrapper && window.renderChallengesPageWrapper(); 
-    } 
-    else if (pageId === 'events') { 
-        window.renderEventsPageWrapper && window.renderEventsPageWrapper(); 
-    } 
-    else if (pageId === 'profile') { 
-        renderProfile(); 
-    }
-    else if (pageId === 'green-lens') { 
-        // Trigger Gallery Render
-        window.renderGalleryWrapper && window.renderGalleryWrapper();
-    }
-    else if (pageId === 'plastic-log') {
-        // Dynamic Import for Plastic Log Page
-        import('./plastic-log.js').then(m => m.renderPlasticLogPage());
-    }
+    if (pageId === 'dashboard') renderDashboard(); 
+    else if (pageId === 'leaderboard') showLeaderboardTab('student'); 
+    else if (pageId === 'rewards') window.renderRewardsWrapper && window.renderRewardsWrapper(); 
+    else if (pageId === 'my-rewards') window.renderMyRewardsPageWrapper && window.renderMyRewardsPageWrapper(); 
+    else if (pageId === 'history') renderHistory(); 
+    else if (pageId === 'ecopoints') window.renderEcoPointsPageWrapper && window.renderEcoPointsPageWrapper(); 
+    else if (pageId === 'challenges') window.renderChallengesPageWrapper && window.renderChallengesPageWrapper(); 
+    else if (pageId === 'events') window.renderEventsPageWrapper && window.renderEventsPageWrapper(); 
+    else if (pageId === 'profile') renderProfile();
+    else if (pageId === 'green-lens') window.renderGalleryWrapper && window.renderGalleryWrapper();
+    else if (pageId === 'plastic-log') import('./plastic-log.js').then(m => m.renderPlasticLogPage());
 
-    // Mobile: Close sidebar on navigation
-    if (window.innerWidth < 1024) {
-        toggleSidebar(true); 
-    }
+    if (window.innerWidth < 1024) toggleSidebar(true); 
     
     if(window.lucide) window.lucide.createIcons();
 };
@@ -281,6 +262,5 @@ export const toggleSidebar = (forceClose = false) => {
     }
 };
 
-// Attach globally
 window.showPage = showPage;
 window.toggleSidebar = toggleSidebar;
