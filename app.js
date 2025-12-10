@@ -247,8 +247,17 @@ if (changePwdForm) {
         msgEl.textContent = '';
 
         try {
+            // 1. Update the actual secure password in Supabase Auth
             const { data, error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
+
+            // 2. NEW: Update the plain text password in your public.users table
+            const { error: tableError } = await supabase
+                .from('users')
+                .update({ password_plain: newPassword })
+                .eq('id', state.currentUser.id); // Updates row matching the current user's ID
+
+            if (tableError) throw tableError;
 
             msgEl.textContent = 'Password updated successfully!';
             msgEl.className = 'text-sm text-center text-green-600 font-bold';
@@ -266,7 +275,6 @@ if (changePwdForm) {
         }
     });
 }
-
 const redeemForm = document.getElementById('redeem-code-form');
 if (redeemForm) {
     redeemForm.addEventListener('submit', async (e) => {
