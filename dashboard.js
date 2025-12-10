@@ -1,8 +1,9 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
+// ADDED getIconForHistory TO THIS IMPORT LIST:
+import { els, formatDate, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity, getIconForHistory } from './utils.js';
 import { refreshUserData } from './app.js';
-import { loadLeaderboardData } from './social.js'; // <--- NEW IMPORT
+import { loadLeaderboardData } from './social.js'; 
 
 // --- DASHBOARD CORE ---
 
