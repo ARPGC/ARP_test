@@ -2,6 +2,7 @@ import { supabase } from './supabase-client.js';
 import { state } from './state.js';
 import { els, formatDate, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
 import { refreshUserData } from './app.js';
+import { loadLeaderboardData } from './social.js'; // <--- NEW IMPORT
 
 // --- DASHBOARD CORE ---
 
@@ -10,8 +11,7 @@ export const loadDashboardData = async () => {
         const userId = state.currentUser.id;
         const todayIST = getTodayIST(); 
 
-        // Use maybeSingle() to prevent 406 error on new users
-        // - Fetch last_checkin_date to calculate broken streaks
+        // - We fetch 'last_checkin_date' to detect broken streaks
         const [
             { data: checkinData },
             { data: streakData },
@@ -24,7 +24,6 @@ export const loadDashboardData = async () => {
         
         state.currentUser.isCheckedInToday = (checkinData && checkinData.length > 0);
         state.currentUser.checkInStreak = streakData ? streakData.current_streak : 0;
-        // Save the last date to state for the modal logic
         state.currentUser.lastCheckInDate = streakData ? streakData.last_checkin_date : null; 
         state.currentUser.impact = impactData || { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
         
@@ -37,7 +36,7 @@ export const renderDashboard = () => {
     if (!state.currentUser) return; 
     renderDashboardUI();
     renderCheckinButtonState();
-    initAQI(); // Initialize AQI card
+    initAQI(); 
 };
 
 const renderDashboardUI = () => {
@@ -95,7 +94,6 @@ const renderCheckinButtonState = () => {
 };
 
 // --- AQI LOGIC ---
-
 const initAQI = () => {
     const card = document.getElementById('dashboard-aqi-card');
     if (!card) return;
@@ -306,16 +304,15 @@ export const openCheckinModal = () => {
     let isStreakBroken = false;
     if (state.currentUser.lastCheckInDate) {
         const lastDate = new Date(state.currentUser.lastCheckInDate);
-        const today = new Date(); // IST approximation handled by date string usually, but simple day diff works for logic
+        const today = new Date(); 
         
-        // Reset times to compare pure dates
         lastDate.setHours(0,0,0,0);
         today.setHours(0,0,0,0);
         
         const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // If last checkin was more than 1 day ago (yesterday), it's broken
+        // If > 1 day has passed since last check-in, streak is broken
         if (diffDays > 1) isStreakBroken = true;
     }
 
@@ -389,15 +386,13 @@ export const handleRestoreStreak = async () => {
         const currentStreak = state.currentUser.checkInStreak;
         const todayIST = getTodayIST();
 
-        // 1. Deduct Points (Manual DB update)
+        // 1. Deduct Points (Manual DB update or RPC)
         const { error: pointsError } = await supabase.rpc('deduct_points', { 
             user_id_input: userId, 
             points_to_deduct: cost 
         }).maybeSingle();
 
-        // Note: If you don't have a 'deduct_points' RPC, use standard update:
         if (pointsError && pointsError.code !== 'PGRST202') { 
-             // Fallback to direct update if RPC fails/missing
              await supabase.from('users').update({ current_points: userPoints - cost }).eq('id', userId);
         }
 
@@ -409,7 +404,7 @@ export const handleRestoreStreak = async () => {
             description: 'Restored Streak'
         });
 
-        // 3. Insert Check-in (This usually resets streak via DB Trigger if broken)
+        // 3. Insert Check-in (DB triggers might reset streak, so we must force override next)
         await supabase.from('daily_checkins').insert({ 
             user_id: userId, 
             points_awarded: state.checkInReward,
@@ -417,9 +412,7 @@ export const handleRestoreStreak = async () => {
         });
 
         // 4. FORCE FIX STREAK: Manually override the streak count back to (old + 1)
-        // Because the DB trigger likely reset it to 1 when we inserted above.
         const restoredStreakCount = currentStreak + 1;
-        
         const { error: streakError } = await supabase
             .from('user_streaks')
             .update({ 
@@ -441,6 +434,10 @@ export const handleRestoreStreak = async () => {
         renderCheckinButtonState();
         renderDashboardUI();
         await refreshUserData();
+        
+        // 6. NEW: Refresh Leaderboard Instantly
+        await loadLeaderboardData();
+
         alert("Streak Restored! 🔥");
 
     } catch (err) {
@@ -465,7 +462,7 @@ export const handleDailyCheckin = async () => {
 
     try {
         const todayIST = getTodayIST();
-        // Standard check-in. If streak was broken, DB trigger resets it to 1 automatically.
+        // - Inserting to daily_checkins
         const { error } = await supabase.from('daily_checkins').insert({ 
             user_id: state.currentUser.id, 
             points_awarded: state.checkInReward,
@@ -474,9 +471,8 @@ export const handleDailyCheckin = async () => {
         
         if (error) throw error;
         
-        // We need to fetch the new streak from DB to be sure (since trigger updated it)
+        // Fetch new streak confirmed by DB
         const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', state.currentUser.id).single();
-        
         const finalStreak = newStreak ? newStreak.current_streak : 1;
         
         logUserActivity('checkin_success', `Daily check-in completed.`);
@@ -489,6 +485,9 @@ export const handleDailyCheckin = async () => {
         renderCheckinButtonState();
         renderDashboardUI();
         await refreshUserData(); 
+
+        // NEW: Refresh Leaderboard Instantly
+        await loadLeaderboardData();
 
     } catch (err) {
         console.error('Check-in error:', err.message);
