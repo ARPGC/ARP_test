@@ -1,9 +1,9 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-// ADDED getIconForHistory TO THIS IMPORT LIST:
-import { els, formatDate, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity, getIconForHistory } from './utils.js';
+// Make sure getIconForHistory is imported here
+import { els, formatDate, getIconForHistory, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
 import { refreshUserData } from './app.js';
-import { loadLeaderboardData } from './social.js'; 
+import { loadLeaderboardData } from './social.js';
 
 // --- DASHBOARD CORE ---
 
@@ -12,7 +12,6 @@ export const loadDashboardData = async () => {
         const userId = state.currentUser.id;
         const todayIST = getTodayIST(); 
 
-        // - We fetch 'last_checkin_date' to detect broken streaks
         const [
             { data: checkinData },
             { data: streakData },
@@ -93,8 +92,8 @@ const renderCheckinButtonState = () => {
         btn.onclick = openCheckinModal;
     }
 };
-// --- AQI LOGIC ---
 
+// --- AQI LOGIC ---
 const initAQI = () => {
     const card = document.getElementById('dashboard-aqi-card');
     if (!card) return;
@@ -125,11 +124,9 @@ const initAQI = () => {
 const fetchAQI = async (lat, lon) => {
     const card = document.getElementById('dashboard-aqi-card');
     try {
-        // 1. Fetch AQI Data
         const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
         const aqiData = await aqiRes.json();
         
-        // 2. Fetch Location Name (Reverse Geocoding)
         const locRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
         const locData = await locRes.json();
         
@@ -184,6 +181,7 @@ const renderAQICard = (card, aqi, city) => {
     `;
     if(window.lucide) window.lucide.createIcons();
 };
+
 // --- HISTORY & PROFILE ---
 
 export const loadHistoryData = async () => {
@@ -238,10 +236,13 @@ export const renderProfile = () => {
     
     const nameEl = document.getElementById('profile-name');
     const emailEl = document.getElementById('profile-email');
+    const joinedEl = document.getElementById('profile-joined'); // <--- NEW
     const avatarEl = document.getElementById('profile-avatar');
     
     if(nameEl) nameEl.innerHTML = `${u.full_name} ${getTickImg(u.tick_type)}`;
     if(emailEl) emailEl.textContent = u.email;
+    // Populate Joined Date
+    if(joinedEl) joinedEl.textContent = `Joined ${formatDate(u.joined_at, { month: 'long', year: 'numeric' })}`;
     if(avatarEl) avatarEl.src = u.profile_img_url || getPlaceholderImage('112x112', getUserInitials(u.full_name));
 
     const levelTitle = document.getElementById('profile-level-title');
@@ -256,10 +257,13 @@ export const renderProfile = () => {
 
     const studentId = document.getElementById('profile-student-id');
     const course = document.getElementById('profile-course');
+    const mobile = document.getElementById('profile-mobile'); // <--- NEW
     const emailPersonal = document.getElementById('profile-email-personal');
     
     if(studentId) studentId.textContent = u.student_id;
     if(course) course.textContent = u.course;
+    // Populate Mobile Number
+    if(mobile) mobile.textContent = u.mobile || 'Not Set'; 
     if(emailPersonal) emailPersonal.textContent = u.email;
 };
 
@@ -322,7 +326,6 @@ export const openCheckinModal = () => {
         const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // If > 1 day has passed since last check-in, streak is broken
         if (diffDays > 1) isStreakBroken = true;
     }
 
@@ -396,7 +399,6 @@ export const handleRestoreStreak = async () => {
         const currentStreak = state.currentUser.checkInStreak;
         const todayIST = getTodayIST();
 
-        // 1. Deduct Points (Manual DB update or RPC)
         const { error: pointsError } = await supabase.rpc('deduct_points', { 
             user_id_input: userId, 
             points_to_deduct: cost 
@@ -406,7 +408,6 @@ export const handleRestoreStreak = async () => {
              await supabase.from('users').update({ current_points: userPoints - cost }).eq('id', userId);
         }
 
-        // 2. Log Deduction
         await supabase.from('points_ledger').insert({
             user_id: userId,
             source_type: 'streak_restore',
@@ -414,14 +415,12 @@ export const handleRestoreStreak = async () => {
             description: 'Restored Streak'
         });
 
-        // 3. Insert Check-in (DB triggers might reset streak, so we must force override next)
         await supabase.from('daily_checkins').insert({ 
             user_id: userId, 
             points_awarded: state.checkInReward,
             checkin_date: todayIST 
         });
 
-        // 4. FORCE FIX STREAK: Manually override the streak count back to (old + 1)
         const restoredStreakCount = currentStreak + 1;
         const { error: streakError } = await supabase
             .from('user_streaks')
@@ -433,19 +432,17 @@ export const handleRestoreStreak = async () => {
 
         if (streakError) throw streakError;
 
-        // 5. Success
         logUserActivity('streak_restored', `Restored streak to ${restoredStreakCount}`);
         closeCheckinModal();
 
         state.currentUser.checkInStreak = restoredStreakCount;
         state.currentUser.isCheckedInToday = true;
-        state.currentUser.current_points -= cost; // Optimistic update
+        state.currentUser.current_points -= cost; 
         
         renderCheckinButtonState();
         renderDashboardUI();
         await refreshUserData();
         
-        // 6. NEW: Refresh Leaderboard Instantly
         await loadLeaderboardData();
 
         alert("Streak Restored! 🔥");
@@ -472,7 +469,6 @@ export const handleDailyCheckin = async () => {
 
     try {
         const todayIST = getTodayIST();
-        // - Inserting to daily_checkins
         const { error } = await supabase.from('daily_checkins').insert({ 
             user_id: state.currentUser.id, 
             points_awarded: state.checkInReward,
@@ -481,7 +477,6 @@ export const handleDailyCheckin = async () => {
         
         if (error) throw error;
         
-        // Fetch new streak confirmed by DB
         const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', state.currentUser.id).single();
         const finalStreak = newStreak ? newStreak.current_streak : 1;
         
@@ -496,7 +491,6 @@ export const handleDailyCheckin = async () => {
         renderDashboardUI();
         await refreshUserData(); 
 
-        // NEW: Refresh Leaderboard Instantly
         await loadLeaderboardData();
 
     } catch (err) {
@@ -511,7 +505,6 @@ export const handleDailyCheckin = async () => {
     }
 };
 
-// Exports attached to window for inline HTML events
 window.openCheckinModal = openCheckinModal;
 window.closeCheckinModal = closeCheckinModal;
 window.handleDailyCheckin = handleDailyCheckin;
