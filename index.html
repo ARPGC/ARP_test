@@ -345,17 +345,123 @@
 
                 <div id="help" class="page p-6">
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Help & Support</h2>
+                    
                     <div class="glass-card p-6 rounded-2xl space-y-8 max-w-3xl mx-auto">
+                        
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-5 rounded-2xl border border-green-100 dark:border-green-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-white dark:bg-green-800 rounded-full flex items-center justify-center shadow-sm">
+                                    <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-8 h-8 object-contain">
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">Ask EcoBuddy</h3>
+                                    <p class="text-xs text-gray-600 dark:text-gray-300">Our AI assistant can answer questions instantly.</p>
+                                </div>
+                            </div>
+                            <button onclick="openChatbotModal()" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-green-500/20 transition-transform active:scale-95 whitespace-nowrap">
+                                Chat Now
+                            </button>
+                        </div>
+
                         <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2"><i data-lucide="leaf" class="w-5 h-5 text-green-500"></i> EcoPoints & Rewards</h3>
-                            <div class="space-y-4">
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer"><summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">How do I earn points?<i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i></summary><p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">1. <strong>Daily Check-in:</strong> Open app daily.<br>2. <strong>Recycling:</strong> Submit plastic at collection points.<br>3. <strong>Events:</strong> RSVP and attend events.</p></details>
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer"><summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">How to redeem canteen coupons?<i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i></summary><p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">Go to the <strong>Store</strong> tab and purchase a coupon. Once bought, find it in <strong>My Orders</strong> and show the QR code at the counter.</p></details>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                <i data-lucide="info" class="w-5 h-5 text-blue-500"></i> General & Account
+                            </h3>
+                            <div class="space-y-3">
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        Who can use this app?
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        EcoCampus is exclusively for registered students of B.K. Birla Night College. You must have a valid Student ID to log in.
+                                    </p>
+                                </details>
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        My Student ID shows "Invalid".
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        Please ensure you are entering the 7-digit ID found on your ID card. If the issue persists, contact the college admin office or email support.
+                                    </p>
+                                </details>
                             </div>
                         </div>
+
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                <i data-lucide="leaf" class="w-5 h-5 text-green-500"></i> EcoPoints & Rewards
+                            </h3>
+                            <div class="space-y-3">
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        How do I earn points?
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        1. <strong>Daily Check-in:</strong> Open the app daily (+10 pts).<br>
+                                        2. <strong>Recycling:</strong> Scan your QR at the plastic collection desk.<br>
+                                        3. <strong>Events:</strong> RSVP and attend Green Club events.<br>
+                                        4. <strong>Challenges:</strong> Upload photos for weekly eco-challenges.
+                                    </p>
+                                </details>
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        How do I redeem a reward?
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        Go to the <strong>Store</strong> tab, select an item, and confirm purchase. Then, go to the <strong>Orders</strong> tab to find your QR code. Show this code at the canteen or store counter.
+                                    </p>
+                                </details>
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        I lost my Check-in Streak!
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        Don't worry! You can restore a broken streak by paying a <strong>50 EcoPoint penalty</strong>. Just tap the "Daily Check-in" card on the dashboard to see the option.
+                                    </p>
+                                </details>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                <i data-lucide="cpu" class="w-5 h-5 text-purple-500"></i> Technical Issues
+                            </h3>
+                            <div class="space-y-3">
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        Camera not working for challenges.
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        Please ensure you have granted "Camera Permissions" to your browser. If it still fails, try refreshing the page or clearing your browser cache.
+                                    </p>
+                                </details>
+                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
+                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
+                                        AQI is not updating.
+                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
+                                        The Air Quality Index requires Location Permissions (GPS) to be active. Ensure your device location is turned on.
+                                    </p>
+                                </details>
+                            </div>
+                        </div>
+
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Still need help?</h3>
-                            <a href="mailto:greenclubbkbirlanightcollege@gmail.com" class="flex items-center justify-center gap-2 w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-bold py-3.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-100 dark:border-indigo-800"><i data-lucide="mail" class="w-4 h-4"></i><span class="break-all">greenclubbkbirlanightcollege@gmail.com</span></a>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                                For points discrepancies, bug reports, or partnership queries, please email us directly.
+                            </p>
+                            <a href="mailto:greenclubbkbirlanightcollege@gmail.com" class="flex items-center justify-center gap-2 w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-bold py-3.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-100 dark:border-indigo-800">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                                <span class="break-all">greenclubbkbirlanightcollege@gmail.com</span>
+                            </a>
                         </div>
                     </div>
                 </div>
