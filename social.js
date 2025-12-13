@@ -40,7 +40,7 @@ const loadStudentLeaderboard = async () => {
                 id, full_name, course, lifetime_points, profile_img_url, tick_type,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            .gt('lifetime_points', 0) // FIX: Filter out users with 0 points
+            .gt('lifetime_points', 0) // Filter out users with 0 points
             .order('lifetime_points', { ascending: false });
             // No limit requested
 
@@ -62,7 +62,7 @@ const loadStudentLeaderboard = async () => {
     } catch (err) { console.error('Student LB Error:', err); }
 };
 
-// 2. DEPARTMENT STATS (Aggregation)
+// 2. DEPARTMENT STATS (Aggregation via RPC)
 export const loadDepartmentLeaderboard = async () => {
     if (state.deptStatsLoaded) {
         renderDepartmentLeaderboard();
@@ -70,39 +70,17 @@ export const loadDepartmentLeaderboard = async () => {
     }
 
     try {
-        // Minimal fetch for aggregation
-        const { data, error } = await supabase
-            .from('users')
-            .select('course, lifetime_points')
-            .limit(1500); // FIX: Increased limit to ensure correct student counts (default is 1000)
+        // Use RPC to bypass 1000-row select limit and reduce egress
+        const { data, error } = await supabase.rpc('department_stats');
 
         if (error) throw error;
 
-        const deptMap = {};
-        
-        data.forEach(user => {
-            let cleanCourse = user.course ? user.course.trim().toUpperCase() : 'GENERAL';
-            cleanCourse = cleanCourse.replace(/^(FY|SY|TY)[\s.]?/i, '');
-            if (cleanCourse.length < 2) cleanCourse = user.course;
-
-            if (!deptMap[cleanCourse]) {
-                deptMap[cleanCourse] = { 
-                    name: cleanCourse, 
-                    totalPoints: 0, 
-                    studentCount: 0 
-                };
-            }
-
-            deptMap[cleanCourse].totalPoints += (user.lifetime_points || 0);
-            deptMap[cleanCourse].studentCount += 1;
-        });
-
-        state.departmentLeaderboard = Object.values(deptMap)
-            .map(dept => ({
-                ...dept,
-                averageScore: dept.studentCount > 0 ? Math.round(dept.totalPoints / dept.studentCount) : 0
-            }))
-            .sort((a, b) => b.averageScore - a.averageScore);
+        state.departmentLeaderboard = data.map(dept => ({
+            name: dept.department,
+            studentCount: dept.student_count,
+            averageScore: Number(dept.avg_score) // Ensure numeric type
+        }))
+        .sort((a, b) => b.averageScore - a.averageScore);
 
         state.deptStatsLoaded = true;
         renderDepartmentLeaderboard();
@@ -174,7 +152,6 @@ export const renderDepartmentLeaderboard = () => {
         return; 
     }
 
-    // Optimization: Build string first
     const html = state.departmentLeaderboard.map((dept, index) => `
         <div class="glass-card p-4 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-3 border border-gray-100 dark:border-gray-700 active:scale-[0.98] transform duration-150" onclick="showDepartmentDetail('${dept.name}')">
             <div class="flex items-center justify-between">
@@ -234,7 +211,6 @@ export const renderDepartmentStudents = (deptName) => {
         return;
     }
 
-    // Optimization: Build large string first
     const html = students.map((s, idx) => {
         const optimizedImg = getOptimizedImgUrl(s.img) || getPlaceholderImage('60x60', s.initials);
         return `
@@ -298,7 +274,6 @@ export const renderStudentLeaderboard = () => {
             <div class="champ">${renderChamp(rank3, 3)}</div>
         </div>`;
 
-    // Optimization: Build large string first
     const html = rest.map((user, index) => {
         const optimizedImg = getOptimizedImgUrl(user.profile_img_url) || getPlaceholderImage('40x40', user.initials);
         return `
