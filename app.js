@@ -150,13 +150,23 @@ const handleLogout = async () => {
 
 const redirectToLogin = () => { window.location.replace('login.html'); };
 
+// In app.js
+
 export const refreshUserData = async () => {
     try {
-        const { data: userProfile, error } = await supabase.from('users').select('*').eq('id', state.currentUser.id).single();
+        const { data: userProfile, error } = await supabase
+            .from('users')
+            // Optimization: Only select fields needed for the UI logic
+            .select('id, full_name, current_points, lifetime_points, profile_img_url, tick_type, student_id, course, email, mobile, joined_at')
+            .eq('id', state.currentUser.id)
+            .single();
+
         if (error) {
             console.error('RefreshData: Failed to fetch user:', error.message);
             return;
         }
+        
+        // ... rest of the function remains the same ...
         if (!userProfile) {
             console.warn('RefreshData: User profile missing.');
             return;
@@ -165,7 +175,9 @@ export const refreshUserData = async () => {
         const existingState = {
             isCheckedInToday: state.currentUser.isCheckedInToday,
             checkInStreak: state.currentUser.checkInStreak,
-            impact: state.currentUser.impact
+            impact: state.currentUser.impact,
+            // Preserve the last check-in date too
+            lastCheckInDate: state.currentUser.lastCheckInDate 
         };
 
         state.currentUser = { ...userProfile, ...existingState };
