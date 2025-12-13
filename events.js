@@ -3,12 +3,15 @@ import { state } from './state.js';
 // Added getOptimizedImageUrl
 import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity, getOptimizedImageUrl } from './utils.js';
 
+// In events.js
+
 export const loadEventsData = async () => {
     try {
         const { data: events, error } = await supabase
             .from('events')
+            // Optimization: Explicitly select columns needed for the card
             .select(`
-                *,
+                id, title, start_at, location, poster_url, points_reward, organizer, description,
                 event_attendance (
                     status,
                     users!event_attendance_user_id_fkey ( id, full_name, profile_img_url, tick_type )
@@ -19,6 +22,7 @@ export const loadEventsData = async () => {
         if (error) throw error;
 
         state.events = events.map(e => {
+            // ... keep existing mapping logic ...
             const rawAttendees = e.event_attendance || [];
             
             const attendees = rawAttendees
