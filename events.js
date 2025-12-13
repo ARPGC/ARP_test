@@ -1,41 +1,41 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-// Added getOptimizedImageUrl
 import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity, getOptimizedImageUrl } from './utils.js';
 
 // In events.js
 
 export const loadEventsData = async () => {
     try {
-        const { data: events, error } = await supabase
+        // 1. Fetch Events (No Joins, Minimal Fields)
+        const { data: events, error: eventsError } = await supabase
             .from('events')
-            // Optimization: Explicitly select columns needed for the card
-            .select(`
-                id, title, start_at, location, poster_url, points_reward, organizer, description,
-                event_attendance (
-                    status,
-                    users!event_attendance_user_id_fkey ( id, full_name, profile_img_url, tick_type )
-                )
-            `)
+            .select('id, title, start_at, location, poster_url, points_reward, organizer, description')
             .order('start_at', { ascending: true });
 
-        if (error) throw error;
+        if (eventsError) throw eventsError;
+
+        // 2. Fetch My Attendance ONLY (No other users)
+        const { data: myAttendance, error: attendanceError } = await supabase
+            .from('event_attendance')
+            .select('event_id, status')
+            .eq('user_id', state.currentUser.id);
+
+        if (attendanceError) throw attendanceError;
+
+        // Create a map for fast lookup
+        const attendanceMap = new Map();
+        if (myAttendance) {
+            myAttendance.forEach(a => attendanceMap.set(a.event_id, a.status));
+        }
 
         state.events = events.map(e => {
-            // ... keep existing mapping logic ...
-            const rawAttendees = e.event_attendance || [];
+            const status = attendanceMap.get(e.id);
+            let myStatus = 'upcoming';
             
-            const attendees = rawAttendees
-                .filter(a => a.status === 'registered' || a.status === 'confirmed')
-                .map(a => a.users)
-                .filter(u => u !== null); 
-            
-            const myAttendance = rawAttendees.find(a => a.users && a.users.id === state.currentUser.id);
-            let myStatus = 'upcoming'; 
-            if (myAttendance) {
-                if (myAttendance.status === 'confirmed') myStatus = 'attended';
-                else if (myAttendance.status === 'absent') myStatus = 'missed';
-                else myStatus = 'going';
+            if (status) {
+                if (status === 'confirmed') myStatus = 'attended';
+                else if (status === 'absent') myStatus = 'missed';
+                else myStatus = 'going'; // registered
             }
 
             return {
@@ -43,13 +43,17 @@ export const loadEventsData = async () => {
                 dateObj: new Date(e.start_at),
                 displayDate: formatDate(e.start_at, { month: 'short', day: 'numeric' }),
                 displayTime: formatDate(e.start_at, { hour: 'numeric', minute: 'numeric', hour12: true }),
-                attendees: attendees,
-                attendeeCount: attendees.length,
+                // Optimization: We do NOT fetch other attendees to save egress
+                attendees: [], 
+                attendeeCount: 0, 
                 myStatus: myStatus
             };
         });
 
-        if (document.getElementById('events').classList.contains('active')) renderEventsPage();
+        if (document.getElementById('events') && document.getElementById('events').classList.contains('active')) {
+            renderEventsPage();
+        }
+        
         updateDashboardEvent();
 
     } catch (err) { console.error('Events Load Error:', err); }
@@ -66,21 +70,8 @@ export const renderEventsPage = () => {
     let eventsHTML = '';
 
     state.events.forEach(e => {
-        let avatarsHtml = '';
-        const showMax = 3;
-        const extraCount = e.attendeeCount - showMax;
-        
-        e.attendees.slice(0, showMax).forEach(u => {
-            // Optimize Avatar
-            const img = getOptimizedImageUrl(u.profile_img_url, 100) || getPlaceholderImage('50x50', (u.full_name || 'U')[0]);
-            avatarsHtml += `<img src="${img}" alt="${u.full_name}" class="border-2 border-white dark:border-gray-800" loading="lazy">`;
-        });
-        if (extraCount > 0) {
-            avatarsHtml += `<div class="more-count bg-gray-100 dark:bg-gray-700 border-white dark:border-gray-800 text-gray-600 dark:text-gray-300">+${extraCount}</div>`;
-        }
-        if (e.attendeeCount === 0) {
-            avatarsHtml = `<span class="text-xs text-gray-400 italic pl-1">Be the first!</span>`;
-        }
+        // Avatar stack is hidden/empty since we don't fetch other users
+        let avatarsHtml = `<span class="text-xs text-gray-400 italic pl-1">Join the community!</span>`;
 
         let actionBtn = '';
         if (e.myStatus === 'going') {
@@ -91,7 +82,6 @@ export const renderEventsPage = () => {
             actionBtn = `<button onclick="handleRSVP('${e.id}')" class="w-full bg-brand-600 hover:bg-brand-700 dark:bg-brand-600 dark:hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-brand-500/20 dark:shadow-none transition-all active:scale-95">RSVP Now</button>`;
         }
 
-        // Optimize Poster
         const posterUrl = getOptimizedImageUrl(e.poster_url, 600);
 
         eventsHTML += `
@@ -162,7 +152,14 @@ export const handleRSVP = async (eventId) => {
         
         logUserActivity('rsvp_event', `Registered for event`, { eventId });
 
-        await loadEventsData();
+        // Update Local State (No Refetch)
+        const eventIndex = state.events.findIndex(e => e.id === eventId);
+        if (eventIndex > -1) {
+            state.events[eventIndex].myStatus = 'going';
+            // We force a re-render of the list to show "Registered" button
+            renderEventsPage();
+        }
+
         alert("You have successfully registered!");
 
     } catch (err) {
@@ -174,39 +171,21 @@ export const handleRSVP = async (eventId) => {
 };
 
 export const openParticipantsModal = (eventId) => {
+    // Egress Optimization: We do not fetch participants list.
+    // Modal action disabled or shows restricted view.
     const eventData = state.events.find(e => e.id === eventId);
-    if (!eventData || !eventData.attendees || eventData.attendees.length === 0) {
-        return; 
-    }
-
-    logUserActivity('view_participants', `Viewed participants for event`, { eventId, title: eventData.title });
-
-    const modal = document.getElementById('participants-modal');
-    const content = document.getElementById('participants-modal-content');
-    const list = document.getElementById('participants-list');
+    if (!eventData) return;
     
-    // Updated List HTML for Dark Mode
-    list.innerHTML = eventData.attendees.map(u => `
-        <div class="flex items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-800 last:border-0 transition-colors">
-            <img src="${getOptimizedImageUrl(u.profile_img_url, 80)}" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600 mr-3" loading="lazy">
-            <div>
-                <p class="text-sm font-bold text-gray-900 dark:text-white flex items-center">${u.full_name} ${getTickImg(u.tick_type)}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Student</p>
-            </div>
-        </div>
-    `).join('');
-
-    modal.classList.remove('invisible', 'opacity-0');
-    
-    setTimeout(() => {
-        content.classList.remove('translate-y-full');
-        content.classList.add('translate-y-0');
-    }, 10);
+    // Since we don't have the list, we just return or show a toast
+    // Alternatively, we could fetch ON DEMAND here if needed, but per instructions we avoid extra queries.
+    // For now, simply do nothing or log.
+    console.log("Participant view disabled for bandwidth optimization.");
 };
 
 export const closeParticipantsModal = () => {
     const modal = document.getElementById('participants-modal');
     const content = document.getElementById('participants-modal-content');
+    if (!modal || !content) return;
 
     content.classList.remove('translate-y-0');
     content.classList.add('translate-y-full');
