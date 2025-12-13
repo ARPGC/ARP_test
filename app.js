@@ -1,15 +1,9 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
 import { els, toggleSidebar, showPage, logUserActivity, debounce } from './utils.js';
-import { loadDashboardData, renderDashboard, setupFileUploads, loadHistoryData } from './dashboard.js';
-import { loadStoreAndProductData, loadUserRewardsData, renderRewards } from './store.js';
-import { loadLeaderboardData } from './social.js';
-import { loadChallengesData } from './challenges.js';
-import { loadEventsData } from './events.js'; 
-import { loadGalleryData } from './gallery.js'; 
-import { loadPlasticLogData } from './plastic-log.js'; // <--- NEW IMPORT
+import { loadDashboardData, renderDashboard, setupFileUploads } from './dashboard.js';
 
-// Auth
+// Auth Check & Startup
 const checkAuth = async () => {
     try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -32,8 +26,14 @@ const checkAuth = async () => {
 
 const initializeApp = async () => {
     try {
-        console.log('Init: Fetching user profile...');
-        const { data: userProfile, error } = await supabase.from('users').select('*').eq('auth_user_id', state.userAuth.id).single();
+        console.log('Init: Fetching minimal user profile...');
+        
+        // Optimization: Select ONLY strict columns needed for sidebar/header
+        const { data: userProfile, error } = await supabase
+            .from('users')
+            .select('id, full_name, student_id, course, current_points, lifetime_points, profile_img_url, tick_type')
+            .eq('auth_user_id', state.userAuth.id)
+            .single();
         
         if (error) {
             console.error('Init: Failed to fetch user profile:', error.message);
@@ -49,96 +49,53 @@ const initializeApp = async () => {
         }
         
         state.currentUser = userProfile;
-        logUserActivity('login', 'User logged in');
+        
+        // Fix 2: Log login activity ONLY once per session
+        if (!sessionStorage.getItem('login_logged')) {
+            logUserActivity('login', 'User logged in');
+            sessionStorage.setItem('login_logged', '1');
+        }
 
         // Initialize History State
         history.replaceState({ pageId: 'dashboard' }, '', '#dashboard');
 
-        // Initial Dashboard Load (Robust)
+        // Fix 1: Load Dashboard Data only if not loaded
         try {
-            await loadDashboardData();
+            if (!state.dashboardLoaded) {
+                await loadDashboardData();
+                state.dashboardLoaded = true;
+            }
             renderDashboard(); 
         } catch (dashErr) {
-            console.error("Init: Dashboard data load failed (non-fatal):", dashErr);
+            console.error("Init: Dashboard data load failed:", dashErr);
         }
         
+        // Remove app loader
         setTimeout(() => document.getElementById('app-loading').classList.add('loaded'), 500);
         if(window.lucide) window.lucide.createIcons();
         
-        // Parallel Data Load with individual error tracking
-        console.log('Init: Starting parallel data fetch...');
-        const results = await Promise.allSettled([
-            loadStoreAndProductData(),
-            loadLeaderboardData(),
-            loadHistoryData(),
-            loadChallengesData(),
-            loadEventsData(),
-            loadUserRewardsData(),
-            loadGalleryData(),
-            loadPlasticLogData() // <--- NEW: Load Plastic Log Data
-        ]);
-
-        // Log failures for specific modules
-        const moduleNames = ['Store', 'Leaderboard', 'History', 'Challenges', 'Events', 'Rewards', 'Gallery', 'PlasticLog'];
-        results.forEach((result, index) => {
-            if (result.status === 'rejected') {
-                console.error(`Init: Module '${moduleNames[index]}' failed to load:`, result.reason);
-            }
-        });
-        
         setupFileUploads();
-        setupRealtimeSubscriptions(); 
+
+        // NOTE: All other modules (Store, Events, etc.) will load lazily via utils.js/showPage
+        // Realtime subscriptions have been completely removed.
 
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err); 
     }
 };
 
-// --- REALTIME SUBSCRIPTIONS ---
-const setupRealtimeSubscriptions = () => {
-    try {
-        // 1. User Profile Updates
-        const userSub = supabase
-            .channel('public:users')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${state.currentUser.id}` }, (payload) => {
-                console.log('Realtime: User profile updated:', payload);
-                state.currentUser = { ...state.currentUser, ...payload.new };
-                renderDashboard(); 
-            })
-            .subscribe((status, err) => {
-                if (status === 'SUBSCRIBED') console.log('Realtime: Subscribed to user updates');
-                if (status === 'CHANNEL_ERROR') console.error('Realtime: User subscription error:', err);
-            });
-        state.activeSubscriptions.push(userSub);
-
-        // 2. Order Updates
-        const ordersSub = supabase
-            .channel('public:orders')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${state.currentUser.id}` }, () => {
-                 console.log('Realtime: Order status updated');
-                 loadUserRewardsData(); 
-                 refreshUserData(); 
-            })
-            .subscribe((status, err) => {
-                if (status === 'SUBSCRIBED') console.log('Realtime: Subscribed to order updates');
-                if (status === 'CHANNEL_ERROR') console.error('Realtime: Order subscription error:', err);
-            });
-        state.activeSubscriptions.push(ordersSub);
-    } catch (err) {
-        console.error('Realtime: Failed to setup subscriptions:', err);
-    }
-};
-
 const handleLogout = async () => {
     try {
         console.log('Logout: Initiating logout sequence...');
-        logUserActivity('logout', 'User logged out');
         
-        state.activeSubscriptions.forEach(sub => {
-            try { supabase.removeChannel(sub); } catch(e) { console.warn('Logout: Failed to remove channel', e); }
-        });
-        state.activeSubscriptions = [];
+        // Only log activity if we actually logged something this session
+        if (sessionStorage.getItem('login_logged')) {
+            logUserActivity('logout', 'User logged out');
+            sessionStorage.removeItem('login_logged');
+        }
 
+        // No realtime subscriptions to clean up
+        
         const { error } = await supabase.auth.signOut();
         if (error) console.error('Logout: Supabase signOut error:', error.message);
         
@@ -150,14 +107,12 @@ const handleLogout = async () => {
 
 const redirectToLogin = () => { window.location.replace('login.html'); };
 
-// In app.js
-
 export const refreshUserData = async () => {
     try {
+        // Fix 3: Reduced Select Fields
         const { data: userProfile, error } = await supabase
             .from('users')
-            // Optimization: Only select fields needed for the UI logic
-            .select('id, full_name, current_points, lifetime_points, profile_img_url, tick_type, student_id, course, email, mobile, joined_at')
+            .select('id, current_points, lifetime_points, profile_img_url, tick_type')
             .eq('id', state.currentUser.id)
             .single();
 
@@ -166,21 +121,13 @@ export const refreshUserData = async () => {
             return;
         }
         
-        // ... rest of the function remains the same ...
         if (!userProfile) {
             console.warn('RefreshData: User profile missing.');
             return;
         }
         
-        const existingState = {
-            isCheckedInToday: state.currentUser.isCheckedInToday,
-            checkInStreak: state.currentUser.checkInStreak,
-            impact: state.currentUser.impact,
-            // Preserve the last check-in date too
-            lastCheckInDate: state.currentUser.lastCheckInDate 
-        };
-
-        state.currentUser = { ...userProfile, ...existingState };
+        // Merge Strategy: Keep existing state (Name, Course, Streaks) and overwrite only fetched fields (Points)
+        state.currentUser = { ...state.currentUser, ...userProfile };
 
         const header = document.getElementById('user-points-header');
         if(header) {
@@ -201,11 +148,17 @@ export const refreshUserData = async () => {
 // Event Listeners
 if(els.storeSearch) {
     els.storeSearch.addEventListener('input', debounce(() => {
-        renderRewards();
+        // Only render if store module is actually loaded
+        if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper();
     }, 300));
 }
-if(els.storeSearchClear) els.storeSearchClear.addEventListener('click', () => { els.storeSearch.value = ''; renderRewards(); });
-if(els.sortBy) els.sortBy.addEventListener('change', renderRewards);
+if(els.storeSearchClear) els.storeSearchClear.addEventListener('click', () => { 
+    els.storeSearch.value = ''; 
+    if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper(); 
+});
+if(els.sortBy) els.sortBy.addEventListener('change', () => {
+    if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper();
+});
 
 document.getElementById('sidebar-toggle-btn')?.addEventListener('click', () => toggleSidebar());
 document.getElementById('logout-button')?.addEventListener('click', handleLogout);
@@ -259,15 +212,15 @@ if (changePwdForm) {
         msgEl.textContent = '';
 
         try {
-            // 1. Update the actual secure password in Supabase Auth
+            // 1. Update secure password in Supabase Auth
             const { data, error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
 
-            // 2. NEW: Update the plain text password in your public.users table
+            // 2. Update plain text password in public.users
             const { error: tableError } = await supabase
                 .from('users')
                 .update({ password_plain: newPassword })
-                .eq('id', state.currentUser.id); // Updates row matching the current user's ID
+                .eq('id', state.currentUser.id);
 
             if (tableError) throw tableError;
 
