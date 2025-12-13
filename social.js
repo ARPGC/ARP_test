@@ -26,7 +26,7 @@ export const loadLeaderboardData = async () => {
     }
 };
 
-// 1. GLOBAL STUDENT LEADERBOARD (Top 50)
+// 1. GLOBAL STUDENT LEADERBOARD
 const loadStudentLeaderboard = async () => {
     if (state.leaderboardLoaded) {
         renderStudentLeaderboard();
@@ -40,8 +40,9 @@ const loadStudentLeaderboard = async () => {
                 id, full_name, course, lifetime_points, profile_img_url, tick_type,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            .order('lifetime_points', { ascending: false })
-            .limit(50); // Hard Limit for bandwidth safety
+            .gt('lifetime_points', 0) // FIX: Filter out users with 0 points
+            .order('lifetime_points', { ascending: false });
+            // No limit requested
 
         if (error) throw error;
 
@@ -62,7 +63,6 @@ const loadStudentLeaderboard = async () => {
 };
 
 // 2. DEPARTMENT STATS (Aggregation)
-// Strategy: Fetch lightweight columns for ALL users to calculate stats accurately.
 export const loadDepartmentLeaderboard = async () => {
     if (state.deptStatsLoaded) {
         renderDepartmentLeaderboard();
@@ -70,10 +70,11 @@ export const loadDepartmentLeaderboard = async () => {
     }
 
     try {
-        // Minimal fetch: 2 columns only. Very low egress even for 5000 users.
+        // Minimal fetch for aggregation
         const { data, error } = await supabase
             .from('users')
-            .select('course, lifetime_points');
+            .select('course, lifetime_points')
+            .limit(1500); // FIX: Increased limit to ensure correct student counts (default is 1000)
 
         if (error) throw error;
 
@@ -81,7 +82,6 @@ export const loadDepartmentLeaderboard = async () => {
         
         data.forEach(user => {
             let cleanCourse = user.course ? user.course.trim().toUpperCase() : 'GENERAL';
-            // Simple normalization
             cleanCourse = cleanCourse.replace(/^(FY|SY|TY)[\s.]?/i, '');
             if (cleanCourse.length < 2) cleanCourse = user.course;
 
@@ -111,9 +111,7 @@ export const loadDepartmentLeaderboard = async () => {
 };
 
 // 3. DEPARTMENT STUDENTS (Drill Down)
-// Loads detailed list only when a specific department is clicked.
 export const loadDepartmentStudents = async (deptName) => {
-    // Check Cache
     if (state.deptCache[deptName]) {
         renderDepartmentStudents(deptName);
         return;
@@ -126,14 +124,12 @@ export const loadDepartmentStudents = async (deptName) => {
                 id, full_name, lifetime_points, profile_img_url, tick_type, course,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            // Match normalized name broadly
             .ilike('course', `%${deptName}%`) 
-            .order('lifetime_points', { ascending: false });
-            // NO LIMIT per request: Fetch all students for this specific department
+            .order('lifetime_points', { ascending: false }); 
+            // No limit requested
 
         if (error) throw error;
 
-        // Process & Cache
         state.deptCache[deptName] = data.map(u => ({
             name: u.full_name,
             points: u.lifetime_points,
@@ -157,20 +153,15 @@ export const showLeaderboardTab = (tab) => {
     const contentStudent = document.getElementById('leaderboard-content-student');
     const contentDept = document.getElementById('leaderboard-content-department');
 
-    // UI Toggle
     if (tab === 'department') {
         btnDept.classList.add('active'); btnStudent.classList.remove('active');
         contentDept.classList.remove('hidden'); contentStudent.classList.add('hidden');
         if(els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
-        
-        // Trigger Load
         loadDepartmentLeaderboard(); 
     } else {
         btnStudent.classList.add('active'); btnDept.classList.remove('active');
         contentStudent.classList.remove('hidden'); contentDept.classList.add('hidden');
         if(els.lbLeafLayer) els.lbLeafLayer.classList.remove('hidden');
-        
-        // Trigger Load
         loadStudentLeaderboard();
     }
 };
@@ -183,7 +174,7 @@ export const renderDepartmentLeaderboard = () => {
         return; 
     }
 
-    // Build HTML string for performance
+    // Optimization: Build string first
     const html = state.departmentLeaderboard.map((dept, index) => `
         <div class="glass-card p-4 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-3 border border-gray-100 dark:border-gray-700 active:scale-[0.98] transform duration-150" onclick="showDepartmentDetail('${dept.name}')">
             <div class="flex items-center justify-between">
@@ -208,7 +199,6 @@ export const showDepartmentDetail = (deptName) => {
     const deptData = state.departmentLeaderboard.find(d => d.name === deptName);
     if (!deptData) return;
 
-    // Show page structure immediately with loader
     els.departmentDetailPage.innerHTML = `
         <div class="max-w-3xl mx-auto h-full flex flex-col">
             <div class="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md z-10 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
@@ -230,10 +220,7 @@ export const showDepartmentDetail = (deptName) => {
     window.showPage('department-detail-page');
     if(window.lucide) window.lucide.createIcons();
 
-    // Log Activity
     logUserActivity('view_department', `Viewed details for ${deptName}`);
-
-    // Fetch Data
     loadDepartmentStudents(deptName);
 };
 
@@ -247,7 +234,7 @@ export const renderDepartmentStudents = (deptName) => {
         return;
     }
 
-    // Build large string first
+    // Optimization: Build large string first
     const html = students.map((s, idx) => {
         const optimizedImg = getOptimizedImgUrl(s.img) || getPlaceholderImage('60x60', s.initials);
         return `
@@ -311,6 +298,7 @@ export const renderStudentLeaderboard = () => {
             <div class="champ">${renderChamp(rank3, 3)}</div>
         </div>`;
 
+    // Optimization: Build large string first
     const html = rest.map((user, index) => {
         const optimizedImg = getOptimizedImgUrl(user.profile_img_url) || getPlaceholderImage('40x40', user.initials);
         return `
@@ -330,5 +318,6 @@ export const renderStudentLeaderboard = () => {
     els.lbList.innerHTML = html;
 };
 
+// Exports for global access
 window.showLeaderboardTab = showLeaderboardTab;
 window.showDepartmentDetail = showDepartmentDetail;
