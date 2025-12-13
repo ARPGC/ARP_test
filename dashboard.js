@@ -17,9 +17,12 @@ export const loadDashboardData = async () => {
             { data: streakData },
             { data: impactData }
         ] = await Promise.all([
+            // Optimization: select 'id' is minimal enough
             supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', todayIST).limit(1),
+            // Optimization: select only needed columns
             supabase.from('user_streaks').select('current_streak, last_checkin_date').eq('user_id', userId).single(),
-            supabase.from('user_impact').select('*').eq('user_id', userId).maybeSingle()
+            // Optimization: Specify columns instead of '*'
+            supabase.from('user_impact').select('total_plastic_kg, co2_saved_kg, events_attended').eq('user_id', userId).maybeSingle()
         ]);
         
         state.currentUser.isCheckedInToday = (checkinData && checkinData.length > 0);
@@ -188,10 +191,11 @@ export const loadHistoryData = async () => {
     try {
         const { data, error } = await supabase
             .from('points_ledger')
-            .select('*')
+            // Optimization: Only fetch columns displayed in UI
+            .select('source_type, description, points_delta, created_at')
             .eq('user_id', state.currentUser.id)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(20); // Limit is good, keep it
 
         if (error) return;
 
