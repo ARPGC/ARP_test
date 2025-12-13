@@ -3,32 +3,46 @@ import { state } from './state.js';
 import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity } from './utils.js';
 
 export const loadPlasticLogData = async () => {
+    // 1. One-Time Load Per Session
+    if (state.plasticLoaded) {
+        if (document.getElementById('plastic-log').classList.contains('active')) {
+            renderPlasticLogPage();
+        }
+        return;
+    }
+
     const container = document.getElementById('plastic-log-content');
     
     try {
-        const { data: history, error: historyError } = await supabase
-            .from('points_ledger')
-            // Optimization
-            .select('description, points_delta, created_at') 
-            .eq('user_id', state.currentUser.id)
-            .eq('source_type', 'plastic')
-            .order('created_at', { ascending: false });
+        // 2. Strict Column Selection & 3. Hard Limit (Max 30)
+        // Parallel fetch for speed and reduced latency
+        const [historyRes, impactRes] = await Promise.all([
+            supabase
+                .from('points_ledger')
+                .select('description, points_delta, created_at') 
+                .eq('user_id', state.currentUser.id)
+                .eq('source_type', 'plastic')
+                .order('created_at', { ascending: false })
+                .limit(30),
 
-        if (historyError) throw historyError;
+            supabase
+                .from('user_impact')
+                .select('total_plastic_kg') 
+                .eq('user_id', state.currentUser.id)
+                .maybeSingle()
+        ]);
 
-        state.plasticHistory = history || [];
+        if (historyRes.error) throw historyRes.error;
 
-        const { data: impact, error: impactError } = await supabase
-            .from('user_impact')
-            // Optimization
-            .select('total_plastic_kg') 
-            .eq('user_id', state.currentUser.id)
-            .maybeSingle();
+        state.plasticHistory = historyRes.data || [];
 
-        if (!impactError && impact) {
-            // Merge carefully since we only fetched partial data
-            state.currentUser.impact = { ...state.currentUser.impact, ...impact };
+        // Update local user state with fresh impact data if available
+        if (!impactRes.error && impactRes.data) {
+            state.currentUser.impact = { ...state.currentUser.impact, ...impactRes.data };
         }
+
+        // Set Loaded Flag
+        state.plasticLoaded = true;
 
         if (document.getElementById('plastic-log').classList.contains('active')) {
             renderPlasticLogPage();
@@ -44,10 +58,17 @@ export const renderPlasticLogPage = () => {
     const container = document.getElementById('plastic-log-content');
     if (!container) return;
 
+    // 6. Logging Rules: Log once per session
+    if (!sessionStorage.getItem('plastic_log_viewed')) {
+        logUserActivity('view_plastic_log', 'Viewed plastic recycling log');
+        sessionStorage.setItem('plastic_log_viewed', '1');
+    }
+
     const user = state.currentUser;
+    // 4. No Client-Side Aggregation (Use precomputed total)
     const totalPlastic = user.impact?.total_plastic_kg || 0;
     
-    // Milestone Calculation (Every 5kg is a milestone)
+    // Milestone Calculation
     const nextMilestone = Math.ceil((totalPlastic + 0.1) / 5) * 5;
     const progressPercent = Math.min(100, (totalPlastic / nextMilestone) * 100);
 
@@ -139,5 +160,4 @@ export const renderPlasticLogPage = () => {
     `;
     
     if(window.lucide) window.lucide.createIcons();
-    logUserActivity('view_plastic_log', 'Viewed plastic recycling log');
 };
