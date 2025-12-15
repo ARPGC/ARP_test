@@ -255,7 +255,6 @@ export const showPage = async (pageId, addToHistory = true) => {
         }
     } 
     else if (pageId === 'my-rewards') {
-        // Fix 3: Strict check using state flag (assume userRewardsLoaded exists/is added)
         if (!state.userRewardsLoaded) {
             const m = await import('./store.js');
             await m.loadUserRewardsData();
@@ -274,6 +273,18 @@ export const showPage = async (pageId, addToHistory = true) => {
         }
     } 
     else if (pageId === 'ecopoints') {
+        // FIX: Ensure store module is loaded (contains renderEcoPointsPage)
+        if (!window.renderEcoPointsPageWrapper) {
+            await import('./store.js');
+        }
+        
+        // FIX: Ensure history data is loaded (for recent transactions)
+        if (!state.historyLoaded) {
+            const m = await import('./dashboard.js');
+            await m.loadHistoryData();
+            state.historyLoaded = true;
+        }
+
         if (window.renderEcoPointsPageWrapper) window.renderEcoPointsPageWrapper();
     } 
     else if (pageId === 'challenges') {
@@ -307,7 +318,6 @@ export const showPage = async (pageId, addToHistory = true) => {
         }
     } 
     else if (pageId === 'plastic-log') {
-        // Fix 4: Clear logic
         const m = await import('./plastic-log.js');
         if (!state.plasticLoaded) {
             await m.loadPlasticLogData();
