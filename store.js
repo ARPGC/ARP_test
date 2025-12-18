@@ -8,13 +8,14 @@ const getStore = (storeId) => state.stores.find(s => s.id === storeId);
 
 // 1. Load Data & Extract Stores (Once per session)
 export const loadStoreAndProductData = async () => {
+    // Flag Check
     if (state.storeLoaded) {
         if (document.getElementById('rewards').classList.contains('active')) renderRewards();
         return;
     }
 
     try {
-        // Optimization: Strict Columns, Limit 50
+        // Optimization: Strict Columns, Removed Metadata, Limit 50 for minimum egress
         const { data, error } = await supabase
             .from('products')
             .select(`
@@ -25,7 +26,7 @@ export const loadStoreAndProductData = async () => {
                 product_specifications ( spec_key, spec_value, sort_order )
             `)
             .eq('is_active', true)
-            .limit(50);
+            .limit(50); 
 
         if (error) throw error;
 
@@ -36,7 +37,7 @@ export const loadStoreAndProductData = async () => {
             specs: p.product_specifications?.sort((a,b) => a.sort_order - b.sort_order) || []
         }));
 
-        // Extract unique stores from product data to avoid separate join queries
+        // Extract unique stores from product data
         const storeMap = new Map();
         data.forEach(p => { if(p.stores) storeMap.set(p.stores.id, p.stores); });
         state.stores = Array.from(storeMap.values());
@@ -58,10 +59,16 @@ export const renderRewards = () => {
     const query = els.storeSearch.value.toLowerCase();
     const sortBy = els.sortBy.value;
 
-    let filtered = state.products.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query));
+    let filtered = state.products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.description.toLowerCase().includes(query)
+    );
 
+    // Sorting Logic
     if (sortBy === 'points-lh') filtered.sort((a, b) => a.ecopoints_cost - b.ecopoints_cost);
     else if (sortBy === 'points-hl') filtered.sort((a, b) => b.ecopoints_cost - a.ecopoints_cost);
+    else if (sortBy === 'price-lh') filtered.sort((a, b) => a.discounted_price - b.discounted_price);
+    else if (sortBy === 'price-hl') filtered.sort((a, b) => b.discounted_price - a.discounted_price);
 
     if (filtered.length === 0) {
         container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400">No rewards found for "${query}"</div>`;
@@ -172,7 +179,7 @@ export const confirmPurchase = async (productId) => {
         showToast("Redeemed successfully!", "success");
         
         await refreshUserData();
-        state.userRewardsLoaded = false; // Force reload of "My Orders"
+        state.userRewardsLoaded = false; // Reset flag to force reload of "My Orders"
         window.showPage('my-rewards');
 
     } catch (err) {
