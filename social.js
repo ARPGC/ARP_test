@@ -4,10 +4,19 @@ import { els, getPlaceholderImage, getTickImg, getUserInitials, logUserActivity 
 
 let currentLeaderboardTab = 'student';
 
-// Initialize cache if not exists
+// 1. STATIC DEPARTMENT COUNTS (Stored locally to prevent Supabase egress)
+const DEPT_STATS_FIXED = {
+    "BAF": { count: 303, avg: 11 },
+    "BCOM": { count: 330, avg: 5 },
+    "BMS": { count: 353, avg: 5 },
+    "BFM": { count: 69, avg: 4 },
+    "BSC": { count: 28, avg: 4 },
+    "CS": { count: 201, avg: 2 },
+    "BA": { count: 73, avg: 0 }
+};
+
 if (!state.deptCache) state.deptCache = {};
 
-// HELPER: Optimized Image URL for Thumbnails
 const getOptimizedImgUrl = (url) => {
     if (!url) return null;
     if (url.includes('cloudinary.com') && url.includes('/upload/')) {
@@ -16,16 +25,15 @@ const getOptimizedImgUrl = (url) => {
     return url;
 };
 
-// MASTER LOADER
 export const loadLeaderboardData = async () => {
     if (currentLeaderboardTab === 'student') {
         await loadStudentLeaderboard();
     } else {
-        await loadDepartmentLeaderboard();
+        await renderDepartmentLeaderboard(); // Directly render from static data
     }
 };
 
-// 1. GLOBAL STUDENT LEADERBOARD (Eco Warriors)
+// 1. GLOBAL STUDENT LEADERBOARD
 const loadStudentLeaderboard = async () => {
     if (state.leaderboardLoaded) {
         renderStudentLeaderboard();
@@ -41,7 +49,7 @@ const loadStudentLeaderboard = async () => {
             `)
             .gt('lifetime_points', 0) 
             .order('lifetime_points', { ascending: false })
-            .limit(50); // Minimum Egress: Limit global list
+            .limit(50); // Hard limit for egress
 
         if (error) throw error;
 
@@ -61,30 +69,7 @@ const loadStudentLeaderboard = async () => {
     } catch (err) { console.error('Student LB Error:', err); }
 };
 
-// 2. DEPARTMENT STATS (Aggregation via RPC)
-export const loadDepartmentLeaderboard = async () => {
-    if (state.deptStatsLoaded) {
-        renderDepartmentLeaderboard();
-        return;
-    }
-
-    try {
-        const { data, error } = await supabase.rpc('department_stats');
-        if (error) throw error;
-
-        state.departmentLeaderboard = data.map(dept => ({
-            name: dept.department,
-            studentCount: dept.student_count,
-            averageScore: Number(dept.avg_score)
-        }))
-        .sort((a, b) => b.averageScore - a.averageScore);
-
-        state.deptStatsLoaded = true;
-        renderDepartmentLeaderboard();
-    } catch (err) { console.error('Dept Stats Error:', err); }
-};
-
-// 3. DEPARTMENT STUDENTS (Drill Down & Caching)
+// 2. DRILL DOWN: DEPARTMENT STUDENTS
 export const loadDepartmentStudents = async (deptName) => {
     if (state.deptCache[deptName]) {
         renderDepartmentStudents(deptName);
@@ -95,136 +80,130 @@ export const loadDepartmentStudents = async (deptName) => {
         const { data, error } = await supabase
             .from('users')
             .select(`
-                id, full_name, lifetime_points, profile_img_url, tick_type, course,
+                id, full_name, profile_img_url, tick_type, course,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
             .ilike('course', `%${deptName}`) 
-            .order('lifetime_points', { ascending: false }); 
+            .order('full_name', { ascending: true }); // Alphabetical for searching
 
         if (error) throw error;
 
         state.deptCache[deptName] = data.map(u => ({
             name: u.full_name,
-            points: u.lifetime_points,
             img: u.profile_img_url,
             tick_type: u.tick_type,
             course: u.course,
             initials: getUserInitials(u.full_name),
-            streak: (u.user_streaks && u.user_streaks.current_streak) ? u.user_streaks.current_streak : 0
+            streak: (u.user_streaks && u.user_streaks.current_streak) 
+                ? (Array.isArray(u.user_streaks) ? u.user_streaks[0]?.current_streak : u.user_streaks.current_streak) 
+                : 0
         }));
 
         renderDepartmentStudents(deptName);
     } catch (err) { console.error('Dept Students Error:', err); }
 };
 
-// --- RENDER FUNCTIONS ---
+// --- UPDATED RENDER: DEPARTMENT LIST ---
+export const renderDepartmentLeaderboard = () => {
+    const container = document.getElementById('eco-wars-page-list');
+    if (!container) return;
+
+    // Use local DEPT_STATS_FIXED instead of Supabase RPC
+    const entries = Object.entries(DEPT_STATS_FIXED)
+        .sort((a, b) => b[1].avg - a[1].avg); // Sort by avg score
+
+    container.innerHTML = entries.map(([name, data], index) => `
+        <div class="glass-card p-4 rounded-2xl cursor-pointer active:scale-[0.98] transition-all mb-3 border border-gray-100 dark:border-gray-700" onclick="showDepartmentDetail('${name}')">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/40 flex items-center justify-center mr-4 text-sm font-bold text-green-700 dark:text-green-300">#${index + 1}</span>
+                    <div>
+                        <p class="font-bold text-gray-900 dark:text-gray-100">${name}</p>
+                        <p class="text-xs text-gray-500">${data.count} Students</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-black text-green-600 dark:text-green-400">${data.avg}</p>
+                    <p class="text-[10px] font-bold uppercase text-gray-400 tracking-tighter leading-none">Avg Score</p>
+                </div>
+            </div>
+        </div>`).join('');
+};
 
 export const showDepartmentDetail = (deptName) => {
-    const deptData = state.departmentLeaderboard.find(d => d.name === deptName);
+    const deptData = DEPT_STATS_FIXED[deptName];
     if (!deptData) return;
 
-    // Build the dynamic UI with Search Bar
     els.departmentDetailPage.innerHTML = `
         <div class="max-w-3xl mx-auto h-full flex flex-col bg-white dark:bg-gray-900">
             <div class="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md z-10 p-4 border-b border-gray-200 dark:border-gray-800">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <button onclick="showPage('leaderboard')" class="mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                        </button>
-                        <div>
-                            <h2 class="text-xl font-extrabold text-gray-900 dark:text-gray-100">${deptName}</h2>
-                            <p class="text-xs text-gray-500">Avg Score: <span class="text-green-600 font-bold">${deptData.averageScore}</span></p>
-                        </div>
+                <div class="flex items-center mb-4">
+                    <button onclick="showPage('leaderboard')" class="mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-gray-900 dark:text-gray-100">${deptName}</h2>
+                        <p class="text-xs text-gray-500">Avg Score: <span class="text-green-600 font-bold">${deptData.avg}</span></p>
                     </div>
                 </div>
-                
                 <div class="relative group">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="search" class="h-4 w-4 text-gray-400 group-focus-within:text-green-500 transition-colors"></i>
+                        <i data-lucide="search" class="h-4 w-4 text-gray-400 transition-colors"></i>
                     </div>
-                    <input 
-                        type="text" 
-                        id="dept-student-search" 
-                        placeholder="Search ${deptName} students..." 
-                        class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                        oninput="filterDepartmentStudents('${deptName}')"
-                    >
+                    <input type="text" id="dept-student-search" placeholder="Search ${deptName}..." 
+                        class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                        oninput="filterDepartmentStudents('${deptName}')">
                 </div>
             </div>
-
             <div id="dept-students-list" class="p-4 space-y-3 pb-20 overflow-y-auto flex-grow">
-                <div class="flex flex-col items-center py-10">
-                    <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div>
-                    <p class="text-gray-500 text-sm">Loading Eco Warriors...</p>
-                </div>
+                <p class="text-center text-gray-500 text-sm py-10 italic">Gathering Eco Warriors...</p>
             </div>
         </div>`;
 
     window.showPage('department-detail-page');
     if(window.lucide) window.lucide.createIcons();
-
-    logUserActivity('view_department', `Viewed details for ${deptName}`);
     loadDepartmentStudents(deptName);
 };
 
-// UI: Filtering Logic (Local Data - No API call)
-window.filterDepartmentStudents = (deptName) => {
-    const query = document.getElementById('dept-student-search').value.toLowerCase();
-    const students = state.deptCache[deptName] || [];
-    
-    const filtered = students.filter(s => 
-        s.name.toLowerCase().includes(query) || 
-        s.course.toLowerCase().includes(query)
-    );
-
-    renderFilteredList(filtered);
-};
-
+// --- UPDATED LIST UI: NAME + STREAK FIRE BELOW ---
 const renderFilteredList = (students) => {
     const container = document.getElementById('dept-students-list');
     if (!container) return;
 
     if (students.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12 opacity-50">
-                <i data-lucide="search-x" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i>
-                <p class="text-sm font-medium">No students match your search.</p>
-            </div>`;
-        if(window.lucide) window.lucide.createIcons();
+        container.innerHTML = `<p class="text-center py-12 text-gray-400">No students found.</p>`;
         return;
     }
 
-    container.innerHTML = students.map((s, idx) => {
+    container.innerHTML = students.map((s) => {
         const optimizedImg = getOptimizedImgUrl(s.img) || getPlaceholderImage('60x60', s.initials);
         return `
-        <div class="glass-card p-3 rounded-2xl flex items-center justify-between border border-gray-100 dark:border-gray-800 hover:border-green-100 dark:hover:border-green-900 transition-all">
-            <div class="flex items-center gap-4">
-                <div class="relative">
-                    <img src="${optimizedImg}" class="w-11 h-11 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm" loading="lazy">
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                        ${s.name} ${getTickImg(s.tick_type)}
-                    </p>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tight">${s.course} • ${s.streak} Day Streak</p>
+        <div class="glass-card p-3 rounded-2xl flex items-center gap-4 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-sm">
+            <img src="${optimizedImg}" class="w-11 h-11 rounded-full object-cover border-2 border-white dark:border-gray-700" loading="lazy">
+            <div class="flex-grow">
+                <p class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
+                    ${s.name} ${getTickImg(s.tick_type)}
+                </p>
+                <div class="flex items-center gap-1 mt-0.5">
+                    <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-500 fill-orange-500"></i>
+                    <span class="text-[11px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-tighter">${s.streak} Day Streak</span>
                 </div>
             </div>
-            <div class="text-right">
-                <span class="text-sm font-black text-green-600 dark:text-green-400">${s.points}</span>
-                <span class="text-[9px] text-gray-400 block font-bold uppercase">Pts</span>
-            </div>
+            <div class="flex-shrink-0 text-[10px] font-bold text-gray-300 uppercase tracking-widest px-2">${s.course}</div>
         </div>`;
     }).join('');
     
     if(window.lucide) window.lucide.createIcons();
 };
 
-export const renderDepartmentStudents = (deptName) => {
-    renderFilteredList(state.deptCache[deptName] || []);
+window.filterDepartmentStudents = (deptName) => {
+    const query = document.getElementById('dept-student-search').value.toLowerCase();
+    const students = state.deptCache[deptName] || [];
+    const filtered = students.filter(s => s.name.toLowerCase().includes(query) || s.course.toLowerCase().includes(query));
+    renderFilteredList(filtered);
 };
 
-// ... Remaining logic for global student leaderboard (same as standard)
+export const renderDepartmentStudents = (deptName) => renderFilteredList(state.deptCache[deptName] || []);
 
 export const showLeaderboardTab = (tab) => {
     currentLeaderboardTab = tab;
@@ -236,7 +215,7 @@ export const showLeaderboardTab = (tab) => {
     if (tab === 'department') {
         btnDept.classList.add('active'); btnStudent.classList.remove('active');
         contentDept.classList.remove('hidden'); contentStudent.classList.add('hidden');
-        loadDepartmentLeaderboard(); 
+        renderDepartmentLeaderboard(); 
     } else {
         btnStudent.classList.add('active'); btnDept.classList.remove('active');
         contentStudent.classList.remove('hidden'); contentDept.classList.add('hidden');
@@ -244,34 +223,10 @@ export const showLeaderboardTab = (tab) => {
     }
 };
 
-export const renderDepartmentLeaderboard = () => {
-    const container = document.getElementById('eco-wars-page-list');
-    if (!container) return;
-    if (state.departmentLeaderboard.length === 0) { 
-        container.innerHTML = `<p class="text-sm text-center text-gray-500 py-10">Loading departments...</p>`; 
-        return; 
-    }
-    container.innerHTML = state.departmentLeaderboard.map((dept, index) => `
-        <div class="glass-card p-4 rounded-2xl cursor-pointer active:scale-[0.98] transition-all mb-3 border border-gray-100 dark:border-gray-700" onclick="showDepartmentDetail('${dept.name}')">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <span class="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/40 flex items-center justify-center mr-4 text-sm font-bold text-green-700 dark:text-green-300">#${index + 1}</span>
-                    <div>
-                        <p class="font-bold text-gray-900 dark:text-gray-100">${dept.name}</p>
-                        <p class="text-xs text-gray-500">${dept.studentCount} Students</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-lg font-black text-green-600 dark:text-green-400">${dept.averageScore}</p>
-                </div>
-            </div>
-        </div>`).join('');
-};
-
 export const renderStudentLeaderboard = () => {
     if (state.leaderboard.length === 0) {
         els.lbPodium.innerHTML = '';
-        els.lbList.innerHTML = `<p class="text-center text-gray-500 py-10">No active Eco Warriors yet.</p>`;
+        els.lbList.innerHTML = `<p class="text-center text-gray-500 py-10">No Eco Warriors yet.</p>`;
         return;
     }
     const sorted = [...state.leaderboard];
