@@ -3,7 +3,6 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// --- MOBILE UI: TOAST SYSTEMS ---
 // Updated showToast in utils.js
 export const showToast = (message, type = 'success') => {
     const existingToast = document.getElementById('app-toast');
@@ -12,23 +11,22 @@ export const showToast = (message, type = 'success') => {
     const toast = document.createElement('div');
     toast.id = 'app-toast';
     
+    // Color logic based on status
     const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
     const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle';
 
-    // CHANGED: Use 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' for exact screen centering
-    toast.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-3 px-8 py-6 rounded-3xl text-white shadow-2xl animate-breathe ${bgClass} transition-all duration-300 min-w-[280px] text-center backdrop-blur-md bg-opacity-90`;
+    // UI Logic: bottom-24 keeps it above the bottom nav bar, left-1/2 -translate-x-1/2 ensures perfect horizontal centering
+    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[85%] max-w-[90%] justify-center backdrop-blur-md`;
     
     toast.innerHTML = `
-        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-1">
-            <i data-lucide="${icon}" class="w-8 h-8"></i>
-        </div>
-        <span class="text-base font-bold tracking-tight">${message}</span>
+        <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+        <span class="text-sm font-bold tracking-tight text-center">${message}</span>
     `;
 
     document.body.appendChild(toast);
     if (window.lucide) window.lucide.createIcons();
 
-    // Auto-hide after 3 seconds with a slight downward fade
+    // Auto-dismiss logic
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-4');
         setTimeout(() => toast.remove(), 300);
