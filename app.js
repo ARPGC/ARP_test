@@ -51,15 +51,21 @@ const initializeApp = async () => {
 
         state.currentUser = userProfile;
         
+        // Fix: Log login activity ONLY once per session
+        if (!sessionStorage.getItem('login_logged')) {
+            logUserActivity('login', 'User logged in');
+            sessionStorage.setItem('login_logged', '1');
+        }
+
         // Initialize UI Components
         setupGlobalListeners();
         setupFileUploads();
         
-        // Initial Page Load
+        // Initial Page Load - Handle deep links or default to dashboard
         const hashPage = window.location.hash.replace('#', '') || 'dashboard';
         await showPage(hashPage);
         
-        // Remove Loading Screen
+        // Remove Global App Loader
         const loader = document.getElementById('app-loading');
         if (loader) {
             loader.classList.add('opacity-0');
@@ -80,29 +86,36 @@ const initializeApp = async () => {
  */
 export const refreshUserData = async () => {
     try {
-        const { data, error } = await supabase
+        // Reduced Select Fields for Bandwidth optimization
+        const { data: userProfile, error } = await supabase
             .from('users')
-            .select('current_points, lifetime_points, profile_img_url')
+            .select('id, current_points, lifetime_points, profile_img_url, tick_type')
             .eq('id', state.currentUser.id)
             .single();
             
         if (error) throw error;
         
-        // Update local state
-        state.currentUser.current_points = data.current_points;
-        state.currentUser.lifetime_points = data.lifetime_points;
-        state.currentUser.profile_img_url = data.profile_img_url;
+        // Merge into global state
+        state.currentUser = { ...state.currentUser, ...userProfile };
 
-        // Re-render components that rely on points
+        // Update UI elements that rely on points
         const pointsHeader = document.getElementById('user-points-header');
         const pointsSidebar = document.getElementById('user-points-sidebar');
-        if (pointsHeader) pointsHeader.textContent = data.current_points;
-        if (pointsSidebar) pointsSidebar.textContent = data.current_points;
+        
+        if (pointsHeader) {
+            pointsHeader.textContent = userProfile.current_points;
+            pointsHeader.classList.add('points-pulse'); 
+            setTimeout(() => pointsHeader.classList.remove('points-pulse'), 400);
+        }
+        if (pointsSidebar) pointsSidebar.textContent = userProfile.current_points;
 
+        // Conditional Re-renders
         if (document.getElementById('profile').classList.contains('active')) {
             const { renderProfile } = await import('./dashboard.js');
             renderProfile();
         }
+        
+        renderDashboard(); // Update dashboard components
         
     } catch (err) {
         console.warn("Soft Refresh failed:", err.message);
@@ -112,23 +125,38 @@ export const refreshUserData = async () => {
 // --- GLOBAL EVENT LISTENERS ---
 
 const setupGlobalListeners = () => {
-    // Theme Toggle
+    // Theme Toggle Logic
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
             const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('eco-theme', isDark ? 'dark' : 'light');
             updateThemeUI(isDark);
+            logUserActivity('theme_change', `Switched to ${isDark ? 'dark' : 'light'} mode`);
         });
     }
 
-    // Logout
+    // Logout Handling
     const logoutBtn = document.getElementById('logout-button');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            logUserActivity('logout', 'User initiated logout');
-            await supabase.auth.signOut();
-            redirectToLogin();
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Store Search and Sort triggers (Delegated to lazy-loaded store.js)
+    if(els.storeSearch) {
+        els.storeSearch.addEventListener('input', debounce(() => {
+            if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper();
+        }, 300));
+    }
+    if(els.storeSearchClear) {
+        els.storeSearchClear.addEventListener('click', () => { 
+            els.storeSearch.value = ''; 
+            if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper(); 
+        });
+    }
+    if(els.sortBy) {
+        els.sortBy.addEventListener('change', () => {
+            if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper();
         });
     }
 
@@ -143,40 +171,34 @@ const setupGlobalListeners = () => {
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', () => toggleSidebar());
     }
-};
 
-// --- THEME ENGINE ---
-
-const applyInitialTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-    
-    if (isDark) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-    updateThemeUI(isDark);
-};
-
-const updateThemeUI = (isDark) => {
-    const themeText = document.getElementById('theme-text');
-    const themeIcon = document.getElementById('theme-icon');
-    if (themeText) themeText.textContent = isDark ? 'Dark Mode' : 'Light Mode';
-    if (themeIcon) {
-        themeIcon.setAttribute('data-lucide', isDark ? 'moon' : 'sun');
-        if (window.lucide) window.lucide.createIcons();
+    // Change Password Form
+    const changePwdForm = document.getElementById('change-password-form');
+    if (changePwdForm) {
+        changePwdForm.addEventListener('submit', handleChangePassword);
     }
 };
 
-// --- REDEEM CODE LOGIC ---
+// --- FEATURE HANDLERS ---
+
+const handleLogout = async () => {
+    try {
+        logUserActivity('logout', 'User initiated logout');
+        sessionStorage.removeItem('login_logged');
+        await supabase.auth.signOut();
+        redirectToLogin();
+    } catch (err) { 
+        console.error('Logout failed:', err); 
+        redirectToLogin();
+    }
+};
 
 const handleRedeemCode = async (e) => {
     e.preventDefault();
     const codeInput = document.getElementById('redeem-input');
     const code = codeInput.value.trim();
     const btn = document.getElementById('redeem-submit-btn');
+    const msgEl = document.getElementById('redeem-message');
     
     if (!code) return;
     
@@ -204,14 +226,71 @@ const handleRedeemCode = async (e) => {
     }
 };
 
+const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const passwordInput = document.getElementById('new-password');
+    const newPassword = passwordInput.value;
+    const msgEl = document.getElementById('password-message');
+    const btn = document.getElementById('change-password-button');
+
+    if (newPassword.length < 6) {
+         showToast('Password too short (min 6 chars).', 'warning');
+         return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+
+    try {
+        // 1. Update Auth Session
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+
+        // 2. Update DB Mirror (for Edge Function compatibility)
+        await supabase.from('users').update({ password_plain: newPassword }).eq('id', state.currentUser.id);
+
+        showToast('Password updated successfully!', 'success');
+        passwordInput.value = ''; 
+        logUserActivity('password_change', 'User changed password');
+
+    } catch (err) {
+        showToast(err.message || 'Failed to update password.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+    }
+};
+
+// --- THEME ENGINE ---
+
+const applyInitialTheme = () => {
+    const savedTheme = localStorage.getItem('eco-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+    
+    document.documentElement.classList.toggle('dark', isDark);
+    updateThemeUI(isDark);
+};
+
+const updateThemeUI = (isDark) => {
+    const themeText = document.getElementById('theme-text');
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeText) themeText.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+    if (themeIcon) {
+        themeIcon.setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+        if (window.lucide) window.lucide.createIcons();
+    }
+};
+
 // --- UTILS ---
 
 const redirectToLogin = () => {
-    window.location.href = 'login.html';
+    window.location.replace('login.html');
 };
 
-// Boot App
+// Boot Application
 applyInitialTheme();
 checkAuth();
 
 window.refreshUserData = refreshUserData;
+window.handleLogout = handleLogout;
