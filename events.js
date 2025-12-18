@@ -1,12 +1,12 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity, getOptimizedImageUrl } from './utils.js';
+import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity, getOptimizedImageUrl, showToast } from './utils.js';
 
-// In events.js
+// --- EVENTS MODULE ---
 
 export const loadEventsData = async () => {
     try {
-        // 1. Fetch Events (No Joins, Minimal Fields)
+        // 1. Fetch Events (No Joins, Minimal Fields for bandwidth optimization)
         const { data: events, error: eventsError } = await supabase
             .from('events')
             .select('id, title, start_at, location, poster_url, points_reward, organizer, description')
@@ -14,7 +14,7 @@ export const loadEventsData = async () => {
 
         if (eventsError) throw eventsError;
 
-        // 2. Fetch My Attendance ONLY (No other users)
+        // 2. Fetch My Attendance ONLY (Privacy & Egress optimization)
         const { data: myAttendance, error: attendanceError } = await supabase
             .from('event_attendance')
             .select('event_id, status')
@@ -43,7 +43,6 @@ export const loadEventsData = async () => {
                 dateObj: new Date(e.start_at),
                 displayDate: formatDate(e.start_at, { month: 'short', day: 'numeric' }),
                 displayTime: formatDate(e.start_at, { hour: 'numeric', minute: 'numeric', hour12: true }),
-                // Optimization: We do NOT fetch other attendees to save egress
                 attendees: [], 
                 attendeeCount: 0, 
                 myStatus: myStatus
@@ -56,21 +55,29 @@ export const loadEventsData = async () => {
         
         updateDashboardEvent();
 
-    } catch (err) { console.error('Events Load Error:', err); }
+    } catch (err) { 
+        console.error('Events Load Error:', err); 
+        showToast("Failed to load events.", "error");
+    }
 };
 
 export const renderEventsPage = () => {
     els.eventsList.innerHTML = '';
     
     if (state.events.length === 0) { 
-        els.eventsList.innerHTML = `<p class="text-sm text-center text-gray-500 dark:text-gray-400 mt-10 col-span-full">No upcoming events.</p>`; 
+        els.eventsList.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 opacity-60 col-span-full">
+                <i data-lucide="calendar-x" class="w-12 h-12 text-gray-300 mb-3"></i>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No upcoming events found.</p>
+            </div>`; 
+        if(window.lucide) window.lucide.createIcons();
         return; 
     }
 
     let eventsHTML = '';
 
     state.events.forEach(e => {
-        // Avatar stack is hidden/empty since we don't fetch other users
+        // Community interaction placeholder
         let avatarsHtml = `<span class="text-xs text-gray-400 italic pl-1">Join the community!</span>`;
 
         let actionBtn = '';
@@ -152,34 +159,27 @@ export const handleRSVP = async (eventId) => {
         
         logUserActivity('rsvp_event', `Registered for event`, { eventId });
 
-        // Update Local State (No Refetch)
+        // Update Local State without full page refresh
         const eventIndex = state.events.findIndex(e => e.id === eventId);
         if (eventIndex > -1) {
             state.events[eventIndex].myStatus = 'going';
-            // We force a re-render of the list to show "Registered" button
             renderEventsPage();
         }
 
-        alert("You have successfully registered!");
+        showToast("You have successfully registered!", "success");
 
     } catch (err) {
         console.error("RSVP Error:", err);
-        alert("Failed to RSVP.");
+        showToast("Failed to RSVP. Please try again.", "error");
         btn.innerText = originalText;
         btn.disabled = false;
     }
 };
 
 export const openParticipantsModal = (eventId) => {
-    // Egress Optimization: We do not fetch participants list.
-    // Modal action disabled or shows restricted view.
-    const eventData = state.events.find(e => e.id === eventId);
-    if (!eventData) return;
-    
-    // Since we don't have the list, we just return or show a toast
-    // Alternatively, we could fetch ON DEMAND here if needed, but per instructions we avoid extra queries.
-    // For now, simply do nothing or log.
-    console.log("Participant view disabled for bandwidth optimization.");
+    // Note: Detailed participant lists are disabled for bandwidth optimization.
+    console.log("Participant list view restricted for performance.");
+    showToast("Community view coming soon!", "warning");
 };
 
 export const closeParticipantsModal = () => {
