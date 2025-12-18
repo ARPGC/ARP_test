@@ -18,7 +18,6 @@ const getOptimizedImgUrl = (url) => {
 
 // MASTER LOADER
 export const loadLeaderboardData = async () => {
-    // Determine which data to load based on active tab
     if (currentLeaderboardTab === 'student') {
         await loadStudentLeaderboard();
     } else {
@@ -26,7 +25,7 @@ export const loadLeaderboardData = async () => {
     }
 };
 
-// 1. GLOBAL STUDENT LEADERBOARD
+// 1. GLOBAL STUDENT LEADERBOARD (Eco Warriors)
 const loadStudentLeaderboard = async () => {
     if (state.leaderboardLoaded) {
         renderStudentLeaderboard();
@@ -40,9 +39,9 @@ const loadStudentLeaderboard = async () => {
                 id, full_name, course, lifetime_points, profile_img_url, tick_type,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            .gt('lifetime_points', 0) // Filter out users with 0 points
-            .order('lifetime_points', { ascending: false });
-            // No limit requested
+            .gt('lifetime_points', 0) 
+            .order('lifetime_points', { ascending: false })
+            .limit(50); // FIX: Added limit of 50 users
 
         if (error) throw error;
 
@@ -62,7 +61,7 @@ const loadStudentLeaderboard = async () => {
     } catch (err) { console.error('Student LB Error:', err); }
 };
 
-// 2. DEPARTMENT STATS (Aggregation via RPC)
+// 2. DEPARTMENT STATS
 export const loadDepartmentLeaderboard = async () => {
     if (state.deptStatsLoaded) {
         renderDepartmentLeaderboard();
@@ -70,21 +69,18 @@ export const loadDepartmentLeaderboard = async () => {
     }
 
     try {
-        // Use RPC to bypass 1000-row select limit and reduce egress
         const { data, error } = await supabase.rpc('department_stats');
-
         if (error) throw error;
 
         state.departmentLeaderboard = data.map(dept => ({
             name: dept.department,
             studentCount: dept.student_count,
-            averageScore: Number(dept.avg_score) // Ensure numeric type
+            averageScore: Number(dept.avg_score)
         }))
         .sort((a, b) => b.averageScore - a.averageScore);
 
         state.deptStatsLoaded = true;
         renderDepartmentLeaderboard();
-
     } catch (err) { console.error('Dept Stats Error:', err); }
 };
 
@@ -102,9 +98,8 @@ export const loadDepartmentStudents = async (deptName) => {
                 id, full_name, lifetime_points, profile_img_url, tick_type, course,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            .ilike('course', `%${deptName}%`) 
+            .eq('course', deptName) // FIX: Changed ilike to eq for exact matching (prevents BAF in BA)
             .order('lifetime_points', { ascending: false }); 
-            // No limit requested
 
         if (error) throw error;
 
@@ -118,11 +113,11 @@ export const loadDepartmentStudents = async (deptName) => {
         }));
 
         renderDepartmentStudents(deptName);
-
     } catch (err) { console.error('Dept Students Error:', err); }
 };
 
 // --- RENDER FUNCTIONS ---
+// (renderDepartmentLeaderboard, showDepartmentDetail, renderDepartmentStudents, showLeaderboardTab, and renderStudentLeaderboard remain as they were in social.js)
 
 export const showLeaderboardTab = (tab) => {
     currentLeaderboardTab = tab;
