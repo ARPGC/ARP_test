@@ -3,8 +3,34 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// --- PERFORMANCE & DATA UTILS ---
+// --- MOBILE UI: TOAST SYSTEM ---
+export const showToast = (message, type = 'success') => {
+    const existingToast = document.getElementById('app-toast');
+    if (existingToast) existingToast.remove();
 
+    const toast = document.createElement('div');
+    toast.id = 'app-toast';
+    
+    const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
+    const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle';
+
+    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[280px] justify-center`;
+    
+    toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-5 h-5"></i>
+        <span class="text-sm font-bold tracking-tight">${message}</span>
+    `;
+
+    document.body.appendChild(toast);
+    if (window.lucide) window.lucide.createIcons();
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+// --- PERFORMANCE & DATA UTILS ---
 export const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
@@ -18,7 +44,6 @@ export const debounce = (func, wait) => {
 };
 
 export const isLowDataMode = () => {
-    // Check navigator connection api
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn) {
         return (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType));
@@ -26,26 +51,17 @@ export const isLowDataMode = () => {
     return false;
 };
 
-// NEW: Image Optimization Helper
 export const getOptimizedImageUrl = (url, width = 400) => {
     if (!url) return getPlaceholderImage();
-    
-    // Check if it's a Cloudinary URL
     if (url.includes('cloudinary.com')) {
-        // Determine quality setting
         const quality = isLowDataMode() ? 'q_auto:low,f_auto' : 'q_auto,f_auto';
         const resize = `w_${isLowDataMode() ? Math.floor(width / 1.5) : width}`;
-        
-        // Inject transformation
-        // Matches the '/upload/' segment and inserts params after it
         return url.replace('/upload/', `/upload/${quality},${resize}/`);
     }
-    
     return url;
 };
 
 // --- LOGGING UTILS ---
-
 export const logUserActivity = async (actionType, description, metadata = {}) => {
     try {
         if (!state.currentUser) return;
@@ -89,7 +105,6 @@ export const els = {
 };
 
 // --- IMAGE & UI HELPERS ---
-
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
     if (isLowDataMode()) {
         const dims = size.split('x').map(n => Math.floor(parseInt(n)/2)).join('x');
@@ -124,8 +139,6 @@ export const getUserLevel = (points) => {
     return { ...current, progress, progressText };
 };
 
-// --- IST DATE LOGIC ---
-
 export const getTodayIST = () => {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 };
@@ -139,8 +152,6 @@ export const formatDate = (dateString, options = {}) => {
     const finalOptions = { ...defaultOptions, ...options };
     return new Date(dateString).toLocaleDateString('en-IN', finalOptions);
 };
-
-// --- ICONS & INITIALS ---
 
 export const getIconForHistory = (type) => {
     const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket', 'quiz': 'brain', 'streak_restore': 'zap' };
@@ -156,8 +167,6 @@ export const getUserInitials = (fullName) => {
     if (!fullName) return '..';
     return fullName.split(' ').map(n => n[0]).join('').toUpperCase();
 };
-
-// --- UPLOAD ---
 
 export const uploadToCloudinary = async (file) => {
     const formData = new FormData();
@@ -179,17 +188,13 @@ export const uploadToCloudinary = async (file) => {
     }
 };
 
-// --- NAVIGATION LOGIC ---
-
 export const showPage = async (pageId, addToHistory = true) => {
-    // 1. DEDUPLICATED LOGGING: Log view only once per session per page
     const pageLogKey = `page_view_${pageId}`;
     if (!sessionStorage.getItem(pageLogKey)) {
         logUserActivity('view_page', `Mapped to ${pageId}`);
         sessionStorage.setItem(pageLogKey, '1');
     }
 
-    // UI Reset
     const main = document.querySelector('.main-content');
     if (main) main.style.backgroundColor = ''; 
     
@@ -205,12 +210,10 @@ export const showPage = async (pageId, addToHistory = true) => {
         hd.classList.remove('dark'); 
     }
 
-    // Toggle Pages
     els.pages.forEach(p => p.classList.remove('active'));
     const targetPage = document.getElementById(pageId);
     if (targetPage) targetPage.classList.add('active');
 
-    // Clean up Detail Views
     if (!['store-detail-page', 'product-detail-page'].includes(pageId)) {
         if(els.storeDetailPage) els.storeDetailPage.innerHTML = '';
         if(els.productDetailPage) els.productDetailPage.innerHTML = '';
@@ -219,7 +222,6 @@ export const showPage = async (pageId, addToHistory = true) => {
         els.departmentDetailPage.innerHTML = '';
     }
 
-    // Nav State
     document.querySelectorAll('.nav-item, .sidebar-nav-item').forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
         btn.classList.toggle('active', onclickVal && onclickVal.includes(`'${pageId}'`));
@@ -228,10 +230,6 @@ export const showPage = async (pageId, addToHistory = true) => {
     if (main) main.scrollTop = 0;
     if (addToHistory) window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
-
-    // ============================================
-    // STRICT ON-DEMAND DATA LOADING (Lazy Load)
-    // ============================================
 
     if (pageId === 'dashboard') {
         renderDashboard();
@@ -242,10 +240,9 @@ export const showPage = async (pageId, addToHistory = true) => {
             await m.loadLeaderboardData();
             state.leaderboardLoaded = true;
         } 
-        // UI Guard: Only switch tabs if rendering (prevent unnecessary work)
         showLeaderboardTab('student');
     } 
-    else if (pageId === 'rewards') { // Store
+    else if (pageId === 'rewards') {
         if (!state.storeLoaded) {
             const m = await import('./store.js');
             await m.loadStoreAndProductData();
@@ -273,18 +270,12 @@ export const showPage = async (pageId, addToHistory = true) => {
         }
     } 
     else if (pageId === 'ecopoints') {
-        // FIX: Ensure store module is loaded (contains renderEcoPointsPage)
-        if (!window.renderEcoPointsPageWrapper) {
-            await import('./store.js');
-        }
-        
-        // FIX: Ensure history data is loaded (for recent transactions)
+        if (!window.renderEcoPointsPageWrapper) await import('./store.js');
         if (!state.historyLoaded) {
             const m = await import('./dashboard.js');
             await m.loadHistoryData();
             state.historyLoaded = true;
         }
-
         if (window.renderEcoPointsPageWrapper) window.renderEcoPointsPageWrapper();
     } 
     else if (pageId === 'challenges') {
@@ -308,7 +299,7 @@ export const showPage = async (pageId, addToHistory = true) => {
     else if (pageId === 'profile') {
         renderProfile();
     } 
-    else if (pageId === 'green-lens') { // Gallery
+    else if (pageId === 'green-lens') {
         if (!state.galleryLoaded) {
             const m = await import('./gallery.js');
             await m.loadGalleryData();
@@ -352,9 +343,6 @@ export const toggleSidebar = (forceClose = false) => {
             els.sidebarOverlay.classList.toggle('hidden');
             els.sidebarOverlay.classList.toggle('opacity-0');
         }
-        
-        const isOpening = els.sidebar && !els.sidebar.classList.contains('-translate-x-full');
-        if (isOpening) logUserActivity('ui_interaction', 'Opened Sidebar');
     }
 };
 
