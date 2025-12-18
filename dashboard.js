@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, formatDate, getIconForHistory, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
+import { els, formatDate, getIconForHistory, getPlaceholderImage, getTickImg, getUserInitials, getUserLevel, uploadToCloudinary, getTodayIST, logUserActivity, showToast } from './utils.js';
 import { refreshUserData } from './app.js';
 import { loadLeaderboardData } from './social.js';
 
@@ -23,7 +23,6 @@ export const loadDashboardData = async () => {
             { data: streakData },
             { data: impactData }
         ] = await Promise.all([
-            // Limit 1 is sufficient to check existence
             supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', todayIST).limit(1),
             supabase.from('user_streaks').select('current_streak, last_checkin_date').eq('user_id', userId).single(),
             supabase.from('user_impact').select('total_plastic_kg, co2_saved_kg, events_attended').eq('user_id', userId).maybeSingle()
@@ -76,7 +75,6 @@ const renderDashboardUI = () => {
     const impactEvents = document.getElementById('impact-events');
 
     if(impactRecycled) impactRecycled.textContent = `${(user.impact?.total_plastic_kg || 0).toFixed(1)} kg`;
-    // If element exists (it might not in all layouts)
     if(impactCo2) impactCo2.textContent = `${(user.impact?.co2_saved_kg || 0).toFixed(1)} kg`;
     if(impactEvents) impactEvents.textContent = user.impact?.events_attended || 0;
 };
@@ -195,14 +193,12 @@ const renderAQICard = (card, aqi, city) => {
 // --- HISTORY & PROFILE ---
 
 export const loadHistoryData = async () => {
-    // 1. One-Time Load Per Session
     if (state.historyLoaded) {
         if (document.getElementById('history').classList.contains('active')) renderHistory();
         return;
     }
 
     try {
-        // 3. Hard Limit (Max 20 for history page view) & Strict Columns
         const { data, error } = await supabase
             .from('points_ledger')
             .select('source_type, description, points_delta, created_at')
@@ -249,7 +245,6 @@ export const renderProfile = () => {
     const u = state.currentUser;
     if (!u) return;
     
-    // 6. Logging Rules: Log profile view once per session
     if (!sessionStorage.getItem('profile_view_logged')) {
         logUserActivity('view_profile', 'Viewed profile page');
         sessionStorage.setItem('profile_view_logged', '1');
@@ -302,7 +297,7 @@ export const setupFileUploads = () => {
             avatarEl.style.opacity = '0.5';
             
             try {
-                logUserActivity('upload_profile_pic_start', 'Started uploading profile picture');
+                showToast('Updating profile picture...', 'warning');
                 const imageUrl = await uploadToCloudinary(file);
                 const { error } = await supabase.from('users').update({ profile_img_url: imageUrl }).eq('id', state.currentUser.id);
                 if (error) throw error;
@@ -313,14 +308,12 @@ export const setupFileUploads = () => {
 
                 renderProfile();
                 renderDashboardUI(); 
-                alert('Profile picture updated!');
-                logUserActivity('upload_profile_pic_success', 'Profile picture updated');
+                showToast('Profile updated!', 'success');
 
             } catch (err) {
                 console.error('Profile Upload Failed:', err);
-                alert('Failed to upload profile picture.');
+                showToast('Upload failed.', 'error');
                 avatarEl.src = originalSrc; 
-                logUserActivity('upload_profile_pic_error', err.message);
             } finally {
                 avatarEl.style.opacity = '1';
                 newProfileInput.value = ''; 
@@ -334,7 +327,6 @@ export const setupFileUploads = () => {
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
     
-    // Calculate if streak is broken
     let isStreakBroken = false;
     if (state.currentUser.lastCheckInDate) {
         const lastDate = new Date(state.currentUser.lastCheckInDate);
@@ -357,7 +349,6 @@ export const openCheckinModal = () => {
     const streakDisplay = document.getElementById('checkin-modal-streak');
     const btnContainer = document.getElementById('checkin-modal-button-container');
 
-    // 1. IF STREAK BROKEN: Show Restore UI
     if (isStreakBroken && state.currentUser.checkInStreak > 0) {
         streakDisplay.innerHTML = `<span class="text-red-500">Streak Lost!</span>`;
         calendarContainer.innerHTML = `
@@ -378,7 +369,6 @@ export const openCheckinModal = () => {
             </div>
         `;
     } 
-    // 2. NORMAL CHECK-IN
     else {
         streakDisplay.textContent = `${state.currentUser.checkInStreak || 0} Days`;
         calendarContainer.innerHTML = '';
@@ -407,7 +397,7 @@ export const handleRestoreStreak = async () => {
     const userPoints = state.currentUser.current_points;
 
     if (userPoints < cost) {
-        alert(`Insufficient EcoPoints! You need ${cost} pts to restore your streak.`);
+        showToast(`Insufficient EcoPoints! You need ${cost} pts.`, 'warning');
         return;
     }
 
@@ -465,11 +455,11 @@ export const handleRestoreStreak = async () => {
         
         if (state.leaderboardLoaded) await loadLeaderboardData();
 
-        alert("Streak Restored! 🔥");
+        showToast("Streak Restored! 🔥", "success");
 
     } catch (err) {
         console.error("Restore Streak Error:", err);
-        alert("Failed to restore streak.");
+        showToast("Failed to restore streak.", "error");
         if(btn) { btn.disabled = false; btn.innerHTML = 'Restore Streak (-50 Pts)'; }
     }
 };
@@ -512,11 +502,12 @@ export const handleDailyCheckin = async () => {
         await refreshUserData(); 
 
         if (state.leaderboardLoaded) await loadLeaderboardData();
+        showToast(`Check-in success! +${state.checkInReward} pts`, 'success');
 
     } catch (err) {
         console.error('Check-in error:', err.message);
         logUserActivity('checkin_error', err.message);
-        alert(`Failed to check in: ${err.message}`);
+        showToast("Check-in failed.", "error");
         
         if(checkinButton) {
             checkinButton.disabled = false;
