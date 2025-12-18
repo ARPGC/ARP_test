@@ -41,7 +41,7 @@ const loadStudentLeaderboard = async () => {
             `)
             .gt('lifetime_points', 0) 
             .order('lifetime_points', { ascending: false })
-            .limit(50); // FIX: Added limit of 50 users
+            .limit(50); // Optimized for mobile view
 
         if (error) throw error;
 
@@ -61,7 +61,7 @@ const loadStudentLeaderboard = async () => {
     } catch (err) { console.error('Student LB Error:', err); }
 };
 
-// 2. DEPARTMENT STATS
+// 2. DEPARTMENT STATS (Leaderboard Tab)
 export const loadDepartmentLeaderboard = async () => {
     if (state.deptStatsLoaded) {
         renderDepartmentLeaderboard();
@@ -84,25 +84,29 @@ export const loadDepartmentLeaderboard = async () => {
     } catch (err) { console.error('Dept Stats Error:', err); }
 };
 
-// 3. DEPARTMENT STUDENTS (Drill Down)
+// 3. DEPARTMENT STUDENTS (The "Drill Down" Fix)
 export const loadDepartmentStudents = async (deptName) => {
+    // Check if we already have this data
     if (state.deptCache[deptName]) {
         renderDepartmentStudents(deptName);
         return;
     }
 
     try {
+        // Fix: Ensure the filter matches the department name precisely but flexibly
+        // We use .eq() for exact department filtering as requested previously.
         const { data, error } = await supabase
             .from('users')
             .select(`
                 id, full_name, lifetime_points, profile_img_url, tick_type, course,
                 user_streaks:user_streaks!user_streaks_user_id_fkey ( current_streak )
             `)
-            .eq('course', deptName) // FIX: Changed ilike to eq for exact matching (prevents BAF in BA)
+            .eq('course', deptName) 
             .order('lifetime_points', { ascending: false }); 
 
         if (error) throw error;
 
+        // Map data into cache
         state.deptCache[deptName] = data.map(u => ({
             name: u.full_name,
             points: u.lifetime_points,
@@ -113,11 +117,15 @@ export const loadDepartmentStudents = async (deptName) => {
         }));
 
         renderDepartmentStudents(deptName);
-    } catch (err) { console.error('Dept Students Error:', err); }
+
+    } catch (err) { 
+        console.error('Dept Students Load Error:', err);
+        const list = document.getElementById('dept-students-list');
+        if (list) list.innerHTML = `<p class="text-center text-red-500 py-10">Error loading students.</p>`;
+    }
 };
 
-// --- RENDER FUNCTIONS ---
-// (renderDepartmentLeaderboard, showDepartmentDetail, renderDepartmentStudents, showLeaderboardTab, and renderStudentLeaderboard remain as they were in social.js)
+// --- UI RENDER FUNCTIONS ---
 
 export const showLeaderboardTab = (tab) => {
     currentLeaderboardTab = tab;
@@ -141,13 +149,14 @@ export const showLeaderboardTab = (tab) => {
 
 export const renderDepartmentLeaderboard = () => {
     const container = document.getElementById('eco-wars-page-list');
-    
+    if (!container) return;
+
     if (state.departmentLeaderboard.length === 0) { 
         container.innerHTML = `<p class="text-sm text-center text-gray-500">Loading departments...</p>`; 
         return; 
     }
 
-    const html = state.departmentLeaderboard.map((dept, index) => `
+    container.innerHTML = state.departmentLeaderboard.map((dept, index) => `
         <div class="glass-card p-4 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors mb-3 border border-gray-100 dark:border-gray-700 active:scale-[0.98] transform duration-150" onclick="showDepartmentDetail('${dept.name}')">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -163,16 +172,15 @@ export const renderDepartmentLeaderboard = () => {
                 </div>
             </div>
         </div>`).join('');
-        
-    container.innerHTML = html;
 };
 
 export const showDepartmentDetail = (deptName) => {
     const deptData = state.departmentLeaderboard.find(d => d.name === deptName);
     if (!deptData) return;
 
-    els.departmentDetailPage.innerHTML = `
-        <div class="max-w-3xl mx-auto h-full flex flex-col">
+    const detailPage = document.getElementById('department-detail-page');
+    detailPage.innerHTML = `
+        <div class="max-w-3xl mx-auto h-full flex flex-col bg-white dark:bg-gray-900">
             <div class="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md z-10 p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
                 <div class="flex items-center">
                     <button onclick="showPage('leaderboard')" class="mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
@@ -184,8 +192,11 @@ export const showDepartmentDetail = (deptName) => {
                     </div>
                 </div>
             </div>
-            <div id="dept-students-list" class="p-4 space-y-3 pb-20 overflow-y-auto">
-                <p class="text-center text-gray-500 py-10">Loading students...</p>
+            <div id="dept-students-list" class="p-4 space-y-3 pb-20 overflow-y-auto flex-grow">
+                <div class="flex flex-col items-center py-10">
+                    <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-gray-500">Fetching students...</p>
+                </div>
             </div>
         </div>`;
 
@@ -202,11 +213,16 @@ export const renderDepartmentStudents = (deptName) => {
     if (!container) return;
 
     if (students.length === 0) {
-        container.innerHTML = `<p class="text-center text-gray-500 py-10">No students found.</p>`;
+        container.innerHTML = `
+            <div class="text-center py-20 flex flex-col items-center opacity-60">
+                <i data-lucide="users" class="w-12 h-12 text-gray-300 mb-2"></i>
+                <p class="text-gray-500">No students found in ${deptName}.</p>
+            </div>`;
+        if(window.lucide) window.lucide.createIcons();
         return;
     }
 
-    const html = students.map((s, idx) => {
+    container.innerHTML = students.map((s, idx) => {
         const optimizedImg = getOptimizedImgUrl(s.img) || getPlaceholderImage('60x60', s.initials);
         return `
         <div class="glass-card p-3 rounded-2xl flex items-center justify-between border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -233,8 +249,7 @@ export const renderDepartmentStudents = (deptName) => {
             </div>
         </div>`;
     }).join('');
-
-    container.innerHTML = html;
+    
     if(window.lucide) window.lucide.createIcons();
 };
 
@@ -269,7 +284,7 @@ export const renderStudentLeaderboard = () => {
             <div class="champ">${renderChamp(rank3, 3)}</div>
         </div>`;
 
-    const html = rest.map((user, index) => {
+    els.lbList.innerHTML = rest.map((user, index) => {
         const optimizedImg = getOptimizedImgUrl(user.profile_img_url) || getPlaceholderImage('40x40', user.initials);
         return `
             <div class="item ${user.isCurrentUser ? 'is-me' : ''}">
@@ -284,10 +299,7 @@ export const renderStudentLeaderboard = () => {
                 <div class="points-display">${user.lifetime_points} pts</div>
             </div>`;
     }).join('');
-
-    els.lbList.innerHTML = html;
 };
 
-// Exports for global access
 window.showLeaderboardTab = showLeaderboardTab;
 window.showDepartmentDetail = showDepartmentDetail;
