@@ -15,7 +15,7 @@ export const loadStoreAndProductData = async () => {
     }
 
     try {
-        // Optimization: Strict Columns, Removed Metadata, Limit 50 for minimum egress
+        // Optimization: Strict Columns, Removed Metadata, Limit 50
         const { data, error } = await supabase
             .from('products')
             .select(`
@@ -47,7 +47,7 @@ export const loadStoreAndProductData = async () => {
 
     } catch (err) { 
         console.error('Store Load Error:', err); 
-        showToast("Failed to load store items.", "error");
+        showToast("Failed to load store items.", "error"); // Standard alert replaced
     }
 };
 
@@ -160,11 +160,11 @@ export const confirmPurchase = async (productId) => {
     if (!p) return;
 
     if (state.currentUser.current_points < p.ecopoints_cost) {
-        showToast("Not enough EcoPoints!", "error");
+        showToast("Not enough EcoPoints!", "error"); // Standard alert replaced
         return;
     }
 
-    showToast("Processing order...", "warning");
+    showToast("Processing order...", "warning"); // Standard alert replaced
 
     try {
         const { error } = await supabase.rpc('purchase_product', {
@@ -176,15 +176,15 @@ export const confirmPurchase = async (productId) => {
         if (error) throw error;
 
         logUserActivity('purchase_success', `Redeemed ${p.name}`, { productId: p.id });
-        showToast("Redeemed successfully!", "success");
+        showToast("Redeemed successfully!", "success"); // Standard alert replaced
         
         await refreshUserData();
-        state.userRewardsLoaded = false; // Reset flag to force reload of "My Orders"
+        state.userRewardsLoaded = false; 
         window.showPage('my-rewards');
 
     } catch (err) {
         console.error("Purchase Error:", err);
-        showToast(err.message || "Purchase failed.", "error");
+        showToast(err.message || "Purchase failed.", "error"); // Standard alert replaced
     }
 };
 
@@ -215,7 +215,7 @@ export const loadUserRewardsData = async () => {
         if (document.getElementById('my-rewards').classList.contains('active')) renderMyRewardsPage();
     } catch (err) {
         console.error("Load Orders Error:", err);
-        showToast("Failed to load orders.", "error");
+        showToast("Failed to load orders.", "error"); // Standard alert replaced
     }
 };
 
