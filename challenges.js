@@ -155,7 +155,7 @@ export const renderChallengesPage = () => {
                 `).join('')}
             </div>
             
-            <textarea id="feedback-comment" placeholder="Any suggestions for us? (Optional)" 
+            <textarea id="feedback-comment" placeholder="Write a Feedback and  suggestions (Optional)" 
                 class="w-full p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none mb-4 transition-all" rows="2"></textarea>
             
             <button onclick="submitUserFeedback()" id="submit-fb-btn" 
