@@ -45,6 +45,7 @@ export const renderDashboard = () => {
     renderDashboardUI();
     renderCheckinButtonState();
     initAQI(); 
+    initVotingCard(); // Initialize the new Mr. & Miss Birla card
 };
 
 const renderDashboardUI = () => {
@@ -101,7 +102,25 @@ const renderCheckinButtonState = () => {
     }
 };
 
+// --- SPECIAL EVENT: MR. & MISS BIRLA VOTING ---
+
+const initVotingCard = () => {
+    const votingCard = document.getElementById('voting-banner-card');
+    if (!votingCard) return;
+
+    // Hide card after voting ends: Dec 22, 2025 at 7:05 PM
+    const now = new Date();
+    const expiryDate = new Date('2025-12-22T19:05:00'); 
+    
+    if (now > expiryDate) {
+        votingCard.classList.add('hidden');
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+};
+
 // --- AQI LOGIC ---
+
 const initAQI = () => {
     const card = document.getElementById('dashboard-aqi-card');
     if (!card) return;
