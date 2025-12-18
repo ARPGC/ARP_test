@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, getIconForChallenge, uploadToCloudinary, getTodayIST, logUserActivity } from './utils.js';
+import { els, getIconForChallenge, uploadToCloudinary, getTodayIST, logUserActivity, showToast } from './utils.js';
 import { refreshUserData } from './app.js';
 
 // 1. Load Challenges
@@ -16,8 +16,7 @@ export const loadChallengesData = async () => {
 
         const todayIST = getTodayIST(); // "YYYY-MM-DD"
 
-        // Optimization: Filter submissions at QUERY level
-        // Limits results to records created today or later, preventing unbounded history
+        // Optimization: Filter submissions at QUERY level to reduce egress
         const { data: submissions, error: subError } = await supabase
             .from('challenge_submissions')
             .select('challenge_id, status, created_at')
@@ -27,21 +26,16 @@ export const loadChallengesData = async () => {
         if (subError) throw subError;
 
         state.dailyChallenges = challenges.map(c => {
-            // Since we filtered the query by Today, this list is already small and relevant
             const challengeSubs = submissions.filter(s => s.challenge_id === c.id);
             
             let sub = null;
 
             if (c.frequency === 'daily') {
-                // Double-check date string match (safe even if query filtered)
                 sub = challengeSubs.find(s => {
                     const subDate = new Date(s.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
                     return subDate === todayIST;
                 });
             } else {
-                // For 'once', we take the found submission (if any appeared in today's filter)
-                // Note: If 'once' challenges require all-time history, they should ideally be separate queries.
-                // Given strict egress rules for "daily" focus, we rely on the today filter.
                 sub = challengeSubs[0];
             }
 
@@ -72,7 +66,10 @@ export const loadChallengesData = async () => {
         await checkQuizStatus();
 
         if (document.getElementById('challenges').classList.contains('active')) renderChallengesPage();
-    } catch (err) { console.error('Challenges Load Error:', err); }
+    } catch (err) { 
+        console.error('Challenges Load Error:', err); 
+        showToast("Failed to load challenges.", "error");
+    }
 };
 
 // 2. Check Quiz Status Logic (Cached)
@@ -81,7 +78,6 @@ const checkQuizStatus = async () => {
     const btn = document.getElementById('btn-quiz-play');
     if (!quizSection || !btn) return;
 
-    // Apply Cached State if Available
     if (state.quizStatusLoaded) {
         if (!state.quizAvailable) {
             quizSection.classList.add('hidden');
@@ -109,7 +105,6 @@ const checkQuizStatus = async () => {
             return;
         }
 
-        // Cache Quiz ID availability
         state.quizAvailable = true;
         state.currentQuizId = quiz.id;
 
@@ -149,19 +144,24 @@ const updateQuizButtonUI = (btn, isAttempted) => {
 
 export const renderChallengesPage = () => {
     els.challengesList.innerHTML = '';
-
-    // Re-run UI update (uses cache now)
     checkQuizStatus();
 
-    if (state.dailyChallenges.length === 0) { els.challengesList.innerHTML = `<p class="text-sm text-center text-gray-500">No active photo challenges.</p>`; return; }
+    if (state.dailyChallenges.length === 0) { 
+        els.challengesList.innerHTML = `<p class="text-sm text-center text-gray-500">No active photo challenges.</p>`; 
+        return; 
+    }
     
     els.challengesList.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
 
     state.dailyChallenges.forEach(c => {
         let buttonHTML = '';
-        if (c.isDisabled) buttonHTML = `<button disabled class="text-xs font-semibold px-3 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-not-allowed">${c.buttonText}</button>`;
-        else if (c.type === 'Upload' || c.type === 'selfie') buttonHTML = `<button onclick="startCamera('${c.id}')" data-challenge-id="${c.id}" class="text-xs font-semibold px-3 py-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"><i data-lucide="camera" class="w-3 h-3 mr-1 inline-block"></i>${c.buttonText}</button>`;
-        else buttonHTML = `<button class="text-xs font-semibold px-3 py-2 rounded-full bg-green-600 text-white">${c.buttonText}</button>`;
+        if (c.isDisabled) {
+            buttonHTML = `<button disabled class="text-xs font-semibold px-3 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-not-allowed">${c.buttonText}</button>`;
+        } else if (c.type === 'Upload' || c.type === 'selfie') {
+            buttonHTML = `<button onclick="startCamera('${c.id}')" data-challenge-id="${c.id}" class="text-xs font-semibold px-3 py-2 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"><i data-lucide="camera" class="w-3 h-3 mr-1 inline-block"></i>${c.buttonText}</button>`;
+        } else {
+            buttonHTML = `<button class="text-xs font-semibold px-3 py-2 rounded-full bg-green-600 text-white">${c.buttonText}</button>`;
+        }
 
         els.challengesList.innerHTML += `
             <div class="glass-card p-4 rounded-2xl flex items-start h-full">
@@ -189,7 +189,7 @@ export const startCamera = async (challengeId, facingMode = 'environment') => {
     const modal = document.getElementById('camera-modal');
     
     if(!modal) {
-        alert("Camera Error: Modal missing in HTML.");
+        showToast("Camera Error: UI component missing.", "error");
         return;
     }
     
@@ -207,7 +207,7 @@ export const startCamera = async (challengeId, facingMode = 'environment') => {
         video.style.transform = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
     } catch (err) { 
         console.error(err);
-        alert("Unable to access camera. Please allow permissions."); 
+        showToast("Unable to access camera. Check permissions.", "error"); 
         closeCameraModal(); 
     }
 };
@@ -244,22 +244,26 @@ export const capturePhoto = async () => {
     
     canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], "cam.jpg", { type: "image/jpeg" });
+        const file = new File([blob], "challenge_proof.jpg", { type: "image/jpeg" });
         
         const btn = document.querySelector(`button[data-challenge-id="${currentChallengeIdForCamera}"]`);
-        const originalText = btn ? btn.innerText : 'Uploading...';
         if(btn) { btn.innerText = 'Uploading...'; btn.disabled = true; }
         
         try {
+            showToast('Uploading proof...', 'warning');
             logUserActivity('upload_challenge_start', 'Starting challenge upload');
 
             const imageUrl = await uploadToCloudinary(file);
-            const { error } = await supabase.from('challenge_submissions').insert({ challenge_id: currentChallengeIdForCamera, user_id: state.currentUser.id, submission_url: imageUrl, status: 'pending' });
+            const { error } = await supabase.from('challenge_submissions').insert({ 
+                challenge_id: currentChallengeIdForCamera, 
+                user_id: state.currentUser.id, 
+                submission_url: imageUrl, 
+                status: 'pending' 
+            });
             if (error) throw error;
             
             logUserActivity('upload_challenge_success', 'Challenge submitted successfully');
 
-            // Optimization: Local update ONLY. No refetch.
             const chIndex = state.dailyChallenges.findIndex(c => c.id === currentChallengeIdForCamera);
             if (chIndex > -1) {
                 state.dailyChallenges[chIndex].status = 'pending';
@@ -268,13 +272,13 @@ export const capturePhoto = async () => {
                 renderChallengesPage();
             }
 
-            alert('Challenge submitted successfully!');
+            showToast('Challenge submitted successfully!', 'success');
             
         } catch (err) {
             console.error('Camera Upload Error:', err); 
             logUserActivity('upload_challenge_error', err.message);
-            alert('Failed to upload photo.');
-            if(btn) { btn.innerText = originalText; btn.disabled = false; }
+            showToast('Failed to upload photo.', 'error');
+            if(btn) { btn.innerText = 'Retry'; btn.disabled = false; }
         }
     }, 'image/jpeg', 0.8);
 };
@@ -283,9 +287,8 @@ export const capturePhoto = async () => {
 export const openEcoQuizModal = async () => {
     logUserActivity('open_quiz', 'Opened daily quiz');
 
-    // Double check cache
     if (state.quizStatusLoaded && state.quizAttempted) {
-         checkQuizStatus(); // Will disable button
+         checkQuizStatus();
          return;
     }
 
@@ -303,10 +306,8 @@ export const openEcoQuizModal = async () => {
     try {
         const today = getTodayIST();
         
-        // If we cached the ID, use it. Otherwise fetch minimal fields.
         let quiz = null;
         if (state.currentQuizId) {
-             // We need question data
              const { data } = await supabase.from('daily_quizzes').select('*').eq('id', state.currentQuizId).single();
              quiz = data;
         } else {
@@ -315,14 +316,13 @@ export const openEcoQuizModal = async () => {
         }
 
         if (!quiz) {
-            alert("No quiz available for today!");
+            showToast("No quiz available for today!", "warning");
             closeEcoQuizModal();
             return;
         }
 
         state.currentQuizId = quiz.id;
 
-        // Ensure we check submission again just in case (cheap check) or rely on cached
         if (state.quizAttempted) {
             loading.classList.add('hidden');
             played.classList.remove('hidden');
@@ -348,12 +348,12 @@ export const openEcoQuizModal = async () => {
         
     } catch (err) {
         console.error("Quiz Error", err);
+        showToast("Failed to load quiz.", "error");
         closeEcoQuizModal();
     }
 };
 
 const submitQuizAnswer = async (selectedIndex, correctIndex, points) => {
-    // Write Guard
     if (state.quizAttempted) return;
     state.quizAttempted = true; // Immediate lock
 
@@ -387,9 +387,11 @@ const submitQuizAnswer = async (selectedIndex, correctIndex, points) => {
             points_delta: points,
             description: 'Daily Quiz Win'
         });
+        showToast(`Correct! You earned ${points} pts.`, 'success');
+    } else {
+        showToast("Incorrect answer. Better luck tomorrow!", "warning");
     }
 
-    // Update global state immediately
     state.quizStatusLoaded = true;
 
     setTimeout(() => {
