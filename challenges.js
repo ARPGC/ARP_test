@@ -6,7 +6,6 @@ import { refreshUserData } from './app.js';
 // 1. Load Challenges & Feedback State
 export const loadChallengesData = async () => {
     try {
-        // Fetch active challenges
         const { data: challenges, error: challengeError } = await supabase
             .from('challenges')
             .select('id, title, description, points_reward, type, frequency')
@@ -14,9 +13,8 @@ export const loadChallengesData = async () => {
             
         if (challengeError) throw challengeError;
 
-        const todayIST = getTodayIST(); // "YYYY-MM-DD"
+        const todayIST = getTodayIST();
 
-        // Fetch user submissions for today
         const { data: submissions, error: subError } = await supabase
             .from('challenge_submissions')
             .select('challenge_id, status, created_at')
@@ -25,7 +23,6 @@ export const loadChallengesData = async () => {
             
         if (subError) throw subError;
 
-        // Check if user has already submitted feedback (allowed once per user)
         const { data: feedbackData } = await supabase
             .from('user_feedback')
             .select('id')
@@ -34,7 +31,6 @@ export const loadChallengesData = async () => {
 
         state.userHasGivenFeedback = !!feedbackData;
 
-        // Map challenges with user status
         state.dailyChallenges = challenges.map(c => {
             const challengeSubs = submissions.filter(s => s.challenge_id === c.id);
             let sub = null;
@@ -53,7 +49,7 @@ export const loadChallengesData = async () => {
             if (sub) {
                 if (sub.status === 'approved' || sub.status === 'verified') { 
                     status = 'completed'; 
-                    buttonText = c.frequency === 'daily' ? 'Done for Today' : 'Completed'; 
+                    buttonText = c.frequency === 'daily' ? 'Done' : 'Completed'; 
                     isDisabled = true; 
                 } 
                 else if (sub.status === 'pending') { 
@@ -88,9 +84,8 @@ const checkQuizStatus = async () => {
     if (!quizSection || !btn) return;
 
     if (state.quizStatusLoaded) {
-        if (!state.quizAvailable) {
-            quizSection.classList.add('hidden');
-        } else {
+        if (!state.quizAvailable) quizSection.classList.add('hidden');
+        else {
             quizSection.classList.remove('hidden');
             updateQuizButtonUI(btn, state.quizAttempted);
         }
@@ -99,48 +94,30 @@ const checkQuizStatus = async () => {
 
     try {
         const today = getTodayIST();
-        
-        const { data: quiz } = await supabase
-            .from('daily_quizzes')
-            .select('id')
-            .eq('available_date', today)
-            .limit(1)
-            .maybeSingle();
+        const { data: quiz } = await supabase.from('daily_quizzes').select('id').eq('available_date', today).limit(1).maybeSingle();
 
         if (!quiz) {
             state.quizAvailable = false;
-            state.quizStatusLoaded = true;
             quizSection.classList.add('hidden');
             return;
         }
 
         state.quizAvailable = true;
         state.currentQuizId = quiz.id;
-
-        const { data: submission } = await supabase
-            .from('quiz_submissions')
-            .select('id')
-            .eq('quiz_id', quiz.id)
-            .eq('user_id', state.currentUser.id)
-            .maybeSingle();
+        const { data: submission } = await supabase.from('quiz_submissions').select('id').eq('quiz_id', quiz.id).eq('user_id', state.currentUser.id).maybeSingle();
 
         state.quizAttempted = !!submission;
         state.quizStatusLoaded = true;
-
         quizSection.classList.remove('hidden');
         updateQuizButtonUI(btn, state.quizAttempted);
-
-    } catch (err) {
-        console.error("Quiz Status Check Failed:", err);
-    }
+    } catch (err) {}
 };
 
 const updateQuizButtonUI = (btn, isAttempted) => {
     if (isAttempted) {
         btn.textContent = "Attempted";
         btn.disabled = true;
-        btn.onclick = null;
-        btn.className = "px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold cursor-default";
+        btn.className = "px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 text-xs font-bold cursor-default";
     } else {
         btn.textContent = "Play Now";
         btn.disabled = false;
@@ -157,7 +134,7 @@ export const renderChallengesPage = () => {
     
     checkQuizStatus();
 
-    // FEEDBACK SECTION (Only shows if user hasn't submitted yet)
+    // FEEDBACK SECTION
     if (!state.userHasGivenFeedback) {
         const fbDiv = document.createElement('div');
         fbDiv.className = "col-span-full glass-card p-5 rounded-3xl mb-6 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/20 dark:to-gray-800 border-emerald-100 dark:border-emerald-800 shadow-sm";
@@ -173,7 +150,7 @@ export const renderChallengesPage = () => {
             <div class="flex justify-center gap-3 mb-5" id="star-rating-container">
                 ${[1,2,3,4,5].map(num => `
                     <button onclick="setStarRating(${num})" class="star-btn text-gray-300 dark:text-gray-600 transition-all active:scale-90" data-star="${num}">
-                        <i data-lucide="star" class="w-9 h-9"></i>
+                        <i data-lucide="star" class="w-9 h-9 pointer-events-none"></i>
                     </button>
                 `).join('')}
             </div>
@@ -219,21 +196,32 @@ export const renderChallengesPage = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-// 4. Feedback Logic
+// 4. Feedback Logic (FIXED FOR SVG HANDLING)
 let selectedRating = 0;
 window.setStarRating = (num) => {
     selectedRating = num;
-    document.querySelectorAll('.star-btn').forEach(btn => {
+    const starButtons = document.querySelectorAll('.star-btn');
+    
+    starButtons.forEach(btn => {
         const starNum = parseInt(btn.dataset.star);
-        const icon = btn.querySelector('i');
+        // Find either the <i> tag or the generated <svg> tag
+        const icon = btn.querySelector('i') || btn.querySelector('svg');
+        
         if (starNum <= num) {
             btn.classList.add('text-yellow-400');
             btn.classList.remove('text-gray-300', 'text-gray-600');
-            icon.style.fill = "currentColor";
+            if(icon) {
+                icon.style.fill = "currentColor";
+                icon.style.stroke = "currentColor";
+            }
         } else {
             btn.classList.remove('text-yellow-400');
             btn.classList.add('text-gray-300', 'text-gray-600');
-            icon.style.fill = "none";
+            if(icon) {
+                icon.style.fill = "none";
+                // Restore original stroke color
+                icon.style.stroke = ""; 
+            }
         }
     });
 };
@@ -284,6 +272,7 @@ export const startCamera = async (challengeId, facingMode = 'environment') => {
     
     const video = document.getElementById('camera-feed');
     modal.classList.remove('hidden');
+    modal.classList.add('open');
     
     if (currentCameraStream) currentCameraStream.getTracks().forEach(track => track.stop());
 
@@ -310,7 +299,10 @@ export const closeCameraModal = () => {
     if (currentCameraStream) currentCameraStream.getTracks().forEach(track => track.stop());
     const video = document.getElementById('camera-feed');
     if(video) video.srcObject = null;
-    if(modal) modal.classList.add('hidden');
+    if(modal) {
+        modal.classList.remove('open');
+        modal.classList.add('hidden');
+    }
 };
 
 export const capturePhoto = async () => {
@@ -346,7 +338,7 @@ export const capturePhoto = async () => {
             if (error) throw error;
             
             showToast('Submitted successfully!', 'success');
-            loadChallengesData(); // Refresh list
+            loadChallengesData(); 
         } catch (err) { 
             console.error(err);
             showToast('Upload failed.', 'error'); 
@@ -365,6 +357,7 @@ export const openEcoQuizModal = async () => {
     const played = document.getElementById('eco-quiz-already-played');
     
     modal.classList.remove('invisible', 'opacity-0');
+    modal.classList.add('open');
     loading.classList.remove('hidden');
     body.classList.add('hidden');
     played.classList.add('hidden');
@@ -455,6 +448,7 @@ const submitQuizAnswer = async (selectedIndex, correctIndex, points) => {
 export const closeEcoQuizModal = () => {
     const modal = document.getElementById('eco-quiz-modal');
     if(modal) {
+        modal.classList.remove('open');
         modal.classList.add('invisible', 'opacity-0');
         setTimeout(() => {
              const fb = document.getElementById('eco-quiz-feedback');
