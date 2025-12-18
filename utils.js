@@ -3,7 +3,7 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// --- MOBILE UI: TOAST SYSTEM ---
+// --- MOBILE UI: TOAST SYSTEMS ---
 // Updated showToast in utils.js
 export const showToast = (message, type = 'success') => {
     const existingToast = document.getElementById('app-toast');
