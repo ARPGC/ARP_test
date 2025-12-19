@@ -3,7 +3,7 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// Updated showToast in utils.js
+// --- MOBILE UI: TOAST SYSTEM ---
 export const showToast = (message, type = 'success') => {
     const existingToast = document.getElementById('app-toast');
     if (existingToast) existingToast.remove();
@@ -11,22 +11,19 @@ export const showToast = (message, type = 'success') => {
     const toast = document.createElement('div');
     toast.id = 'app-toast';
     
-    // Color logic based on status
     const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
     const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle';
 
-    // UI Logic: bottom-24 keeps it above the bottom nav bar, left-1/2 -translate-x-1/2 ensures perfect horizontal centering
-    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[85%] max-w-[90%] justify-center backdrop-blur-md`;
+    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[280px] justify-center`;
     
     toast.innerHTML = `
-        <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
-        <span class="text-sm font-bold tracking-tight text-center">${message}</span>
+        <i data-lucide="${icon}" class="w-5 h-5"></i>
+        <span class="text-sm font-bold tracking-tight">${message}</span>
     `;
 
     document.body.appendChild(toast);
     if (window.lucide) window.lucide.createIcons();
 
-    // Auto-dismiss logic
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-4');
         setTimeout(() => toast.remove(), 300);
