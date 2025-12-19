@@ -3,70 +3,34 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
-// --- CHRISTMAS THEME UTILITY ---
-/**
- * Detects if the current date is between Dec 19 and Dec 26.
- * Used to toggle snow effects and festive UI elements.
- */
-export const isChristmasSeason = () => {
-    const d = new Date();
-    const month = d.getMonth(); // 0-11, where 11 is December
-    const day = d.getDate();
-    // Returns true only between Dec 19th and Dec 26th
-    return month === 11 && day >= 19 && day <= 26;
-};
-
 // --- MOBILE UI: TOAST SYSTEM ---
 export const showToast = (message, type = 'success') => {
-    // 1. Remove existing toast to prevent stacking
     const existingToast = document.getElementById('app-toast');
     if (existingToast) existingToast.remove();
 
-    // 2. Create New Toast
     const toast = document.createElement('div');
     toast.id = 'app-toast';
     
-    // 3. Apply Style Class based on type
-    if (type === 'error') {
-        toast.classList.add('toast-error');
-    } else if (type === 'warning') {
-        toast.classList.add('toast-warning');
-    } else if (type === 'christmas') {
-        toast.classList.add('toast-christmas'); // Defined in style.css
-    } else {
-        toast.classList.add('toast-success');
-    }
+    const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
+    const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle';
 
-    // 4. Apply Festive Glow during season (unless it's an error)
-    if (isChristmasSeason() && type !== 'error') {
-        toast.classList.add('festive-toast-glow');
-    }
-
-    // 5. Set Icon
-    let iconName = 'check-circle-2';
-    if (type === 'error') iconName = 'alert-circle';
-    else if (type === 'warning') iconName = 'alert-triangle';
-    else if (type === 'christmas') iconName = 'gift'; // Special icon for greeting
-
+    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[280px] justify-center`;
+    
     toast.innerHTML = `
-        <i data-lucide="${iconName}" class="w-5 h-5 flex-shrink-0"></i>
-        <span>${message}</span>
+        <i data-lucide="${icon}" class="w-5 h-5"></i>
+        <span class="text-sm font-bold tracking-tight">${message}</span>
     `;
 
     document.body.appendChild(toast);
-    
-    // Initialize Icon
     if (window.lucide) window.lucide.createIcons();
 
-    // 6. Auto-remove after 3 seconds
     setTimeout(() => {
-        if (toast) {
-            toast.classList.add('toast-hiding');
-            setTimeout(() => toast.remove(), 300); // Wait for fade-out animation
-        }
-    }, 3500);
+        toast.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 };
 
+// --- PERFORMANCE & DATA UTILS ---
 export const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
@@ -97,6 +61,7 @@ export const getOptimizedImageUrl = (url, width = 400) => {
     return url;
 };
 
+// --- LOGGING UTILS ---
 export const logUserActivity = async (actionType, description, metadata = {}) => {
     try {
         if (!state.currentUser) return;
@@ -111,6 +76,7 @@ export const logUserActivity = async (actionType, description, metadata = {}) =>
     } catch (err) { }
 };
 
+// --- DOM CACHE ---
 export const els = {
     get pages() { return document.querySelectorAll('.page'); },
     get sidebar() { return document.getElementById('sidebar'); },
@@ -138,6 +104,7 @@ export const els = {
     get qrModal() { return document.getElementById('qr-modal'); }
 };
 
+// --- IMAGE & UI HELPERS ---
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
     if (isLowDataMode()) {
         const dims = size.split('x').map(n => Math.floor(parseInt(n)/2)).join('x');
@@ -264,7 +231,6 @@ export const showPage = async (pageId, addToHistory = true) => {
     if (addToHistory) window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
 
-    // --- MODULE LAZY LOADING ---
     if (pageId === 'dashboard') {
         renderDashboard();
     } 
