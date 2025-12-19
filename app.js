@@ -1,11 +1,11 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with Toast Notifications and Optimized State Management
+ * Fully updated with Christmas Theme Logic and optimized State Management.
  */
 
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast } from './utils.js';
+import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast, isChristmasSeason } from './utils.js';
 import { loadDashboardData, renderDashboard, setupFileUploads } from './dashboard.js';
 
 // --- AUTHENTICATION CHECK & STARTUP ---
@@ -73,8 +73,13 @@ const initializeApp = async () => {
         if (!sessionStorage.getItem('login_logged')) {
             logUserActivity('login', 'User logged in');
             sessionStorage.setItem('login_logged', '1');
+            
+            // Standard greeting
             showToast(`Welcome back, ${userProfile.full_name}!`, 'success');
         }
+
+        // --- CHRISTMAS THEME INITIALIZATION ---
+        initChristmasTheme();
 
         // Set initial navigation state
         history.replaceState({ pageId: 'dashboard' }, '', '#dashboard');
@@ -108,6 +113,53 @@ const initializeApp = async () => {
     }
 };
 
+// --- CHRISTMAS THEME LOGIC ---
+
+/**
+ * Checks date and injects festive elements if it's Christmas season.
+ * Uses lightweight DOM manipulation to avoid layout shifts.
+ */
+const initChristmasTheme = () => {
+    // 1. Gatekeeper: Only run between Dec 19 - Dec 26
+    if (!isChristmasSeason()) return;
+
+    console.log("🎄 EcoCampus Christmas Theme Active");
+
+    // 2. Inject Snow Container (CSS handles animation)
+    // Limit to 25 snowflakes for mobile performance
+    const existingSnow = document.querySelector('.snow-container');
+    if (!existingSnow) {
+        const snowContainer = document.createElement('div');
+        snowContainer.className = 'snow-container';
+        
+        let snowHTML = '';
+        for(let i = 0; i < 25; i++) {
+            // Randomize position and animation delay for natural feel
+            const left = Math.floor(Math.random() * 100);
+            const delay = (Math.random() * 5).toFixed(2);
+            const duration = (5 + Math.random() * 5).toFixed(2); // 5-10s fall time
+            const opacity = (0.3 + Math.random() * 0.5).toFixed(2);
+            
+            snowHTML += `<div class="snowflake" style="left: ${left}%; animation-delay: ${delay}s; animation-duration: ${duration}s; opacity: ${opacity};">❄</div>`;
+        }
+        
+        snowContainer.innerHTML = snowHTML;
+        document.body.appendChild(snowContainer);
+    }
+
+    // 3. Festive Greeting (One-time per session)
+    if (!sessionStorage.getItem('xmas_greeted')) {
+        setTimeout(() => {
+            showToast("Merry Christmas from EcoCampus! 🎄", "christmas");
+        }, 2000); // Delay slightly to appear after welcome toast
+        sessionStorage.setItem('xmas_greeted', 'true');
+    }
+
+    // 4. Add subtle festive accents to header
+    const header = document.querySelector('header');
+    if (header) header.classList.add('festive-header-accent');
+};
+
 /**
  * Handles the user logout sequence.
  */
@@ -118,6 +170,7 @@ const handleLogout = async () => {
         if (sessionStorage.getItem('login_logged')) {
             logUserActivity('logout', 'User logged out');
             sessionStorage.removeItem('login_logged');
+            sessionStorage.removeItem('xmas_greeted'); // Reset xmas greeting
         }
         
         const { error } = await supabase.auth.signOut();
@@ -282,6 +335,7 @@ if (redeemForm) {
         const codeInput = document.getElementById('redeem-input');
         const code = codeInput.value.trim();
         const btn = document.getElementById('redeem-submit-btn');
+        const msgEl = document.getElementById('redeem-message'); // Fallback for UI
         
         btn.disabled = true; 
         btn.innerText = 'Verifying...'; 
@@ -292,7 +346,14 @@ if (redeemForm) {
             
             if (error) throw error;
             
-            showToast(`Success! You earned ${data.points_awarded} points.`, 'success');
+            showToast(`Success! +${data.points_awarded} pts.`, 'success');
+            
+            // Also update the inline message if it exists (for compatibility)
+            if(msgEl) {
+                msgEl.textContent = `Success! +${data.points_awarded} points.`;
+                msgEl.classList.add('text-green-600', 'font-bold');
+            }
+
             codeInput.value = ''; 
             
             logUserActivity('redeem_code_success', `Redeemed code: ${code}`);
@@ -301,10 +362,24 @@ if (redeemForm) {
         } catch (err) { 
             console.error("Redeem Code Error:", err);
             showToast(err.message || "Invalid or expired code.", "error");
+            
+            if(msgEl) {
+                msgEl.textContent = err.message || "Invalid or expired code.";
+                msgEl.classList.add('text-red-500', 'font-bold');
+            }
+
             logUserActivity('redeem_code_fail', `Failed to redeem code: ${code}`);
         } finally { 
             btn.disabled = false; 
             btn.innerText = 'Redeem Points';
+            
+            // Clean up inline message after delay
+            setTimeout(() => { 
+                if(msgEl) {
+                    msgEl.textContent = ''; 
+                    msgEl.classList.remove('text-red-500', 'text-green-600', 'font-bold');
+                }
+            }, 3000);
         }
     });
 }
