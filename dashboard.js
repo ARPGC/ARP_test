@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Fully updated with Toast Notifications, AQI Logic, and Streak Management.
+ * Fully updated with Christmas Theme Logic and Core Features.
  */
 
 import { supabase } from './supabase-client.js';
@@ -16,7 +16,8 @@ import {
     uploadToCloudinary, 
     getTodayIST, 
     logUserActivity, 
-    showToast 
+    showToast,
+    isChristmasSeason // Imported for theme logic
 } from './utils.js';
 import { refreshUserData } from './app.js';
 import { loadLeaderboardData } from './social.js';
@@ -80,10 +81,16 @@ export const renderDashboard = () => {
 
 const renderDashboardUI = () => {
     const user = state.currentUser;
+    const isXmas = isChristmasSeason();
     
     // Update Header Elements
     if(els.userPointsHeader) els.userPointsHeader.textContent = user.current_points;
-    if(els.userNameGreeting) els.userNameGreeting.textContent = user.full_name;
+    
+    // Greeting with Christmas Logic
+    if(els.userNameGreeting) {
+        // Appends a tree if it's Christmas season
+        els.userNameGreeting.textContent = user.full_name + (isXmas ? ' 🎄' : '');
+    }
     
     // Update Sidebar Elements
     const sidebarName = document.getElementById('user-name-sidebar');
@@ -91,7 +98,11 @@ const renderDashboardUI = () => {
     const sidebarLevel = document.getElementById('user-level-sidebar');
     const sidebarAvatar = document.getElementById('user-avatar-sidebar');
 
-    if (sidebarName) sidebarName.innerHTML = `${user.full_name} ${getTickImg(user.tick_type)}`;
+    if (sidebarName) {
+        // Appends a Santa icon if it's Christmas season
+        const festiveIcon = isXmas ? '🎅 ' : '';
+        sidebarName.innerHTML = `${festiveIcon}${user.full_name} ${getTickImg(user.tick_type)}`;
+    }
     if (sidebarPoints) sidebarPoints.textContent = user.current_points;
     
     if (sidebarLevel) {
