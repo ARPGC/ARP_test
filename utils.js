@@ -3,6 +3,19 @@ import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET, TICK_IMAGES, state } from
 import { renderDashboard, renderHistory, renderProfile } from './dashboard.js';
 import { showLeaderboardTab } from './social.js';
 
+// --- CHRISTMAS THEME UTILITY ---
+/**
+ * Detects if the current date is between Dec 19 and Dec 26.
+ * Used to toggle snow effects and festive UI elements.
+ */
+export const isChristmasSeason = () => {
+    const d = new Date();
+    const month = d.getMonth(); // 0-11, where 11 is December
+    const day = d.getDate();
+    // Returns true only between Dec 19th and Dec 26th
+    return month === 11 && day >= 19 && day <= 26;
+};
+
 // --- MOBILE UI: TOAST SYSTEM ---
 export const showToast = (message, type = 'success') => {
     // 1. Remove existing toast to prevent stacking
@@ -14,13 +27,27 @@ export const showToast = (message, type = 'success') => {
     toast.id = 'app-toast';
     
     // 3. Apply Style Class based on type
-    if (type === 'error') toast.classList.add('toast-error');
-    else if (type === 'warning') toast.classList.add('toast-warning');
-    else toast.classList.add('toast-success');
+    if (type === 'error') {
+        toast.classList.add('toast-error');
+    } else if (type === 'warning') {
+        toast.classList.add('toast-warning');
+    } else if (type === 'christmas') {
+        toast.classList.add('toast-christmas'); // Defined in style.css
+    } else {
+        toast.classList.add('toast-success');
+    }
 
-    // 4. Set Icon
-    const iconName = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle-2';
-    
+    // 4. Apply Festive Glow during season (unless it's an error)
+    if (isChristmasSeason() && type !== 'error') {
+        toast.classList.add('festive-toast-glow');
+    }
+
+    // 5. Set Icon
+    let iconName = 'check-circle-2';
+    if (type === 'error') iconName = 'alert-circle';
+    else if (type === 'warning') iconName = 'alert-triangle';
+    else if (type === 'christmas') iconName = 'gift'; // Special icon for greeting
+
     toast.innerHTML = `
         <i data-lucide="${iconName}" class="w-5 h-5 flex-shrink-0"></i>
         <span>${message}</span>
@@ -31,16 +58,15 @@ export const showToast = (message, type = 'success') => {
     // Initialize Icon
     if (window.lucide) window.lucide.createIcons();
 
-    // 5. Auto-remove after 3 seconds
+    // 6. Auto-remove after 3 seconds
     setTimeout(() => {
         if (toast) {
             toast.classList.add('toast-hiding');
             setTimeout(() => toast.remove(), 300); // Wait for fade-out animation
         }
-    }, 3000);
+    }, 3500);
 };
 
-// ... (Rest of utils.js remains exactly the same) ...
 export const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
@@ -52,8 +78,7 @@ export const debounce = (func, wait) => {
         timeout = setTimeout(later, wait);
     };
 };
-// ... continue with isLowDataMode, getOptimizedImageUrl, etc.
-// (Make sure to keep the rest of your file intact)
+
 export const isLowDataMode = () => {
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (conn) {
@@ -239,6 +264,7 @@ export const showPage = async (pageId, addToHistory = true) => {
     if (addToHistory) window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
 
+    // --- MODULE LAZY LOADING ---
     if (pageId === 'dashboard') {
         renderDashboard();
     } 
