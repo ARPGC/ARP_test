@@ -6,12 +6,8 @@ import { loadLeaderboardData } from './social.js';
 
 // --- DASHBOARD CORE ---
 
-/**
- * Loads the initial data required for the dashboard.
- * Uses parallel fetching and strict column selection for minimum egress.
- */
 export const loadDashboardData = async () => {
-    // 1. One-Time Load Per Session Guard
+    // 1. One-Time Load Per Session
     if (state.dashboardLoaded) {
         renderDashboard();
         return;
@@ -21,17 +17,14 @@ export const loadDashboardData = async () => {
         const userId = state.currentUser.id;
         const todayIST = getTodayIST(); 
 
-        // 2. Parallel Fetch for speed and reduced latency
+        // 2. Strict Column Selection & 4. No Aggregation (Use Precomputed)
         const [
             { data: checkinData },
             { data: streakData },
             { data: impactData }
         ] = await Promise.all([
-            // Check if user is already checked in for today
             supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', todayIST).limit(1),
-            // Fetch current streak stats
             supabase.from('user_streaks').select('current_streak, last_checkin_date').eq('user_id', userId).single(),
-            // Fetch precomputed impact totals
             supabase.from('user_impact').select('total_plastic_kg, co2_saved_kg, events_attended').eq('user_id', userId).maybeSingle()
         ]);
         
@@ -47,20 +40,13 @@ export const loadDashboardData = async () => {
     }
 };
 
-/**
- * Main render function for the dashboard page.
- */
 export const renderDashboard = () => {
     if (!state.currentUser) return; 
     renderDashboardUI();
     renderCheckinButtonState();
     initAQI(); 
-    initVotingCard(); 
 };
 
-/**
- * Updates basic UI elements like name, points, and impact stats.
- */
 const renderDashboardUI = () => {
     const user = state.currentUser;
     
@@ -93,9 +79,6 @@ const renderDashboardUI = () => {
     if(impactEvents) impactEvents.textContent = user.impact?.events_attended || 0;
 };
 
-/**
- * Manages the visual state of the daily check-in button.
- */
 const renderCheckinButtonState = () => {
     const streak = state.currentUser.checkInStreak || 0;
     
@@ -118,31 +101,7 @@ const renderCheckinButtonState = () => {
     }
 };
 
-// --- SPECIAL EVENT: MR. & MISS BIRLA VOTING ---
-
-/**
- * Initializes and manages the visibility of the voting banner.
- */
-const initVotingCard = () => {
-    const votingCard = document.getElementById('voting-banner-card');
-    if (!votingCard) return;
-
-    // Visibility logic: Dec 22, 2025 at 7:05 PM expiry
-    const now = new Date();
-    const expiryDate = new Date('2025-12-22T19:05:00'); 
-    
-    if (now > expiryDate) {
-        votingCard.classList.add('hidden');
-    }
-
-    if (window.lucide) window.lucide.createIcons();
-};
-
 // --- AQI LOGIC ---
-
-/**
- * Detects location and initiates AQI data fetching.
- */
 const initAQI = () => {
     const card = document.getElementById('dashboard-aqi-card');
     if (!card) return;
@@ -162,7 +121,7 @@ const initAQI = () => {
                     console.warn("AQI Location Error:", error);
                     card.innerHTML = `
                         <div class="glass-card p-4 rounded-xl text-center">
-                            <p class="text-sm text-gray-500 text-xs">Enable location to see local Air Quality.</p>
+                            <p class="text-sm text-gray-500">Enable location to see local Air Quality.</p>
                         </div>`;
                 }
             );
@@ -202,7 +161,7 @@ const renderAQICard = (card, aqi, city) => {
         advice = "Air is okay. Good for saving energy indoors.";
     } else if (aqi > 100) {
         status = 'Unhealthy';
-        colorClass = 'from-red-100 to-rose-50 dark:from-red-900/40 dark:to-red-900/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800';
+        colorClass = 'from-red-100 to-rose-50 dark:from-red-900/40 dark:to-rose-900/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800';
         icon = 'alert-triangle';
         advice = "High pollution. Wear a mask if outside!";
     }
@@ -213,7 +172,7 @@ const renderAQICard = (card, aqi, city) => {
                 <div>
                     <div class="flex items-center gap-1 mb-1 opacity-70">
                         <i data-lucide="map-pin" class="w-3 h-3"></i>
-                        <p class="text-[10px] font-bold uppercase tracking-wider">${city}</p>
+                        <p class="text-xs font-bold uppercase tracking-wider">${city}</p>
                     </div>
                     <h3 class="text-3xl font-black flex items-center gap-2">
                         ${aqi} <span class="text-lg font-medium opacity-80">(${status})</span>
@@ -266,7 +225,7 @@ export const loadHistoryData = async () => {
 export const renderHistory = () => {
     els.historyList.innerHTML = '';
     if (state.history.length === 0) {
-        els.historyList.innerHTML = `<p class="text-sm text-center text-gray-500 py-10">No activity history yet.</p>`;
+        els.historyList.innerHTML = `<p class="text-sm text-center text-gray-500">No activity history yet.</p>`;
         return;
     }
     state.history.forEach(h => {
@@ -274,7 +233,7 @@ export const renderHistory = () => {
             <div class="glass-card p-3 rounded-xl flex items-center justify-between">
                 <div class="flex items-center">
                     <span class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-3"><i data-lucide="${h.icon}" class="w-5 h-5 text-gray-700 dark:text-gray-200"></i></span>
-                    <div><p class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">${h.description}</p><p class="text-[10px] text-gray-500 dark:text-gray-400">${h.date}</p></div>
+                    <div><p class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">${h.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${h.date}</p></div>
                 </div>
                 <span class="text-sm font-bold ${h.points >= 0 ? 'text-green-600' : 'text-red-500'}">${h.points > 0 ? '+' : ''}${h.points}</span>
             </div>`;
@@ -338,7 +297,7 @@ export const setupFileUploads = () => {
             avatarEl.style.opacity = '0.5';
             
             try {
-                showToast('Uploading profile picture...', 'warning');
+                showToast('Updating profile picture...', 'warning');
                 const imageUrl = await uploadToCloudinary(file);
                 const { error } = await supabase.from('users').update({ profile_img_url: imageUrl }).eq('id', state.currentUser.id);
                 if (error) throw error;
@@ -363,24 +322,20 @@ export const setupFileUploads = () => {
     }
 };
 
-// --- STREAK & CHECK-IN LOGIC ---
+// --- STREAK RESTORE & CHECK-IN LOGIC ---
 
-/**
- * Prepares and opens the check-in modal with logic to detect broken streaks.
- */
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
     
     let isStreakBroken = false;
     if (state.currentUser.lastCheckInDate) {
-        // High-precision IST date comparison
-        const today = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-        const last = new Date(state.currentUser.lastCheckInDate);
+        const lastDate = new Date(state.currentUser.lastCheckInDate);
+        const today = new Date(); 
         
+        lastDate.setHours(0,0,0,0);
         today.setHours(0,0,0,0);
-        last.setHours(0,0,0,0);
         
-        const diffTime = Math.abs(today - last);
+        const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays > 1) isStreakBroken = true;
@@ -404,11 +359,11 @@ export const openCheckinModal = () => {
         
         btnContainer.innerHTML = `
             <div class="flex flex-col gap-3 w-full">
-                <button onclick="handleRestoreStreak()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
-                    <i data-lucide="zap" class="w-5 h-5"></i>
+                <button onclick="handleRestoreStreak()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+                    <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
                     <span>Restore Streak (-50 Pts)</span>
                 </button>
-                <button onclick="handleDailyCheckin()" class="w-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold py-3.5 px-4 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <button onclick="handleDailyCheckin()" class="w-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold py-3 px-4 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                     Start Over (0 Days)
                 </button>
             </div>
@@ -429,7 +384,7 @@ export const openCheckinModal = () => {
                 </div>`;
         }
         btnContainer.innerHTML = `
-            <button onclick="handleDailyCheckin()" class="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-green-700 shadow-lg transition-transform active:scale-95">
+            <button onclick="handleDailyCheckin()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 shadow-lg transition-transform active:scale-95">
                 Check-in &amp; Earn ${state.checkInReward} Points
             </button>`;
     }
@@ -437,15 +392,12 @@ export const openCheckinModal = () => {
     if(window.lucide) window.lucide.createIcons();
 };
 
-/**
- * Handles the logic for restoring a broken streak by spending EcoPoints.
- */
 export const handleRestoreStreak = async () => {
     const cost = 50;
     const userPoints = state.currentUser.current_points;
 
     if (userPoints < cost) {
-        showToast(`Need ${cost} pts to restore streak!`, 'warning');
+        showToast(`Insufficient EcoPoints! You need ${cost} pts.`, 'warning');
         return;
     }
 
@@ -454,12 +406,18 @@ export const handleRestoreStreak = async () => {
 
     try {
         const userId = state.currentUser.id;
+        const currentStreak = state.currentUser.checkInStreak;
         const todayIST = getTodayIST();
 
-        // 1. Deduct points via RPC
-        await supabase.rpc('deduct_points', { user_id_input: userId, points_to_deduct: cost }).maybeSingle();
+        const { error: pointsError } = await supabase.rpc('deduct_points', { 
+            user_id_input: userId, 
+            points_to_deduct: cost 
+        }).maybeSingle();
 
-        // 2. Log transaction
+        if (pointsError && pointsError.code !== 'PGRST202') { 
+             await supabase.from('users').update({ current_points: userPoints - cost }).eq('id', userId);
+        }
+
         await supabase.from('points_ledger').insert({
             user_id: userId,
             source_type: 'streak_restore',
@@ -467,21 +425,29 @@ export const handleRestoreStreak = async () => {
             description: 'Restored Streak'
         });
 
-        // 3. Create check-in entry
         await supabase.from('daily_checkins').insert({ 
             user_id: userId, 
             points_awarded: state.checkInReward,
             checkin_date: todayIST 
         });
 
-        // 4. Force update streak (the DB trigger will calculate the value)
-        const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', userId).single();
+        const restoredStreakCount = currentStreak + 1;
+        const { error: streakError } = await supabase
+            .from('user_streaks')
+            .update({ 
+                current_streak: restoredStreakCount,
+                last_checkin_date: todayIST 
+            })
+            .eq('user_id', userId);
 
-        logUserActivity('streak_restored', `Restored streak to ${newStreak.current_streak}`);
+        if (streakError) throw streakError;
+
+        logUserActivity('streak_restored', `Restored streak to ${restoredStreakCount}`);
         closeCheckinModal();
 
-        state.currentUser.checkInStreak = newStreak.current_streak;
+        state.currentUser.checkInStreak = restoredStreakCount;
         state.currentUser.isCheckedInToday = true;
+        state.currentUser.current_points -= cost; 
         
         renderCheckinButtonState();
         renderDashboardUI();
@@ -504,9 +470,6 @@ export const closeCheckinModal = () => {
     checkinModal.classList.add('invisible', 'opacity-0');
 };
 
-/**
- * Standard daily check-in handler.
- */
 export const handleDailyCheckin = async () => {
     const checkinButton = document.querySelector('#checkin-modal-button-container button');
     if(checkinButton) {
@@ -525,24 +488,26 @@ export const handleDailyCheckin = async () => {
         if (error) throw error;
         
         const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', state.currentUser.id).single();
+        const finalStreak = newStreak ? newStreak.current_streak : 1;
         
         logUserActivity('checkin_success', `Daily check-in completed.`);
         closeCheckinModal();
 
-        state.currentUser.checkInStreak = newStreak ? newStreak.current_streak : 1;
+        state.currentUser.checkInStreak = finalStreak;
         state.currentUser.isCheckedInToday = true;
+        state.currentUser.current_points += state.checkInReward; 
         
         renderCheckinButtonState();
         renderDashboardUI();
         await refreshUserData(); 
 
         if (state.leaderboardLoaded) await loadLeaderboardData();
-        showToast(`Streak continued! ${state.currentUser.checkInStreak} Days 🔥`, 'success');
+        showToast(`Check-in success! +${state.checkInReward} pts`, 'success');
 
     } catch (err) {
         console.error('Check-in error:', err.message);
         logUserActivity('checkin_error', err.message);
-        showToast("Check-in failed. Try again.", "error");
+        showToast("Check-in failed.", "error");
         
         if(checkinButton) {
             checkinButton.disabled = false;
