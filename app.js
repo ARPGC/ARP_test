@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with Christmas Theme Logic and optimized State Management.
+ * Fixed: Loader now removes immediately to prevent app hanging on startup.
  */
 
 import { supabase } from './supabase-client.js';
@@ -84,7 +84,18 @@ const initializeApp = async () => {
         // Set initial navigation state
         history.replaceState({ pageId: 'dashboard' }, '', '#dashboard');
 
-        // Load Dashboard data only if not already present
+        // --- CRITICAL FIX: REMOVE LOADER IMMEDIATELY ---
+        // We remove the loader NOW so the user sees the UI, even if data is still fetching.
+        setTimeout(() => {
+            const loader = document.getElementById('app-loading');
+            if (loader) loader.classList.add('loaded');
+        }, 500);
+
+        // Initialize Lucide icons immediately so UI structure looks good
+        if(window.lucide) window.lucide.createIcons();
+        setupFileUploads();
+
+        // Load Dashboard data in the background (Non-blocking)
         try {
             if (!state.dashboardLoaded) {
                 await loadDashboardData();
@@ -93,22 +104,14 @@ const initializeApp = async () => {
             renderDashboard();
         } catch (dashErr) {
             console.error("Init: Dashboard data load failed:", dashErr);
-            showToast('Partial data load failure.', 'warning');
+            // Don't show toast error here to avoid annoying user on startup, just log it.
+            // The UI will likely show empty states which is fine.
         }
-        
-        // Remove app loader after delay for smooth transition
-        setTimeout(() => {
-            const loader = document.getElementById('app-loading');
-            if (loader) loader.classList.add('loaded');
-        }, 500);
-
-        // Initialize Lucide icons
-        if(window.lucide) window.lucide.createIcons();
-        
-        setupFileUploads();
 
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err);
+        // Force remove loader even on crash so user isn't stuck
+        document.getElementById('app-loading')?.classList.add('loaded');
         showToast('App failed to initialize.', 'error');
     }
 };
@@ -151,7 +154,7 @@ const initChristmasTheme = () => {
     if (!sessionStorage.getItem('xmas_greeted')) {
         setTimeout(() => {
             showToast("Merry Christmas from EcoCampus! 🎄", "christmas");
-        }, 2000); // Delay slightly to appear after welcome toast
+        }, 2500); // Delay to appear after welcome toast
         sessionStorage.setItem('xmas_greeted', 'true');
     }
 
