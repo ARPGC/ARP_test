@@ -18,6 +18,11 @@ html, body {
     --silver: #C0C0C0;
     --bronze: #CD7F32;
     --forest-accent: #1e8f4b;
+    
+    /* Christmas Tokens */
+    --holiday-red: #ef4444;
+    --holiday-green: #10b981;
+    --snow-color: rgba(255, 255, 255, 0.8);
 }
 
 *, *::before, *::after {
@@ -64,6 +69,8 @@ header, nav {
     position: relative;
     padding-bottom: 100px; /* Mobile Safe Area for Bottom Bar */
     width: 100%;
+    transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth 700ms transition */
+    will-change: background-color;
 }
 
 @media (min-width: 1024px) {
@@ -106,17 +113,29 @@ header, nav {
     animation: pulse-points 0.4s ease-out;
 }
 
+/* --- CHRISTMAS SNOW ANIMATIONS (Hardware Accelerated) --- */
+@keyframes snow-fall {
+    0% { transform: translateY(-10vh); }
+    100% { transform: translateY(110vh); }
+}
+
+@keyframes hat-bounce {
+    0%, 100% { transform: rotate(15deg); }
+    50% { transform: rotate(5deg) translateY(-2px); }
+}
+
 /* --- LOW DATA / REDUCED MOTION --- */
 /* Disabled via JS util isLowDataMode() or system preference */
 @media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page {
+    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .snow-layer {
         animation: none !important;
         transition: none !important;
     }
 }
 
 body.low-data-mode .leaf,
-body.low-data-mode .animate-float {
+body.low-data-mode .animate-float,
+body.low-data-mode .snow-layer {
     display: none !important; /* Completely hide heavy particles */
 }
 
@@ -131,6 +150,8 @@ body.low-data-mode .animate-float {
     z-index: 50;
     width: 280px; /* Fixed width */
     height: 100%;
+    /* Ensure sidebar stays on top and has background */
+    z-index: 50; 
 }
 #sidebar::-webkit-scrollbar { display: none; }
 
@@ -154,7 +175,6 @@ body.low-data-mode .animate-float {
     #sidebar-overlay {
         display: none !important; /* No overlay on desktop */
     }
-    /* Hide Logout button on sidebar in desktop if preferred, or keep it */
 }
 
 /* Active States */
@@ -170,6 +190,23 @@ body.low-data-mode .animate-float {
     color: #A7F3D0;
 }
 .dark .sidebar-nav-item.active svg { color: #A7F3D0; }
+
+/* Force White Text on Sidebar when background is dark (GreenLens) */
+#sidebar.force-dark-text .sidebar-nav-item,
+#sidebar.force-dark-text h2, 
+#sidebar.force-dark-text p,
+#sidebar.force-dark-text i {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+#sidebar.force-dark-text .sidebar-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+#sidebar.force-dark-text .border-b,
+#sidebar.force-dark-text .border-t {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
 
 /* Bottom Nav - Hide on Desktop */
 @media (min-width: 1024px) {
@@ -192,6 +229,9 @@ body.low-data-mode .animate-float {
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border: 1px solid rgba(148, 163, 184, 0.40);
+    /* Winter Frost Tweak */
+    position: relative;
+    overflow: hidden;
 }
 .dark .glass-card {
     background: rgba(15, 23, 42, 0.80);
@@ -215,6 +255,7 @@ body.low-data-mode .animate-float {
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    z-index: 50;
 }
 .dark .glass-bottom-bar {
     background: rgba(15, 23, 42, 0.98);
@@ -231,8 +272,6 @@ body.low-data-mode .animate-float {
 /* =========================================
    5. RESPONSIVE GRIDS (Product, Events, etc.)
    ========================================= */
-/* Force grids to expand on larger screens */
-
 /* Product Grid Override */
 @media (min-width: 768px) {
     #product-grid, #store-detail-page .grid {
@@ -293,6 +332,7 @@ body.low-data-mode .animate-float {
     100% { transform: translateY(120vh) translateX(40px) rotate(180deg); opacity: 0; }
 }
 
+/* Leaf timings */
 .leaf:nth-child(1) { left: 5%;  animation-duration: 13s; animation-delay: 0s; }
 .leaf:nth-child(2) { left: 18%; animation-duration: 11s; animation-delay: 2s; }
 .leaf:nth-child(3) { left: 32%; animation-duration: 15s; animation-delay: 1s; }
@@ -493,7 +533,6 @@ body.low-data-mode .animate-float {
         opacity: 1;
         visibility: visible;
     }
-    /* Hide the floating button when open if desired, or keep it */
 }
 
 /* Loader */
@@ -610,12 +649,6 @@ body.low-data-mode .animate-float {
 .font-jakarta {
     font-family: 'Plus Jakarta Sans', sans-serif;
 }
-/* Add this to your CSS */
-.main-content {
-    transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth 700ms transition */
-    will-change: background-color;
-}
-
 /* Ensure the header is transparent or blends in GreenLens */
 #green-lens .main-content {
     /* The JS handles the BG color */
@@ -624,34 +657,6 @@ body.low-data-mode .animate-float {
 .main-content, #sidebar, header {
     transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
     will-change: background-color;
-}
-
-/* Force White Text on Sidebar when background is dark (GreenLens) */
-#sidebar.force-dark-text .sidebar-nav-item,
-#sidebar.force-dark-text h2, 
-#sidebar.force-dark-text p,
-#sidebar.force-dark-text i {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-
-#sidebar.force-dark-text .sidebar-nav-item:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-#sidebar.force-dark-text .border-b,
-#sidebar.force-dark-text .border-t {
-    border-color: rgba(255, 255, 255, 0.1) !important;
-}
-/* Smooth Background Transitions - Only for main content */
-.main-content {
-    transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: background-color;
-}
-
-/* Ensure sidebar/nav stay on top and have their own background */
-#sidebar, .glass-bottom-bar, header {
-    z-index: 50; 
-    /* Removed the transition: background-color property here */
 }
 
 /* =========================================
@@ -703,9 +708,89 @@ body.low-data-mode .animate-float {
     }
 }
 
-/* Animation for hiding */
 .toast-hiding {
     transition: all 0.3s ease;
     transform: translate(-50%, 20px) !important;
     opacity: 0 !important;
+}
+
+/* =========================================
+   9. CHRISTMAS THEME & DECORATIONS
+   ========================================= */
+
+/* High-Performance CSS Snow Layer (Multiple box-shadow layers) */
+/* Requires empty div with class .snow-layer in HTML */
+.snow-container {
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5; /* Above background, below interactive content */
+    overflow: hidden;
+}
+
+.snow-layer {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: -100%;
+    left: 0;
+    opacity: 0.7;
+    animation: snow-fall linear infinite;
+}
+
+/* Creating snow using gradients/shadows to minimize DOM elements */
+/* These mimic particles */
+.snow-layer-1 {
+    background-image: radial-gradient(3px 3px at 20% 30%, var(--snow-color) 50%, transparent),
+                      radial-gradient(3px 3px at 40% 70%, var(--snow-color) 50%, transparent),
+                      radial-gradient(3px 3px at 60% 40%, var(--snow-color) 50%, transparent),
+                      radial-gradient(3px 3px at 80% 80%, var(--snow-color) 50%, transparent);
+    background-size: 50% 50%;
+    animation-duration: 15s;
+}
+
+.snow-layer-2 {
+    background-image: radial-gradient(4px 4px at 10% 50%, var(--snow-color) 50%, transparent),
+                      radial-gradient(4px 4px at 30% 20%, var(--snow-color) 50%, transparent),
+                      radial-gradient(4px 4px at 70% 60%, var(--snow-color) 50%, transparent),
+                      radial-gradient(4px 4px at 90% 10%, var(--snow-color) 50%, transparent);
+    background-size: 60% 60%;
+    animation-duration: 10s;
+    opacity: 0.5;
+}
+
+/* Santa Hat Helper */
+.santa-hat-overlay {
+    position: relative;
+    display: inline-block;
+}
+.santa-hat-overlay::after {
+    content: '🎅';
+    position: absolute;
+    top: -15px;
+    right: -10px;
+    font-size: 1.8rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    animation: hat-bounce 3s infinite ease-in-out;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Festive Gradients for Buttons */
+.btn-christmas {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Festive Card Highlight */
+.glass-card.festive {
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+.dark .glass-card.festive {
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
