@@ -1,611 +1,589 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>EcoCampus - Green Initiative</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css"> 
-    <script src="https://unpkg.com/lucide@latest"></script>
+/**
+ * EcoCampus - Dashboard Module (dashboard.js)
+ * Fully updated with Toast Notifications, AQI Logic, and Streak Management.
+ */
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        inter: ['Inter', 'sans-serif'],
-                        jakarta: ['Plus Jakarta Sans', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: { 
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1', 
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81'
-                        }
-                    },
-                    animation: {
-                        'float': 'float 18s infinite ease-in-out',
-                        'slideUp': 'slideUp 0.35s ease forwards',
-                        'breathe': 'breathe 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        breathe: {
-                            '0%, 100%': { transform: 'scale(1)' },
-                            '50%': { transform: 'scale(1.02)' },
-                        }
-                    }
-                },
-            },
-        }
-    </script>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden"> 
-    
-    <div id="snow-container" class="snow-container">
-        <div class="snow-layer snow-layer-1"></div>
-        <div class="snow-layer snow-layer-2"></div>
-    </div>
+import { supabase } from './supabase-client.js';
+import { state } from './state.js';
+import { 
+    els, 
+    formatDate, 
+    getIconForHistory, 
+    getPlaceholderImage, 
+    getTickImg, 
+    getUserInitials, 
+    getUserLevel, 
+    uploadToCloudinary, 
+    getTodayIST, 
+    logUserActivity, 
+    showToast 
+} from './utils.js';
+import { refreshUserData } from './app.js';
+import { loadLeaderboardData } from './social.js';
 
-    <script>
-        (function() {
-            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            if (conn && (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType))) {
-                document.body.classList.add('low-data-mode');
-                console.log('EcoCampus: Low Data Mode Active');
-            }
-        })();
-    </script>
+// --- DASHBOARD CORE DATA LOADING ---
 
-    <input type="file" id="profile-upload-input" accept="image/*" class="hidden">
+/**
+ * Loads essential user data for the dashboard: Check-in status, Streaks, and Impact stats.
+ * Uses strict column selection for performance.
+ */
+export const loadDashboardData = async () => {
+    // Optimization: One-Time Load Per Session unless forced refresh
+    if (state.dashboardLoaded) {
+        renderDashboard();
+        return;
+    }
 
-    <div id="app-loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-        <div class="app-loader-logo">
-            <img src="https://i.ibb.co/67MXS1wX/1763474740707.png" class="w-40 h-40 object-contain" alt="EcoCampus Logo">
-        </div>
-        <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4">A BKBNC GREEN CLUB INITIATIVE</p>
-    </div>
+    try {
+        const userId = state.currentUser.id;
+        const todayIST = getTodayIST(); 
 
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 opacity-0 hidden lg:hidden"></div>
-
-    <div class="app-container">
+        // Parallel fetching for speed
+        const [
+            { data: checkinData },
+            { data: streakData },
+            { data: impactData }
+        ] = await Promise.all([
+            // 1. Check if checked in today
+            supabase.from('daily_checkins').select('id').eq('user_id', userId).eq('checkin_date', todayIST).limit(1),
+            // 2. Get current streak status
+            supabase.from('user_streaks').select('current_streak, last_checkin_date').eq('user_id', userId).single(),
+            // 3. Get total impact stats
+            supabase.from('user_impact').select('total_plastic_kg, co2_saved_kg, events_attended').eq('user_id', userId).maybeSingle()
+        ]);
         
-        <div id="sidebar" class="fixed top-0 left-0 h-full bg-white dark:bg-gray-800 z-50 transform -translate-x-full lg:translate-x-0 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <img id="user-avatar-sidebar" src="https://placehold.co/80x80/A3E635/FFFFFF?text=..." class="w-16 h-16 rounded-full mb-3 border-2 border-green-500 object-cover" alt="User Avatar">
-                <h2 id="user-name-sidebar" class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1">Loading...</h2>
-                <p id="user-level-sidebar" class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">...</p>
-                <p class="text-sm text-green-600 dark:text-green-400 font-semibold"><span id="user-points-sidebar">0</span> EcoPoints</p>
-            </div>
-            <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
-                <button onclick="showPage('dashboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</button>
-                <button onclick="showPage('profile')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="user" class="w-5 h-5 mr-3"></i>Profile</button>
-                <button onclick="showPage('my-rewards')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="archive" class="w-5 h-5 mr-3"></i>Orders</button>
-                <button onclick="showPage('history')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="history" class="w-5 h-5 mr-3"></i>History</button>
-                <button onclick="showPage('leaderboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Leaderboard</button>
-                <button onclick="showPage('events')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="calendar" class="w-5 h-5 mr-3"></i>All Events</button>
-                <button onclick="showPage('green-lens')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="aperture" class="w-5 h-5 mr-3"></i>GreenLens</button>
-                <button onclick="showPage('plastic-log')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="recycle" class="w-5 h-5 mr-3"></i>Plastic Log</button>
-                <button onclick="showPage('challenges')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="camera" class="w-5 h-5 mr-3"></i>Challenges</button>
-                <button onclick="showPage('rewards')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="store" class="w-5 h-5 mr-3"></i>Store</button>
-                <button onclick="showPage('redeem-code')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="ticket" class="w-5 h-5 mr-3"></i>Redeem Code</button>
-                <div class="pt-2 border-t border-gray-200 dark:border-gray-700"></div>
-                <button onclick="showPage('about')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="info" class="w-5 h-5 mr-3"></i>About Us</button>
-                <button onclick="showPage('help')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="help-circle" class="w-5 h-5 mr-3"></i>Help & Support</button>
-                <button onclick="showPage('change-password')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="key-round" class="w-5 h-5 mr-3"></i>Change Password</button>
-                <div class="pt-2 border-t border-gray-200 dark:border-gray-700"></div>
-                <div class="flex items-center justify-between p-3 rounded-lg text-gray-700 dark:text-gray-300">
-                    <div class="flex items-center"><i id="theme-icon" data-lucide="sun" class="w-5 h-5 mr-3"></i><span id="theme-text">Light Mode</span></div>
-                    <button id="theme-toggle-btn" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors bg-gray-200 dark:bg-gray-600"><span class="sr-only">Toggle theme</span><span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform translate-x-1 dark:translate-x-6"></span></button>
-                </div>
-            </nav>
-            
-            <div class="p-4 space-y-3">
-                <a href="https://instagram.com/ecocampus_app" target="_blank" class="group relative w-full flex items-center justify-center p-0.5 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all active:scale-95">
-                    <div class="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="relative w-full bg-white dark:bg-gray-800 rounded-[10px] py-2.5 px-4 flex items-center justify-center gap-2 group-hover:bg-opacity-90 transition-all">
-                        <i data-lucide="instagram" class="w-5 h-5 text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform"></i>
-                        <span class="text-sm font-bold text-gray-700 dark:text-gray-200 group-hover:text-pink-600 dark:group-hover:text-pink-400">Follow Us</span>
-                    </div>
-                </a>
-                <button id="logout-button" class="w-full bg-red-100 text-red-700 font-bold py-3 px-4 rounded-xl hover:bg-red-200 dark:bg-red-900/30 dark:text-red-200 dark:hover:bg-red-900/50 flex items-center justify-center transition-colors"><i data-lucide="log-out" class="w-5 h-5 mr-2"></i><span>Log Out</span></button>
-            </div>
-            
-            <div class="p-6 border-t border-gray-200 dark:border-gray-700"><p class="text-xs text-center text-gray-400 dark:text-gray-500">A BKBNC GREEN CLUB INITIATIVE</p></div>
-        </div>
+        // Update Global State
+        state.currentUser.isCheckedInToday = (checkinData && checkinData.length > 0);
+        state.currentUser.checkInStreak = streakData ? streakData.current_streak : 0;
+        state.currentUser.lastCheckInDate = streakData ? streakData.last_checkin_date : null; 
+        state.currentUser.impact = impactData || { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
+        
+        state.dashboardLoaded = true;
 
-        <div class="content-wrapper flex flex-col flex-grow h-full w-full bg-gray-50 dark:bg-gray-900">
-            
-            <header class="bg-white dark:bg-gray-950 sticky top-0 z-20 p-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
-                <div class="flex justify-between items-center">
-                    <div class="w-1/3"><button id="sidebar-toggle-btn" class="p-2 -ml-2 text-gray-600 dark:text-gray-300 lg:hidden"><i data-lucide="menu" class="w-6 h-6"></i></button></div>
-                    <div class="w-1/3 text-center"><button onclick="showPage('dashboard')" class="text-2xl font-extrabold text-green-700 dark:text-green-500">EcoCampus</button></div>
-                    <div class="w-1/3 flex justify-end"><button onclick="showPage('ecopoints')" class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 pr-3 hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="leaf" class="w-5 h-5 text-green-500 mx-1"></i><span id="user-points-header" class="text-sm font-bold text-gray-700 dark:text-gray-200 ml-1">0</span></button></div>
-                </div>
-            </header>
+    } catch (err) {
+        console.error('Dashboard Data Error:', err);
+        showToast('Failed to load dashboard data.', 'error');
+    }
+};
 
-            <main class="main-content bg-gray-50 dark:bg-gray-900 flex-grow overflow-y-auto pb-24 lg:pb-8">
-                
-                <div id="dashboard" class="page active p-6">
-                    <div class="mb-8"><h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, <span id="user-name-greeting">...</span>!</h2><p class="text-lg text-gray-600 dark:text-gray-400">Let's make our campus greener today.</p></div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                        <div>
-                            <div class="relative w-full bg-[#0B1120] rounded-3xl p-6 mb-6 overflow-hidden border border-gray-800 shadow-xl z-10">
-                                <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-[50px] rounded-full"></div>
-                                
-                                <div class="relative z-10 flex flex-col items-center text-center">
-                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-900/30 border border-orange-500/30 text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-4">
-                                        <i data-lucide="crown" class="w-3 h-3"></i> Exclusive Event
-                                    </div>
-                                    
-                                    <h3 class="text-2xl font-black text-white mb-2 leading-tight">
-                                        Mr. & Miss <span class="text-amber-400">BKBNC</span>
-                                    </h3>
-                                    
-                                    <p class="text-sm text-gray-400 mb-6 font-medium leading-relaxed">
-                                        Preferential Voting Phase is approaching.<br>Make your voice count.
-                                    </p>
-                                    
-                                    <div class="flex flex-wrap justify-center gap-3 mb-6 w-full">
-                                        <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-lg">
-                                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-400"></i>
-                                            <span class="text-xs font-bold text-gray-300">22 Dec, 2025</span>
-                                        </div>
-                                        <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-lg">
-                                            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
-                                            <span class="text-xs font-bold text-gray-300">5:00 PM - 7:00 PM</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <a id="cast-vote-btn" href="https://bkbnc-resources.vercel.app/voting.html" target="_blank" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-gray-900 font-extrabold py-3.5 rounded-xl shadow-lg shadow-orange-500/20 transition-transform active:scale-[0.98] flex items-center justify-center gap-2">
-                                        CAST VOTE <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                                    </a>
-                                </div>
-                            </div>
+/**
+ * Master render function for the Dashboard page.
+ */
+export const renderDashboard = () => {
+    if (!state.currentUser) return; 
+    renderDashboardUI();
+    renderCheckinButtonState();
+    initAQI(); 
+};
 
-                            <div id="dashboard-event-card" class="glass-green-card p-5 mb-6 hidden">
-                                <div class="flex items-center mb-2"><i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-emerald-100"></i><h3 class="font-bold tracking-tight text-emerald-50">Upcoming Event</h3></div>
-                                <p id="dashboard-event-title" class="text-lg font-semibold mb-1 text-emerald-50">...</p>
-                                <p id="dashboard-event-desc" class="text-sm opacity-95 mb-4 text-emerald-100 line-clamp-2">...</p>
-                                <button onclick="showPage('events')" class="px-4 py-2 rounded-full text-xs font-semibold bg-emerald-50/15 text-emerald-50 border border-emerald-100/40">View Details</button>
-                            </div>
+// --- UI RENDERING HELPERS ---
 
-                            <button id="daily-checkin-button" onclick="openCheckinModal()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-400 dark:from-yellow-500 dark:to-orange-500 p-5 rounded-2xl mb-6 flex items-center justify-between relative overflow-hidden transition-all duration-300 shadow-lg">
-                                <div class="checkin-hide-on-complete"><h3 class="text-lg font-bold text-white dark:text-gray-900">Daily Check-in</h3><p class="text-sm text-white/90 dark:text-gray-800">Tap here to get your daily points!</p></div>
-                                <div class="flex items-center space-x-2 bg-white/25 dark:bg-black/20 text-white dark:text-gray-900 py-2 px-3 rounded-full checkin-hide-on-complete"><i data-lucide="flame" class="w-6 h-6"></i><span id="dashboard-streak-text-pre" class="text-sm font-bold">0</span></div>
-                                <div class="checkin-show-on-complete hidden w-full flex-row items-center justify-between"><div><h3 class="text-lg font-bold text-green-700 dark:text-green-400">Great Job!</h3><p class="text-sm text-gray-500 dark:text-gray-400">You've checked in today.</p></div><div class="flex flex-col items-end"><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Streak</span><div class="flex items-center mt-1"><i data-lucide="flame" class="w-6 h-6 text-orange-500 mr-1 fill-orange-500"></i><span id="dashboard-streak-text-post" class="text-3xl font-extrabold text-gray-800 dark:text-gray-100">0</span></div></div></div>
-                            </button>
-                        </div>
-                        
-                        <div>
-                            <div id="dashboard-aqi-card" class="mb-6 hidden transition-all duration-500"></div>
-
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Your Impact</h3>
-                            <div class="grid grid-cols-2 gap-4 mb-8">
-                        
-                                <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="recycle" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i><p id="impact-recycled" class="font-bold text-lg dark:text-gray-100">0 kg</p><p class="text-xs text-gray-500 dark:text-gray-400">Recycled</p></div>
-                                <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="calendar-check" class="w-8 h-8 text-purple-500 mx-auto mb-2"></i><p id="impact-events" class="font-bold text-lg dark:text-gray-100">0</p><p class="text-xs text-gray-500 dark:text-gray-400">Events</p></div>
-                            </div>
-                            
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-8">Eco Tip of the Week</h3>
-                            <div class="glass-card border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded-xl" role="alert"><div class="flex"><div class="py-1"><i data-lucide="lightbulb" class="w-5 h-5 text-blue-500 mr-3"></i></div><div><p class="font-bold dark:text-blue-200">Carry a reusable bottle!
-</p><p class="text-sm">Refill it on campus to cut down on single-use plastic and reduce waste every day. 💧♻️</p></div></div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="profile" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Your Profile</h2>
-                    <div class="space-y-6 max-w-2xl mx-auto">
-                        <div class="glass-card rounded-2xl overflow-hidden">
-                            <div class="bg-green-500 h-24"></div>
-                            <div class="p-5 -mt-16 flex flex-col items-center">
-                                <div class="relative group cursor-pointer" onclick="document.getElementById('profile-upload-input').click()">
-                                    <img id="profile-avatar" src="https://placehold.co/112x112/A3E635/FFFFFF?text=..." class="w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 object-cover">
-                                    <div class="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="camera" class="w-8 h-8 text-white"></i></div>
-                                </div>
-                                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-3 flex items-center justify-center gap-1"><span id="profile-name">Loading...</span></h3>
-                                <p id="profile-email" class="text-gray-500 dark:text-gray-400">...</p>
-                                <p id="profile-joined" class="text-sm text-gray-400 dark:text-gray-500 mt-1">...</p>
-                                <div class="w-full px-4 mt-4">
-                                    <div class="flex justify-between items-center mb-1"><span id="profile-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="profile-level-number">0</span></span></div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="profile-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div>
-                                    <p id="profile-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="glass-card p-6 rounded-2xl"><h4 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Personal Info</h4><div class="space-y-3 text-sm"><div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Student ID</span><span id="profile-student-id" class="font-semibold text-gray-900 dark:text-gray-100">...</span></div><div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Course</span><span id="profile-course" class="font-semibold text-gray-900 dark:text-gray-100">...</span></div><div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Mobile</span><span id="profile-mobile" class="font-semibold text-gray-900 dark:text-gray-100">...</span></div><div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Email</span><span id="profile-email-personal" class="font-semibold text-gray-900 dark:text-gray-100">...</span></div></div></div>
-                    </div>
-                </div>
-
-                <div id="green-lens" class="page p-0 w-full min-h-full">
-                    <div id="gallery-feed" class="w-full">
-                        <div class="h-screen flex flex-col items-center justify-center text-gray-400">
-                            <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mb-4"></div>
-                            <p>Curating stories...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="plastic-log" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Plastic Log</h2>
-                    <div id="plastic-log-content">
-                        <p class="text-center text-gray-500">Loading records...</p>
-                    </div>
-                </div>
-
-                <div id="leaderboard" class="page p-6 relative">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">Eco Hall of Champions</h2>
-                    <div class="mb-6 p-1 bg-gray-200 dark:bg-gray-800 leaderboard-switch flex relative z-10 max-w-md mx-auto">
-                        <button id="leaderboard-tab-student" onclick="showLeaderboardTab('student')" class="leaderboard-tab-btn flex-1 py-3 px-4 text-sm font-bold text-gray-700 dark:text-gray-300">Eco Warriors</button>
-                        <button id="leaderboard-tab-dept" onclick="showLeaderboardTab('department')" class="leaderboard-tab-btn flex-1 py-3 px-4 text-sm font-bold text-gray-700 dark:text-gray-300">Departments</button>
-                    </div>
-                    <div id="leaderboard-content-department" class="hidden relative z-10 max-w-3xl mx-auto">
-                        <div class="glass-card p-4 rounded-2xl mb-6"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Department Rankings</h3><p class="text-sm text-gray-600 dark:text-gray-400">Tap a department to see its students.</p></div>
-                        <div id="eco-wars-page-list" class="space-y-3"><p class="text-center text-gray-500 dark:text-gray-400">Loading department rankings...</p></div>
-                    </div>
-                    <div id="leaderboard-content-student" class="relative max-w-3xl mx-auto">
-                        <div id="lb-leaf-layer" class="leaf-layer hidden"><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div></div>
-                        <div class="lb-container"><div id="lb-podium-container" class="podium-wrapper"><p class="text-center text-gray-500 dark:text-gray-400">Loading podium...</p></div><div id="lb-list-container" class="list"><p class="text-center text-gray-500 dark:text-gray-400">Loading rankings...</p></div></div>
-                    </div>
-                </div>
-
-                <div id="challenges" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Challenges</h2>
-                    <div class="max-w-3xl mx-auto">
-                        <div id="daily-quiz-section" class="mb-8 hidden">
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">Daily Brain Teaser</h3>
-                            <div class="glass-card p-4 rounded-2xl flex items-center justify-between bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-100 dark:border-indigo-800">
-                                <div class="flex items-center">
-                                    <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center mr-4">
-                                        <i data-lucide="brain" class="w-6 h-6 text-indigo-600 dark:text-indigo-300"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-bold text-gray-900 dark:text-gray-100">Eco Quiz</h4>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Test your knowledge (+10 pts)</p>
-                                    </div>
-                                </div>
-                                <button id="btn-quiz-play" onclick="openEcoQuizModal()" class="px-4 py-2 rounded-full bg-brand-600 text-white text-xs font-bold hover:bg-brand-500 shadow-md shadow-brand-500/30">Play Now</button>
-                            </div>
-                        </div>
-
-                        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">Active Challenges</h3>
-                        <div id="challenges-page-list" class="space-y-4"><p class="text-center text-gray-500 dark:text-gray-400">Loading challenges...</p></div>
-                    </div>
-                </div>
-
-                <div id="ecopoints" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">My EcoPoints</h2>
-                    <div class="max-w-3xl mx-auto">
-                        <div class="glass-card p-6 rounded-2xl text-center mb-6"><p class="text-sm text-gray-500 dark:text-gray-400">Your current balance is</p><p class="text-5xl font-extrabold text-green-600 dark:text-green-400 my-2" id="ecopoints-balance">0</p><p class="text-sm text-gray-500 dark:text-gray-400">Keep up the great work!</p></div>
-                        <div class="glass-card p-6 rounded-2xl mb-6">
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Level Progress</h3>
-                            <div class="mb-4"><div class="flex justify-between items-center mb-1"><span id="ecopoints-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="ecopoints-level-number">0</span></span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="ecopoints-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div><p id="ecopoints-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p></div>
-                        </div>
-                        <div class="glass-card p-6 rounded-2xl mb-6"><h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">All Levels</h3><div id="all-levels-list" class="space-y-4"><p class="text-gray-500 dark:text-gray-400 text-sm">Loading levels...</p></div></div>
-                        <div class="glass-card p-6 rounded-2xl mb-6"><h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Recent Transactions</h4><div id="ecopoints-recent-activity" class="space-y-3"><p class="text-gray-500 dark:text-gray-400 text-sm">Loading activity...</p></div></div>
-                    </div>
-                </div>
-
-                <div id="events" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">All Events</h2>
-                    <div id="event-list" class="space-y-6">
-                        <p class="text-center text-gray-500 dark:text-gray-400">Loading events...</p>
-                    </div>
-                </div>
-                
-                <div id="rewards" class="page p-6">
-                    <div class="flex items-center justify-between mb-4"><h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Eco-Store</h2><span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200">Rewards</span></div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Redeem your EcoPoints for canteen coupons, coffee and exclusive college merch.</p>
-                    <div class="space-y-4 mb-5 max-w-3xl">
-                        <div><label for="store-search-input" class="block text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1">Search store or reward</label><div class="relative"><input id="store-search-input" type="text" placeholder="Try “Hoodie” or “Canteen coupon”" class="w-full border border-gray-300 dark:border-gray-700 px-4 py-3 rounded-full bg-white/80 dark:bg-gray-900/80 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500"><button id="store-search-clear" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 hidden"><i data-lucide="x" class="w-5 h-5"></i></button></div></div>
-                        <div><label for="sort-by-select" class="block text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1">Sort by</label><select id="sort-by-select" class="custom-select w-full border border-gray-300 dark:border-gray-700 px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 bg-white/80 dark:bg-gray-900/90 dark:text-white"><option value="popularity">Popularity</option><option value="points-lh">Points: Low to High</option><option value="points-hl">Points: High to Low</option><option value="price-lh">Price: Low to High</option><option value="price-hl">Price: High to Low</option></select></div>
-                    </div>
-                    <div id="product-grid" class="flex flex-col gap-8 pb-10"><p class="text-center text-gray-500 dark:text-gray-400 col-span-2">Loading rewards...</p></div>
-                </div>
-
-                <div id="redeem-code" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Redeem Code</h2>
-                    <div class="glass-card p-6 rounded-2xl mb-6 max-w-lg mx-auto">
-                        <div class="flex justify-center mb-6"><div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center"><i data-lucide="ticket" class="w-10 h-10 text-emerald-600 dark:text-emerald-400"></i></div></div>
-                        <p class="text-center text-gray-600 dark:text-gray-300 mb-6">Got a special code from an event or challenge? Enter it below to claim your bonus EcoPoints!</p>
-                        <form id="redeem-code-form" class="space-y-6">
-                            <div><label for="redeem-input" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">10-Digit Code</label>
-                                <input id="redeem-input" name="redeem-input" type="text" required class="w-full border-2 border-gray-300 dark:border-gray-600 px-4 py-3 rounded-xl text-center text-xl font-bold uppercase focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 dark:text-white placeholder-gray-300 dark:placeholder-gray-500" placeholder="ENTER CODE HERE">
-                            </div>
-                            <div id="redeem-message" class="text-sm text-center h-5"></div>
-                            <button type="submit" id="redeem-submit-btn" class="w-full btn-eco-gradient text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:opacity-90 transform transition-transform active:scale-95">Redeem Points</button>
-                        </form>
-                    </div>
-                </div>
-                
-                 <div id="change-password" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Change Password</h2>
-                    <div class="glass-card p-6 rounded-2xl max-w-lg mx-auto">
-                        <form id="change-password-form" class="space-y-6">
-                            <div><label for="new-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label><div class="mt-1"><input id="new-password" name="new-password" type="password" required class="w-full border border-gray-300 dark:border-gray-600 px-3 py-2 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 bg-white dark:bg-gray-700 dark:text-white" placeholder="••••••••"></div></div>
-                            <div id="password-message" class="text-sm text-center"></div>
-                            <div><button type="submit" id="change-password-button" class="w-full flex justify-center py-3 px-4 rounded-lg text-base font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">Update Password</button></div>
-                        </form>
-                    </div>
-                </div>
-
-
-                <div id="store-detail-page" class="page dark:bg-gray-900"></div>
-                <div id="product-detail-page" class="page dark:bg-gray-900"></div>
-                <div id="department-detail-page" class="page dark:bg-gray-900 p-6"></div>
-                <div id="my-rewards" class="page p-6"><h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">My Orders</h2><div id="all-rewards-list" class="space-y-4 max-w-3xl mx-auto"><p class="text-center text-gray-500 dark:text-gray-400">Loading your orders...</p></div></div>
-                <div id="history" class="page p-6"><h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Activity History</h2><div id="history-list" class="space-y-3 max-w-3xl mx-auto"><p class="text-center text-gray-500 dark:text-gray-400">Loading history...</p></div></div>
-                
-                <div id="about" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">About Us</h2>
-                    <div class="glass-card p-6 rounded-2xl mb-6">
-                        <div class="flex flex-col md:flex-row items-center md:items-start gap-5">
-                            <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-2xl flex-shrink-0 flex items-center justify-center text-green-600 dark:text-green-400">
-                                <img src="https://i.ibb.co/67MXS1wX/1763474740707.png" class="w-14 h-14 object-contain" alt="Logo">
-                            </div>
-                            <div class="text-center md:text-left">
-                                <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-2">B.K. Birla Night College Green Club</h3>
-                                <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                                    <strong>EcoCampus</strong> is the official digital platform of the Green Club. We are a student-led initiative dedicated to fostering environmental consciousness and sustainable practices within our college campus and beyond.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div class="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-800/30">
-                            <div class="flex items-center gap-3 mb-2 text-blue-700 dark:text-blue-300"><i data-lucide="target" class="w-5 h-5"></i><h4 class="font-bold">Our Mission</h4></div>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">To transform our campus into a zero-waste zone by integrating technology with environmental action.</p>
-                        </div>
-                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
-                            <div class="flex items-center gap-3 mb-2 text-emerald-700 dark:text-emerald-300"><i data-lucide="sprout" class="w-5 h-5"></i><h4 class="font-bold">Our Vision</h4></div>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">A student community that is actively aware, responsible, and engaged in preserving biodiversity.</p>
-                        </div>
-                    </div>
-                    <div class="glass-card p-4 rounded-2xl">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Legal & Privacy</h3>
-                        <div class="flex flex-col space-y-2">
-                            <a href="terms.html" class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
-                                <div class="flex items-center gap-3"><i data-lucide="file-text" class="w-4 h-4 text-gray-500"></i><span class="text-sm font-medium text-gray-700 dark:text-gray-200">Terms and Conditions</span></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
-                            </a>
-                            <a href="privacy.html" class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
-                                <div class="flex items-center gap-3"><i data-lucide="shield-check" class="w-4 h-4 text-gray-500"></i><span class="text-sm font-medium text-gray-700 dark:text-gray-200">Privacy Policy</span></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="help" class="page p-6">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Help & Support</h2>
-                    
-                    <div class="glass-card p-6 rounded-2xl space-y-8 max-w-3xl mx-auto">
-                        
-                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-5 rounded-2xl border border-green-100 dark:border-green-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-white dark:bg-green-800 rounded-full flex items-center justify-center shadow-sm">
-                                    <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-8 h-8 object-contain">
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-gray-900 dark:text-white">Ask EcoBuddy</h3>
-                                    <p class="text-xs text-gray-600 dark:text-gray-300">Our AI assistant can answer questions instantly.</p>
-                                </div>
-                            </div>
-                            <button onclick="openChatbotModal()" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-green-500/20 transition-transform active:scale-95 whitespace-nowrap">
-                                Chat Now
-                            </button>
-                        </div>
-
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                <i data-lucide="info" class="w-5 h-5 text-blue-500"></i> General & Account
-                            </h3>
-                            <div class="space-y-3">
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        Who can use this app?
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        EcoCampus is exclusively for registered students of B.K. Birla Night College. You must have a valid Student ID to log in.
-                                    </p>
-                                </details>
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        My Student ID shows "Invalid".
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        Please ensure you are entering the 7-digit ID found on your ID card. If the issue persists, contact the college admin office or email support.
-                                    </p>
-                                </details>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                <i data-lucide="leaf" class="w-5 h-5 text-green-500"></i> EcoPoints & Rewards
-                            </h3>
-                            <div class="space-y-3">
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        How do I earn points?
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        1. <strong>Daily Check-in:</strong> Open the app daily (+10 pts).<br>
-                                        2. <strong>Recycling:</strong> Scan your QR at the plastic collection desk.<br>
-                                        3. <strong>Events:</strong> RSVP and attend Green Club events.<br>
-                                        4. <strong>Challenges:</strong> Upload photos for weekly eco-challenges.
-                                    </p>
-                                </details>
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        How do I redeem a reward?
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        Go to the <strong>Store</strong> tab, select an item, and confirm purchase. Then, go to the <strong>Orders</strong> tab to find your QR code. Show this code at the canteen or store counter.
-                                    </p>
-                                </details>
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        I lost my Check-in Streak!
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        Don't worry! You can restore a broken streak by paying a <strong>50 EcoPoint penalty</strong>. Just tap the "Daily Check-in" card on the dashboard to see the option.
-                                    </p>
-                                </details>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                <i data-lucide="cpu" class="w-5 h-5 text-purple-500"></i> Technical Issues
-                            </h3>
-                            <div class="space-y-3">
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        Camera not working for challenges.
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        Please ensure you have granted "Camera Permissions" to your browser. If it still fails, try refreshing the page or clearing your browser cache.
-                                    </p>
-                                </details>
-                                <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
-                                    <summary class="flex justify-between items-center font-semibold text-gray-800 dark:text-gray-200 text-sm list-none">
-                                        AQI is not updating.
-                                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform"></i>
-                                    </summary>
-                                    <p class="text-gray-600 dark:text-gray-400 text-xs mt-3 leading-relaxed">
-                                        The Air Quality Index requires Location Permissions (GPS) to be active. Ensure your device location is turned on.
-                                    </p>
-                                </details>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Still need help?</h3>
-                            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                                For points discrepancies, bug reports, or partnership queries, please email us directly.
-                            </p>
-                            <a href="mailto:greenclubbkbirlanightcollege@gmail.com" class="flex items-center justify-center gap-2 w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-bold py-3.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-100 dark:border-indigo-800">
-                                <i data-lucide="mail" class="w-4 h-4"></i>
-                                <span class="break-all">greenclubbkbirlanightcollege@gmail.com</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <nav class="glass-bottom-bar border-t border-gray-200/70 dark:border-gray-800 fixed bottom-0 w-full z-30 lg:hidden">
-                <div class="flex justify-between items-end px-2">
-                    <button onclick="showPage('dashboard')" class="nav-item active flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                        <i data-lucide="layout-dashboard" class="w-6 h-6 mx-auto mb-1"></i>
-                        <span class="text-[10px] font-bold block">Home</span>
-                    </button>
-                    <button onclick="showPage('leaderboard')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                        <i data-lucide="users" class="w-6 h-6 mx-auto mb-1"></i>
-                        <span class="text-[10px] font-bold block">Rank</span>
-                    </button>
-                    <button onclick="showPage('challenges')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                        <div class="relative inline-block">
-                            <i data-lucide="camera" class="w-6 h-6 mx-auto mb-1"></i>
-                        </div>
-                        <span class="text-[10px] font-bold block">Action</span>
-                    </button>
-                    <button onclick="showPage('events')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                        <i data-lucide="calendar-days" class="w-6 h-6 mx-auto mb-1"></i>
-                        <span class="text-[10px] font-bold block">Events</span>
-                    </button>
-                    <button onclick="showPage('rewards')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                        <i data-lucide="store" class="w-6 h-6 mx-auto mb-1"></i>
-                        <span class="text-[10px] font-bold block">Store</span>
-                    </button>
-                </div>
-            </nav>
-        </div>
-    </div>
-
-    <button onclick="openChatbotModal()" id="chatbot-btn" class="fixed z-30 bottom-24 lg:bottom-10 right-6 w-16 h-16 hover:scale-105 transition-transform">
-        <div class="relative w-full h-full santa-hat-overlay">
-            <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" alt="EcoBot" class="w-full h-full object-contain drop-shadow-xl">
-            <span class="absolute bottom-1 right-1 flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-        </div>
-    </button>
-
-    <div id="checkin-modal" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center opacity-0 invisible" onclick="closeCheckinModal()"><div id="checkin-modal-content" class="bg-white dark:bg-gray-800 rounded-t-2xl w-full max-w-md p-6 transform translate-y-full" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Daily Check-in</h3><button onclick="closeCheckinModal()" class="text-gray-400"><i data-lucide="x" class="w-6 h-6"></i></button></div><p id="checkin-modal-streak" class="text-center text-5xl font-extrabold text-yellow-600 mb-6">0 Days</p><div id="checkin-modal-calendar" class="flex justify-center space-x-2 mb-6"></div><div id="checkin-modal-button-container"></div></div></div>
-    <div id="purchase-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closePurchaseModal()"></div>
-    <div id="purchase-modal" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-t-2xl z-50 p-6 transform translate-y-full transition-transform duration-300 ease-in-out"></div>
-    <div id="qr-modal-overlay" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="closeQrModal()"></div>
-    <div id="qr-modal" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-t-2xl z-50 p-6 transform translate-y-full transition-transform duration-300 ease-in-out"></div>
+const renderDashboardUI = () => {
+    const user = state.currentUser;
     
-    <div id="camera-modal" class="fixed inset-0 z-50 bg-black flex flex-col hidden">
-        <div class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
-            <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
-            <canvas id="camera-canvas" class="hidden"></canvas>
-            <button onclick="closeCameraModal()" class="absolute top-6 right-6 p-3 bg-black/40 text-white rounded-full z-10 backdrop-blur-md"><i data-lucide="x" class="w-6 h-6"></i></button>
-            <button onclick="switchCamera()" class="absolute top-6 left-6 p-3 bg-black/40 text-white rounded-full z-10 backdrop-blur-md"><i data-lucide="refresh-ccw" class="w-6 h-6"></i></button>
-        </div>
-        <div class="h-32 bg-black flex items-center justify-center space-x-12 pb-8"><button onclick="capturePhoto()" class="w-20 h-20 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center shadow-lg active:scale-95 transition-transform"><div class="w-16 h-16 rounded-full bg-white border-2 border-black"></div></button></div>
-    </div>
-
-    <div id="eco-quiz-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 invisible p-4 transition-all">
-        <div id="eco-quiz-modal-content" class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6 transform scale-95 transition-transform">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><i data-lucide="brain" class="w-5 h-5 text-indigo-500"></i> Eco Quiz</h3><button onclick="closeEcoQuizModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-            <div id="eco-quiz-loading" class="text-center py-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-2"></i><p class="text-sm text-gray-500">Loading Question...</p></div>
-            <div id="eco-quiz-body" class="hidden"><p id="eco-quiz-question" class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6 text-center leading-snug">...</p><div id="eco-quiz-options" class="space-y-3"></div><div id="eco-quiz-feedback" class="hidden mt-4 text-center font-bold"></div></div>
-            <div id="eco-quiz-already-played" class="hidden text-center py-6"><div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="check-circle-2" class="w-8 h-8 text-green-600 dark:text-green-400"></i></div><h4 class="text-lg font-bold text-gray-900 dark:text-gray-100">All Done!</h4><p class="text-sm text-gray-500 dark:text-gray-400 mt-1">You've already played today's quiz.</p><button onclick="closeEcoQuizModal()" class="mt-6 w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl">Close</button></div>
-        </div>
-    </div>
+    // Update Header Elements
+    if(els.userPointsHeader) els.userPointsHeader.textContent = user.current_points;
+    if(els.userNameGreeting) els.userNameGreeting.textContent = user.full_name;
     
-    <div id="gallery-modal" class="fixed inset-0 z-[100] bg-black/90 hidden items-center justify-center p-4 opacity-0" onclick="closeLightbox()">
-        <div class="relative w-full max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
-            <button onclick="closeLightbox()" class="absolute -top-10 right-0 text-white/80 hover:text-white p-2"><i data-lucide="x" class="w-8 h-8"></i></button>
-            <div id="gallery-modal-content" class="w-full text-center"></div>
-        </div>
-    </div>
+    // Update Sidebar Elements
+    const sidebarName = document.getElementById('user-name-sidebar');
+    const sidebarPoints = document.getElementById('user-points-sidebar');
+    const sidebarLevel = document.getElementById('user-level-sidebar');
+    const sidebarAvatar = document.getElementById('user-avatar-sidebar');
 
-    <div id="chatbot-modal" class="fixed inset-0 z-[60] bg-[#e6f7ed] dark:bg-[#07180f] transition-transform duration-500 translate-y-full invisible flex flex-col h-[100dvh] w-full font-jakarta lg:absolute lg:h-[600px] lg:w-[400px] lg:bottom-24 lg:right-10 lg:rounded-3xl lg:shadow-2xl lg:border lg:border-gray-200 dark:lg:border-gray-700">
-        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0"><div class="absolute top-[-60px] left-[-50px] w-[350px] h-[350px] rounded-full bg-[#c4f7d2] dark:bg-[#0e3e2a] blur-[90px] opacity-60 animate-float"></div><div class="absolute bottom-[-80px] right-[-60px] w-[450px] h-[450px] rounded-full bg-[#dafee9] dark:bg-[#0f5137] blur-[90px] opacity-60 animate-float delay-[-5s]"></div></div>
-        <header class="relative z-10 h-[72px] flex-shrink-0 flex items-center justify-between px-6 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border-b border-[#c8ffe1]/75 dark:border-black/40 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="relative"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-[0_6px_18px_rgba(0,128,60,0.35)] overflow-hidden border-2 border-white"><img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-full h-full object-contain"></div><div class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#34c46e] dark:bg-[#3af89b] border-2 border-[#e6f7ed] dark:border-[#07180f]"></div></div>
-                <div><h2 class="text-lg font-bold text-[#163626] dark:text-[#dff7e8]">EcoBuddy</h2><p class="text-xs text-[#6f8c79] dark:text-[#97c7a9]">Always Online</p></div>
+    if (sidebarName) sidebarName.innerHTML = `${user.full_name} ${getTickImg(user.tick_type)}`;
+    if (sidebarPoints) sidebarPoints.textContent = user.current_points;
+    
+    if (sidebarLevel) {
+        const level = getUserLevel(user.lifetime_points);
+        sidebarLevel.textContent = level.title;
+    }
+    
+    if (sidebarAvatar) {
+        sidebarAvatar.src = user.profile_img_url || getPlaceholderImage('80x80', getUserInitials(user.full_name));
+    }
+
+    // Update Impact Cards
+    const impactRecycled = document.getElementById('impact-recycled');
+    const impactCo2 = document.getElementById('impact-co2');
+    const impactEvents = document.getElementById('impact-events');
+
+    if(impactRecycled) impactRecycled.textContent = `${(user.impact?.total_plastic_kg || 0).toFixed(1)} kg`;
+    if(impactCo2) impactCo2.textContent = `${(user.impact?.co2_saved_kg || 0).toFixed(1)} kg`;
+    if(impactEvents) impactEvents.textContent = user.impact?.events_attended || 0;
+
+    // Update Vote Button with Student ID
+    const voteBtn = document.getElementById('cast-vote-btn');
+    if (voteBtn && user.student_id) {
+        voteBtn.href = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
+    }
+};
+
+const renderCheckinButtonState = () => {
+    const streak = state.currentUser.checkInStreak || 0;
+    
+    // Update Streak Counters (Pre/Post Animation)
+    const preEl = document.getElementById('dashboard-streak-text-pre');
+    const postEl = document.getElementById('dashboard-streak-text-post');
+    if(preEl) preEl.textContent = streak;
+    if(postEl) postEl.textContent = streak;
+    
+    const btn = els.dailyCheckinBtn;
+    if (!btn) return; 
+
+    // Toggle Button Style based on status
+    if (state.currentUser.isCheckedInToday) {
+        btn.classList.add('checkin-completed'); 
+        btn.classList.remove('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
+        btn.onclick = null; 
+    } else {
+        btn.classList.remove('checkin-completed');
+        btn.classList.add('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
+        btn.onclick = openCheckinModal;
+    }
+};
+
+// --- AQI (AIR QUALITY INDEX) LOGIC ---
+
+const initAQI = () => {
+    const card = document.getElementById('dashboard-aqi-card');
+    if (!card) return;
+
+    // Only fetch if empty to avoid API spam
+    if (card.innerHTML.trim() === "") {
+        if (navigator.geolocation) {
+            card.classList.remove('hidden');
+            card.innerHTML = `
+                <div class="glass-card p-4 rounded-xl flex items-center justify-center">
+                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-gray-400 mr-2"></i>
+                    <span class="text-sm text-gray-500">Detecting Location...</span>
+                </div>`;
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => fetchAQI(position.coords.latitude, position.coords.longitude),
+                (error) => {
+                    console.warn("AQI Location Error:", error);
+                    card.innerHTML = `
+                        <div class="glass-card p-4 rounded-xl text-center">
+                            <p class="text-sm text-gray-500">Enable location to see local Air Quality.</p>
+                        </div>`;
+                }
+            );
+        }
+    }
+};
+
+const fetchAQI = async (lat, lon) => {
+    const card = document.getElementById('dashboard-aqi-card');
+    try {
+        // Fetch AQI from Open-Meteo
+        const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
+        const aqiData = await aqiRes.json();
+        
+        // Fetch City Name from BigDataCloud (Free Reverse Geocoding)
+        const locRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+        const locData = await locRes.json();
+        
+        const city = locData.locality || locData.city || "Campus Area";
+        const aqi = aqiData.current.us_aqi;
+        
+        renderAQICard(card, aqi, city);
+    } catch (err) {
+        console.error("AQI Fetch Error:", err);
+        card.classList.add('hidden');
+    }
+};
+
+const renderAQICard = (card, aqi, city) => {
+    let status = 'Good';
+    let colorClass = 'from-green-100 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/20 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800';
+    let icon = 'wind';
+    let advice = "Great day for a nature walk on campus!";
+
+    if (aqi > 50 && aqi <= 100) {
+        status = 'Moderate';
+        colorClass = 'from-yellow-100 to-orange-50 dark:from-yellow-900/40 dark:to-orange-900/20 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
+        icon = 'cloud';
+        advice = "Air is okay. Good for saving energy indoors.";
+    } else if (aqi > 100) {
+        status = 'Unhealthy';
+        colorClass = 'from-red-100 to-rose-50 dark:from-red-900/40 dark:to-rose-900/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800';
+        icon = 'alert-triangle';
+        advice = "High pollution. Wear a mask if outside!";
+    }
+
+    card.innerHTML = `
+        <div class="bg-gradient-to-br ${colorClass} border p-5 rounded-2xl shadow-sm relative overflow-hidden animate-breathe">
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-1 mb-1 opacity-70">
+                        <i data-lucide="map-pin" class="w-3 h-3"></i>
+                        <p class="text-xs font-bold uppercase tracking-wider">${city}</p>
+                    </div>
+                    <h3 class="text-3xl font-black flex items-center gap-2">
+                        ${aqi} <span class="text-lg font-medium opacity-80">(${status})</span>
+                    </h3>
+                    <p class="text-sm font-medium mt-2 opacity-90">${advice}</p>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-white/40 dark:bg-black/20 flex items-center justify-center backdrop-blur-sm">
+                    <i data-lucide="${icon}" class="w-6 h-6"></i>
+                </div>
             </div>
-            <button onclick="closeChatbotModal()" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-red-100 text-[#163626] dark:text-[#dff7e8] hover:text-red-500 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </header>
-        <div id="chatbot-messages" class="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"></div>
-        <div class="flex-shrink-0 p-5 bg-gradient-to-t from-[#e6f7ed] dark:from-[#07180f] to-transparent z-20 w-full">
-            <form id="chatbot-form" class="flex items-center p-2 pl-5 bg-white/60 dark:bg-[#143723]/50 backdrop-blur-xl border border-[#c8ffe1]/75 dark:border-black/40 rounded-full shadow-lg w-full">
-                <input id="chatbot-input" type="text" placeholder="Ask something eco-friendly..." class="flex-1 bg-transparent border-none outline-none text-[#163626] dark:text-[#dff7e8] placeholder-[#6f8c79] dark:placeholder-[#97c7a9] text-base min-w-0" autocomplete="off">
-                <button type="submit" class="flex-shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center text-white text-lg shadow-md bg-gradient-to-br from-[#34c46e] to-[#169653] hover:scale-105 active:scale-95 transition-transform"><i data-lucide="arrow-up" class="w-5 h-5"></i></button>
-            </form>
+            <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-xl"></div>
+            <div class="absolute -top-4 -left-4 w-20 h-20 bg-white/20 dark:bg-white/5 rounded-full blur-xl"></div>
         </div>
-    </div>
+    `;
+    if(window.lucide) window.lucide.createIcons();
+};
 
-    <div id="participants-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center invisible opacity-0 transition-all duration-300" onclick="closeParticipantsModal()">
-        <div id="participants-modal-content" class="bg-white dark:bg-gray-900 w-full max-w-md h-[70vh] sm:h-[600px] rounded-t-3xl sm:rounded-3xl flex flex-col transform translate-y-full transition-transform duration-300 shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Going</h3>
-                <button onclick="closeParticipantsModal()" class="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+// --- HISTORY & PROFILE MODULES ---
+
+export const loadHistoryData = async () => {
+    if (state.historyLoaded) {
+        if (document.getElementById('history').classList.contains('active')) renderHistory();
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('points_ledger')
+            .select('source_type, description, points_delta, created_at')
+            .eq('user_id', state.currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(20); 
+
+        if (error) return;
+
+        state.history = data.map(item => ({
+            type: item.source_type, 
+            description: item.description, 
+            points: item.points_delta,
+            date: formatDate(item.created_at), 
+            icon: getIconForHistory(item.source_type)
+        }));
+        
+        state.historyLoaded = true;
+
+        if (document.getElementById('history').classList.contains('active')) renderHistory();
+    } catch (err) { console.error('History Load Error:', err); }
+};
+
+export const renderHistory = () => {
+    els.historyList.innerHTML = '';
+    if (state.history.length === 0) {
+        els.historyList.innerHTML = `<p class="text-sm text-center text-gray-500">No activity history yet.</p>`;
+        return;
+    }
+    state.history.forEach(h => {
+        els.historyList.innerHTML += `
+            <div class="glass-card p-3 rounded-xl flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-3"><i data-lucide="${h.icon}" class="w-5 h-5 text-gray-700 dark:text-gray-200"></i></span>
+                    <div><p class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-1">${h.description}</p><p class="text-xs text-gray-500 dark:text-gray-400">${h.date}</p></div>
+                </div>
+                <span class="text-sm font-bold ${h.points >= 0 ? 'text-green-600' : 'text-red-500'}">${h.points > 0 ? '+' : ''}${h.points}</span>
+            </div>`;
+    });
+    if(window.lucide) window.lucide.createIcons();
+};
+
+export const renderProfile = () => {
+    const u = state.currentUser;
+    if (!u) return;
+    
+    // Log profile view (Once per session)
+    if (!sessionStorage.getItem('profile_view_logged')) {
+        logUserActivity('view_profile', 'Viewed profile page');
+        sessionStorage.setItem('profile_view_logged', '1');
+    }
+
+    const l = getUserLevel(u.lifetime_points);
+    
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
+    const joinedEl = document.getElementById('profile-joined');
+    const avatarEl = document.getElementById('profile-avatar');
+    
+    if(nameEl) nameEl.innerHTML = `${u.full_name} ${getTickImg(u.tick_type)}`;
+    if(emailEl) emailEl.textContent = u.email;
+    if(joinedEl) joinedEl.textContent = `Joined ${formatDate(u.joined_at, { month: 'long', year: 'numeric' })}`;
+    if(avatarEl) avatarEl.src = u.profile_img_url || getPlaceholderImage('112x112', getUserInitials(u.full_name));
+
+    const levelTitle = document.getElementById('profile-level-title');
+    const levelNum = document.getElementById('profile-level-number');
+    const levelProg = document.getElementById('profile-level-progress');
+    const levelNext = document.getElementById('profile-level-next');
+
+    if(levelTitle) levelTitle.textContent = l.title;
+    if(levelNum) levelNum.textContent = l.level;
+    if(levelProg) levelProg.style.width = l.progress + '%';
+    if(levelNext) levelNext.textContent = l.progressText;
+
+    const studentId = document.getElementById('profile-student-id');
+    const course = document.getElementById('profile-course');
+    const mobile = document.getElementById('profile-mobile');
+    const emailPersonal = document.getElementById('profile-email-personal');
+    
+    if(studentId) studentId.textContent = u.student_id;
+    if(course) course.textContent = u.course;
+    if(mobile) mobile.textContent = u.mobile || 'Not Set'; 
+    if(emailPersonal) emailPersonal.textContent = u.email;
+};
+
+export const setupFileUploads = () => {
+    const profileInput = document.getElementById('profile-upload-input');
+    if (profileInput) {
+        const newProfileInput = profileInput.cloneNode(true);
+        profileInput.parentNode.replaceChild(newProfileInput, profileInput);
+
+        newProfileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const avatarEl = document.getElementById('profile-avatar');
+            const originalSrc = avatarEl.src;
+            avatarEl.style.opacity = '0.5';
+            
+            try {
+                showToast('Updating profile picture...', 'warning');
+                
+                // Upload to Cloudinary via Utils
+                const imageUrl = await uploadToCloudinary(file);
+                
+                // Update DB
+                const { error } = await supabase.from('users').update({ profile_img_url: imageUrl }).eq('id', state.currentUser.id);
+                if (error) throw error;
+                
+                // Update Local State & UI
+                state.currentUser.profile_img_url = imageUrl;
+                const sidebarAvatar = document.getElementById('user-avatar-sidebar');
+                if(sidebarAvatar) sidebarAvatar.src = imageUrl;
+
+                renderProfile();
+                renderDashboardUI(); 
+                showToast('Profile updated successfully!', 'success');
+
+            } catch (err) {
+                console.error('Profile Upload Failed:', err);
+                showToast('Upload failed. Try a smaller image.', 'error');
+                avatarEl.src = originalSrc; 
+            } finally {
+                avatarEl.style.opacity = '1';
+                newProfileInput.value = ''; 
+            }
+        });
+    }
+};
+
+// --- STREAK RESTORE & CHECK-IN LOGIC ---
+
+export const openCheckinModal = () => {
+    if (state.currentUser.isCheckedInToday) return;
+    
+    // Check if streak is actually broken
+    let isStreakBroken = false;
+    if (state.currentUser.lastCheckInDate) {
+        const lastDate = new Date(state.currentUser.lastCheckInDate);
+        const today = new Date(); 
+        
+        lastDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        
+        const diffTime = Math.abs(today - lastDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // If more than 1 day difference (i.e., didn't check in yesterday)
+        if (diffDays > 1) isStreakBroken = true;
+    }
+
+    const checkinModal = document.getElementById('checkin-modal');
+    checkinModal.classList.add('open');
+    checkinModal.classList.remove('invisible', 'opacity-0');
+    
+    const calendarContainer = document.getElementById('checkin-modal-calendar');
+    const streakDisplay = document.getElementById('checkin-modal-streak');
+    const btnContainer = document.getElementById('checkin-modal-button-container');
+
+    if (isStreakBroken && state.currentUser.checkInStreak > 0) {
+        // BROKEN STREAK UI
+        streakDisplay.innerHTML = `<span class="text-red-500">Streak Lost!</span>`;
+        calendarContainer.innerHTML = `
+            <div class="text-center w-full mb-2">
+                <i data-lucide="flame-off" class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-3"></i>
+                <p class="text-gray-600 dark:text-gray-300 text-sm">You missed a day! Your ${state.currentUser.checkInStreak}-day streak is at risk.</p>
+            </div>`;
+        
+        btnContainer.innerHTML = `
+            <div class="flex flex-col gap-3 w-full">
+                <button onclick="handleRestoreStreak()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+                    <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                    <span>Restore Streak (-50 Pts)</span>
+                </button>
+                <button onclick="handleDailyCheckin()" class="w-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold py-3 px-4 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    Start Over (0 Days)
+                </button>
             </div>
-            <div id="participants-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-        </div>
-    </div>
+        `;
+    } 
+    else {
+        // NORMAL CHECK-IN UI
+        streakDisplay.textContent = `${state.currentUser.checkInStreak || 0} Days`;
+        calendarContainer.innerHTML = '';
+        const today = new Date(); 
+        for (let i = -3; i <= 3; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const isToday = i === 0;
+            calendarContainer.innerHTML += `
+                <div class="flex flex-col items-center text-xs ${isToday ? 'font-bold text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}">
+                    <span class="mb-1">${['S','M','T','W','T','F','S'][d.getDay()]}</span>
+                    <span class="w-8 h-8 flex items-center justify-center rounded-full ${isToday ? 'bg-yellow-100 dark:bg-yellow-900' : ''}">${d.getDate()}</span>
+                </div>`;
+        }
+        btnContainer.innerHTML = `
+            <button onclick="handleDailyCheckin()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 shadow-lg transition-transform active:scale-95">
+                Check-in &amp; Earn ${state.checkInReward} Points
+            </button>`;
+    }
+    
+    if(window.lucide) window.lucide.createIcons();
+};
 
-    <script type="module" src="app.js"></script> 
-    <script type="module" src="chatbot.js"></script>
-</body>
-</html>
+export const handleRestoreStreak = async () => {
+    const cost = 50;
+    const userPoints = state.currentUser.current_points;
+
+    if (userPoints < cost) {
+        showToast(`Insufficient EcoPoints! You need ${cost} pts.`, 'warning');
+        return;
+    }
+
+    const btn = document.querySelector('#checkin-modal-button-container button');
+    if(btn) { btn.disabled = true; btn.innerHTML = 'Restoring...'; }
+
+    try {
+        const userId = state.currentUser.id;
+        const currentStreak = state.currentUser.checkInStreak;
+        const todayIST = getTodayIST();
+
+        // 1. Deduct Points (Safe RPC call)
+        const { error: pointsError } = await supabase.rpc('deduct_points', { 
+            user_id_input: userId, 
+            points_to_deduct: cost 
+        }).maybeSingle();
+
+        if (pointsError && pointsError.code !== 'PGRST202') { 
+             // Fallback if RPC fails or doesn't exist
+             await supabase.from('users').update({ current_points: userPoints - cost }).eq('id', userId);
+        }
+
+        // 2. Log Transaction
+        await supabase.from('points_ledger').insert({
+            user_id: userId,
+            source_type: 'streak_restore',
+            points_delta: -cost,
+            description: 'Restored Streak'
+        });
+
+        // 3. Insert Check-in
+        await supabase.from('daily_checkins').insert({ 
+            user_id: userId, 
+            points_awarded: state.checkInReward,
+            checkin_date: todayIST 
+        });
+
+        // 4. Update Streak Table
+        const restoredStreakCount = currentStreak + 1;
+        const { error: streakError } = await supabase
+            .from('user_streaks')
+            .update({ 
+                current_streak: restoredStreakCount,
+                last_checkin_date: todayIST 
+            })
+            .eq('user_id', userId);
+
+        if (streakError) throw streakError;
+
+        logUserActivity('streak_restored', `Restored streak to ${restoredStreakCount}`);
+        closeCheckinModal();
+
+        // 5. Update Local State
+        state.currentUser.checkInStreak = restoredStreakCount;
+        state.currentUser.isCheckedInToday = true;
+        state.currentUser.current_points -= cost; 
+        
+        renderCheckinButtonState();
+        renderDashboardUI();
+        await refreshUserData();
+        
+        if (state.leaderboardLoaded) await loadLeaderboardData();
+
+        showToast("Streak Restored! 🔥", "success");
+
+    } catch (err) {
+        console.error("Restore Streak Error:", err);
+        showToast("Failed to restore streak. Try again.", "error");
+        if(btn) { btn.disabled = false; btn.innerHTML = 'Restore Streak (-50 Pts)'; }
+    }
+};
+
+export const closeCheckinModal = () => {
+    const checkinModal = document.getElementById('checkin-modal');
+    checkinModal.classList.remove('open');
+    checkinModal.classList.add('invisible', 'opacity-0');
+};
+
+export const handleDailyCheckin = async () => {
+    const checkinButton = document.querySelector('#checkin-modal-button-container button');
+    if(checkinButton) {
+        checkinButton.disabled = true;
+        checkinButton.textContent = 'Checking in...';
+    }
+
+    try {
+        const todayIST = getTodayIST();
+        
+        // 1. Insert Check-in
+        const { error } = await supabase.from('daily_checkins').insert({ 
+            user_id: state.currentUser.id, 
+            points_awarded: state.checkInReward,
+            checkin_date: todayIST 
+        });
+        
+        if (error) throw error;
+        
+        // 2. Fetch new streak from Trigger (Database Trigger handles increment)
+        const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', state.currentUser.id).single();
+        const finalStreak = newStreak ? newStreak.current_streak : 1;
+        
+        logUserActivity('checkin_success', `Daily check-in completed.`);
+        closeCheckinModal();
+
+        // 3. Update Local State
+        state.currentUser.checkInStreak = finalStreak;
+        state.currentUser.isCheckedInToday = true;
+        state.currentUser.current_points += state.checkInReward; 
+        
+        renderCheckinButtonState();
+        renderDashboardUI();
+        await refreshUserData(); 
+
+        if (state.leaderboardLoaded) await loadLeaderboardData();
+        showToast(`Check-in success! +${state.checkInReward} pts`, 'success');
+
+    } catch (err) {
+        console.error('Check-in error:', err.message);
+        logUserActivity('checkin_error', err.message);
+        showToast("Check-in failed. Please try again.", "error");
+        
+        if(checkinButton) {
+            checkinButton.disabled = false;
+            checkinButton.textContent = `Check-in & Earn ${state.checkInReward} Points`;
+        }
+    }
+};
+
+// --- GLOBAL EXPORTS ---
+window.openCheckinModal = openCheckinModal;
+window.closeCheckinModal = closeCheckinModal;
+window.handleDailyCheckin = handleDailyCheckin;
+window.handleRestoreStreak = handleRestoreStreak;
