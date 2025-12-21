@@ -111,12 +111,6 @@ const renderDashboardUI = () => {
     if(impactRecycled) impactRecycled.textContent = `${(user.impact?.total_plastic_kg || 0).toFixed(1)} kg`;
     if(impactCo2) impactCo2.textContent = `${(user.impact?.co2_saved_kg || 0).toFixed(1)} kg`;
     if(impactEvents) impactEvents.textContent = user.impact?.events_attended || 0;
-
-    // Update Vote Button with Student ID
-    const voteBtn = document.getElementById('cast-vote-btn');
-    if (voteBtn && user.student_id) {
-        voteBtn.href = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
-    }
 };
 
 const renderCheckinButtonState = () => {
@@ -582,8 +576,21 @@ export const handleDailyCheckin = async () => {
     }
 };
 
+// --- NEW FUNCTION: Handle Vote Click ---
+export const handleCastVote = () => {
+    const user = state.currentUser;
+    if (!user || !user.student_id) {
+        showToast("Student ID not found.", "error");
+        return;
+    }
+    const url = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
+    // Opens in the same window (prevents "opening separately")
+    window.location.href = url;
+};
+
 // --- GLOBAL EXPORTS ---
 window.openCheckinModal = openCheckinModal;
 window.closeCheckinModal = closeCheckinModal;
 window.handleDailyCheckin = handleDailyCheckin;
 window.handleRestoreStreak = handleRestoreStreak;
+window.handleCastVote = handleCastVote;
