@@ -35,7 +35,7 @@ export const loadEventsData = async () => {
             if (status) {
                 if (status === 'confirmed') myStatus = 'attended';
                 else if (status === 'absent') myStatus = 'missed';
-                else if (status === 'cancelled') myStatus = 'cancelled';
+                else if (status === 'registered') myStatus = 'going';
             } else {
                 // Check if past
                 if (new Date(e.start_at) < new Date()) myStatus = 'missed';
@@ -72,7 +72,7 @@ const renderEventsPage = () => {
         const optimizedPoster = getOptimizedImageUrl(event.poster_url);
         
         let buttonHtml = '';
-        if (event.myStatus === 'attended') {
+        if (event.myStatus === 'going' || event.myStatus === 'attended') {
              buttonHtml = `<button disabled class="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Going</button>`;
         } else if (isPast) {
              buttonHtml = `<button disabled class="px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-bold">Ended</button>`;
@@ -125,7 +125,7 @@ export const handleRSVP = async (eventId) => {
         const { error } = await supabase.from('event_attendance').insert({
             event_id: eventId,
             user_id: state.currentUser.id,
-            status: 'confirmed'
+            status: 'registered' // Correct status for going
         });
 
         if (error) {
@@ -140,7 +140,7 @@ export const handleRSVP = async (eventId) => {
             
             // Optimistic Update
             const evt = state.events.find(e => e.id === eventId);
-            if(evt) evt.myStatus = 'attended';
+            if(evt) evt.myStatus = 'going';
             renderEventsPage();
         }
 
@@ -171,6 +171,7 @@ export const closeParticipantsModal = () => {
     }, 300);
 };
 
+// NEW: Helper to update the dashboard card
 const updateDashboardEvent = () => {
     const card = document.getElementById('dashboard-event-card');
     if (!card) return;
