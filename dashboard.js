@@ -1,11 +1,3 @@
-{
-type: uploaded file
-fileName: dashboard.js
-fullContent:
-/**
- * EcoCampus - Dashboard Module (dashboard.js)
- * Fully updated with Toast Notifications, AQI Logic, and Streak Management.
- */
 
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
