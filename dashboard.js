@@ -589,7 +589,7 @@ export const handleCastVote = () => {
     }
     
     // Construct the URL with ID
-    const url = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
+    const url = `https://bkbnc-resources.vercel.app/voting2.html?id=${user.student_id}`;
     
     // Open in a new tab/window
     window.open(url, '_blank');
