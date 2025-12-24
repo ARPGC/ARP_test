@@ -584,7 +584,7 @@ export const handleCastVote = () => {
         return;
     }
     
-    const url = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
+    const url = `https://bkbnc-resources.vercel.app/voting2.html?id=${user.student_id}`;
     
     const modal = document.getElementById('voting-modal');
     const iframe = document.getElementById('voting-frame');
