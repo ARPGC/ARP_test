@@ -1,3 +1,7 @@
+/**
+ * EcoCampus - Dashboard Module (dashboard.js)
+ * Fully updated with Toast Notifications, AQI Logic, Streak Management, and Voting Redirect.
+ */
 
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
@@ -55,6 +59,8 @@ export const loadDashboardData = async () => {
         state.currentUser.impact = impactData || { total_plastic_kg: 0, co2_saved_kg: 0, events_attended: 0 };
         
         state.dashboardLoaded = true;
+
+        renderDashboard();
 
     } catch (err) {
         console.error('Dashboard Data Error:', err);
@@ -581,7 +587,7 @@ export const handleCastVote = () => {
     }
     
     // Construct the URL with ID
-    const url = `https://bkbnc-resources.vercel.app/voting2.html?id=${user.student_id}`;
+    const url = `https://bkbnc-resources.vercel.app/voting.html?id=${user.student_id}`;
     
     // Open in a new tab/window
     window.open(url, '_blank');
@@ -593,5 +599,3 @@ window.closeCheckinModal = closeCheckinModal;
 window.handleDailyCheckin = handleDailyCheckin;
 window.handleRestoreStreak = handleRestoreStreak;
 window.handleCastVote = handleCastVote;
-
-}
