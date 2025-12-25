@@ -40,32 +40,22 @@ const getSystemPrompt = () => {
     - **Principal:** Dr. Bipinchandra Wadekar
     - **Faculty Coordinator:** Mr. Vijay Saxsena
 
-    **👑 EXCLUSIVE EVENT: Mr. & Miss BKBNC 2025 👑**
-    *Current Status: Preferential Voting Phase*
+    **🏆 EVENT RESULTS: Mr. & Miss BKBNC 2025 🏆**
+    *Current Status: EVENT CONCLUDED / RESULTS DECLARED*
     
-    **📅 Important Dates:**
-    - **Preferential Voting:** 22nd December 2025.
-    - **Grand Finale:** 24th December 2025.
+    **✨ THE WINNERS ✨**
     
-    **🗳️ Voting Process:**
-    - On the 24th, there will be final voting where students select only *one* candidate.
-    - **Weighted System:** The final result is calculated based on different weightages from Student Votes, Judges, and Mentor votes. It is NOT just popularity; it is performance + support.
+    **🤴 Mr. BKBNC 2025:**
+    - **WINNER:** 🥇 **Aashish Santosh Yadav** (TYBCOM)
+    - **Runner Up:** 🥈 **Yashraj Dattatray Gaikwad** (TYBSC CS)
 
-    **🌟 BOYS NOMINEES:**
-    1. **Aashish Santosh Yadav** (TYBCOM)
-    2. **Krushnakant Pal** (TYBSC CS)
-    3. **Suraj Ramsudhakar Yadav** (TYBSC CS)
-    4. **Yashraj Dattatray Gaikwad** (TYBSC CS)
-    5. **Prasad Pankaj Jawale** (SYBSC CS)
-    6. **Mr. Dhananjay Gupta** (TYBSc)
+    **👸 Miss BKBNC 2025:**
+    - **WINNER:** 🥇 **Vaidehi Balu Gund** (TYBMS)
+    - **Runner Up:** 🥈 **Dharani Shankar Mudaliyar** (TYBSC CS)
 
-    **🌟 GIRLS NOMINEES:**
-    1. **Vaidehi Balu Gund** (TYBMS)
-    2. **Ekta Mukesh Dixit** (TYBSC CS)
-    3. **Divya Anand Nair** (SYBSC CS)
-    4. **Dharani Shankar Mudaliyar** (TYBSC CS)
-    5. **Kaustubhi Chavan** (TYBSC CS)
-    6. **Ms. Dhani Singh** (SYBMS)
+    **🗳️ Result Methodology:**
+    - The final results were calculated based on **Preference Voting, Live Performance Voting, Mentor Voting, and Judges Voting**.
+    - All voting data was **digitally encrypted** to ensure fairness and security.
 
     **📱 APP FEATURES MASTERCLASS (You are the Expert):**
     1. **Dashboard:**
@@ -110,7 +100,7 @@ const getSystemPrompt = () => {
     
     **🗣️ VIBE:**
     - Speak like a cool, hyped-up college senior. Use emojis (🔥, 🌿, 🚀).
-    - If asked about Mr. & Miss BKBNC, get excited and encourage them to vote!
+    - If asked about Mr. & Miss BKBNC, celebrate the winners enthusiastically!
     - If user speaks Hindi/Marathi/Hinglish, reply in that language!
     `;
 };
@@ -181,7 +171,7 @@ const loadChatHistory = async () => {
             data.reverse().forEach(msg => appendMessageUI(msg.message, msg.role, false)); 
             setTimeout(() => chatOutput.scrollTop = chatOutput.scrollHeight, 100);
         } else {
-            appendMessageUI(`Hi ${state.currentUser.full_name}! I'm EcoBuddy. Ask me about the **Mr. & Miss BKBNC** voting or how to earn points! 👑🌿`, 'bot');
+            appendMessageUI(`Hi ${state.currentUser.full_name}! I'm EcoBuddy. Ask me about the **Mr. & Miss BKBNC** results or how to earn points! 👑🌿`, 'bot');
         }
     } catch (err) {
         console.error("Load History Error:", err);
