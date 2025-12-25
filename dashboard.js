@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Fully updated with Toast Notifications, AQI Logic, Streak Management, and Voting Redirect.
+ * Fully updated with Toast Notifications, AQI Logic, and Streak Management.
  */
 
 import { supabase } from './supabase-client.js';
@@ -578,24 +578,8 @@ export const handleDailyCheckin = async () => {
     }
 };
 
-// --- UPDATED: HANDLE VOTE LINK (New Full Page) ---
-export const handleCastVote = () => {
-    const user = state.currentUser;
-    if (!user || !user.student_id) {
-        showToast("Student ID not found.", "error");
-        return;
-    }
-    
-    // Construct the URL with ID
-    const url = `https://bkbnc-resources.vercel.app/voting2.html?id=${user.student_id}`;
-    
-    // Open in a new tab/window
-    window.open(url, '_blank');
-};
-
 // --- GLOBAL EXPORTS ---
 window.openCheckinModal = openCheckinModal;
 window.closeCheckinModal = closeCheckinModal;
 window.handleDailyCheckin = handleDailyCheckin;
 window.handleRestoreStreak = handleRestoreStreak;
-window.handleCastVote = handleCastVote;
