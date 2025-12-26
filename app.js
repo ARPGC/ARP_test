@@ -1,13 +1,13 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with New Year 2026 Theme Logic & Performance Optimizations
+ * Updated with New Year 2026 Celebration Layer 🎆
  */
 
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
 import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast } from './utils.js';
 import { loadDashboardData, renderDashboard, setupFileUploads } from './dashboard.js';
-import { loadEventsData } from './events.js'; // IMPORTED EVENTS MODULE
+import { loadEventsData } from './events.js'; 
 
 // --- AUTHENTICATION CHECK & STARTUP ---
 
@@ -48,8 +48,8 @@ const initializeApp = async () => {
     try {
         console.log('Init: Fetching user profile...');
         
-        // NEW YEAR: Festive Console Welcome 🎉🎆
-        console.log("%c🎉🎆 Happy New Year 2026 from EcoCampus! 🥂✨", "color: #F59E0B; font-size: 16px; font-weight: bold; background: #FFFBEB; padding: 5px; border-radius: 5px;");
+        // Console Greeting
+        console.log("%c🌿 Ready for a Green 2026! 🎆", "color: #10B981; font-size: 16px; font-weight: bold; background: #ECFDF5; padding: 5px; border-radius: 5px;");
 
         // Fetch specific columns to optimize bandwidth
         const { data: userProfile, error } = await supabase
@@ -92,11 +92,13 @@ const initializeApp = async () => {
             }
             renderDashboard();
 
-            // 2. Load Events Data (Background Fetch) - NEW ADDITION
-            // We don't await this to keep dashboard render fast, but it updates the UI when done.
+            // 2. Load Events Data (Background Fetch)
             loadEventsData().then(() => {
                 console.log("Init: Events loaded.");
             });
+
+            // 3. Initialize New Year Countdown
+            initNewYearCountdown();
 
         } catch (dashErr) {
             console.error("Init: Data load failed:", dashErr);
@@ -162,7 +164,7 @@ export const refreshUserData = async () => {
         
         if (!userProfile) return;
         
-        // Merge strategy: Update specific fields while keeping others (Name, Course, etc.)
+        // Merge strategy
         state.currentUser = { ...state.currentUser, ...userProfile };
 
         // Update UI point displays with animation
@@ -180,6 +182,98 @@ export const refreshUserData = async () => {
     } catch (err) { 
         console.error('RefreshData: Unexpected error:', err); 
     }
+};
+
+// ==========================================
+// 🎆 NEW YEAR 2026 COUNTDOWN LOGIC
+// ==========================================
+
+const initNewYearCountdown = () => {
+    const targetDate = new Date('January 1, 2026 00:00:00').getTime();
+    const widget = document.getElementById('new-year-widget');
+    const modal = document.getElementById('new-year-modal');
+
+    // If widget was removed from HTML, skip logic
+    if (!widget) return;
+
+    const updateTimer = () => {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        // --- TIME'S UP! CELEBRATE! ---
+        if (distance < 0) {
+            clearInterval(timerInterval);
+            
+            // Set Timer to 00
+            ['cd-days', 'cd-hours', 'cd-minutes', 'cd-seconds'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = "00";
+            });
+
+            // Trigger Celebration Modal (only if not seen yet in this session)
+            if (modal && !sessionStorage.getItem('ny2026_celebrated')) {
+                modal.classList.remove('invisible', 'opacity-0');
+                modal.classList.add('visible', 'opacity-100'); // Triggers CSS transitions
+                
+                launchFireworks();
+                
+                // Mark as celebrated so it doesn't pop up on every refresh immediately
+                sessionStorage.setItem('ny2026_celebrated', 'true');
+            }
+            return;
+        }
+
+        // --- CALCULATE TIME ---
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        // --- UPDATE DOM ---
+        const dEl = document.getElementById('cd-days');
+        const hEl = document.getElementById('cd-hours');
+        const mEl = document.getElementById('cd-minutes');
+        const sEl = document.getElementById('cd-seconds');
+
+        if(dEl) dEl.textContent = days < 10 ? `0${days}` : days;
+        if(hEl) hEl.textContent = hours < 10 ? `0${hours}` : hours;
+        if(mEl) mEl.textContent = minutes < 10 ? `0${minutes}` : minutes;
+        if(sEl) sEl.textContent = seconds < 10 ? `0${seconds}` : seconds;
+    };
+
+    // Run immediately and then every second
+    updateTimer();
+    const timerInterval = setInterval(updateTimer, 1000);
+};
+
+// Uses 'canvas-confetti' library loaded in index.html
+const launchFireworks = () => {
+    if (typeof confetti === 'undefined') {
+        console.warn('Fireworks engine not loaded.');
+        return;
+    }
+
+    const duration = 5 * 1000; // 5 seconds of fireworks
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+    console.log('🎆 Launching Fireworks!');
+
+    const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+            return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        
+        // Dual Cannons from left and right
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
 };
 
 // --- EVENT LISTENERS & UI LOGIC ---
