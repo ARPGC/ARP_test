@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with New Year Theme Logic & Loader Fix
+ * Fully updated with New Year 2026 Theme & Performance Optimizations
  */
 
 import { supabase } from './supabase-client.js';
@@ -9,13 +9,12 @@ import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast } fr
 import { loadDashboardData, renderDashboard, setupFileUploads } from './dashboard.js';
 import { loadEventsData } from './events.js'; 
 
-// --- NEW YEAR CONFIGURATION ---
-const NEW_YEAR_TARGET = new Date("January 1, 2026 00:00:00").getTime();
-let countdownInterval;
-let fireworksActive = false;
-
 // --- AUTHENTICATION CHECK & STARTUP ---
 
+/**
+ * Checks for a valid Supabase session on startup.
+ * Redirects to login if session is missing or invalid.
+ */
 const checkAuth = async () => {
     try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -33,6 +32,7 @@ const checkAuth = async () => {
             return; 
         }
 
+        // Store auth user and begin app initialization
         state.userAuth = session.user;
         await initializeApp();
     } catch (err) { 
@@ -41,12 +41,24 @@ const checkAuth = async () => {
     }
 };
 
+/**
+ * Fetches the specific user profile from the database and initializes UI modules.
+ */
 const initializeApp = async () => {
     try {
         console.log('Init: Fetching user profile...');
         
-        // NEW YEAR: Festive Console Welcome 🎆
-        console.log("%c🎆 Happy New Year from EcoCampus! 🥂", "color: #F59E0B; font-size: 16px; font-weight: bold; background: #FFFBEB; padding: 5px; border-radius: 5px; border: 1px solid #F59E0B;");
+        // NEW YEAR: Console Welcome
+        console.log("%c🎉 Ready for 2026! EcoCampus Loaded. 🌿", "color: #fbbf24; font-size: 16px; font-weight: bold; background: #064e3b; padding: 5px; border-radius: 5px;");
+
+        // PERFORMANCE: Remove heavy DOM elements if in Low Data Mode
+        if (document.body.classList.contains('low-data-mode')) {
+            const confettiCanvas = document.getElementById('confetti-canvas');
+            if (confettiCanvas) {
+                confettiCanvas.remove();
+                console.log("🚀 Low Data Mode: Animations disabled.");
+            }
+        }
 
         // Fetch specific columns to optimize bandwidth
         const { data: userProfile, error } = await supabase
@@ -70,32 +82,29 @@ const initializeApp = async () => {
         
         state.currentUser = userProfile;
         
+        // Log login activity only once per session
         if (!sessionStorage.getItem('login_logged')) {
             logUserActivity('login', 'User logged in');
             sessionStorage.setItem('login_logged', '1');
             showToast(`Welcome back, ${userProfile.full_name}!`, 'success');
         }
 
+        // Set initial navigation state
         history.replaceState({ pageId: 'dashboard' }, '', '#dashboard');
-
-        // --- NEW YEAR THEME INIT ---
-        initNewYearUI();
 
         // --- LOAD DATA ---
         try {
+            // 1. Load Dashboard Data (Check-ins, Stats)
             if (!state.dashboardLoaded) {
                 await loadDashboardData();
                 state.dashboardLoaded = true;
             }
             renderDashboard();
 
-            // Apply Golden Shimmer to Dashboard Cards after render
-            setTimeout(() => {
-                document.querySelectorAll('.glass-card').forEach(card => {
-                    card.classList.add('shimmer-gold', 'ny-card');
-                });
-            }, 500);
+            // 2. Initialize New Year Countdown
+            initNewYearCountdown();
 
+            // 3. Load Events Data (Background Fetch)
             loadEventsData().then(() => {
                 console.log("Init: Events loaded.");
             });
@@ -105,38 +114,38 @@ const initializeApp = async () => {
             showToast('Partial data load failure.', 'warning');
         }
         
-        // --- CRITICAL FIX: Force Hide Loader ---
+        // Remove app loader after delay for smooth transition
         setTimeout(() => {
             const loader = document.getElementById('app-loading');
-            if (loader) {
-                loader.classList.add('loaded'); // Try CSS class first
-                // Fallback: Force hide via JS styles (Fixes cache issues)
-                loader.style.opacity = '0';
-                loader.style.visibility = 'hidden';
-                loader.style.pointerEvents = 'none';
-            }
+            if (loader) loader.classList.add('loaded');
         }, 500);
 
+        // Initialize Lucide icons
         if(window.lucide) window.lucide.createIcons();
+        
         setupFileUploads();
 
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err);
-        // Force hide loader even on crash so user sees error toast
-        const loader = document.getElementById('app-loading');
-        if (loader) loader.style.display = 'none';
         showToast('App failed to initialize.', 'error');
     }
 };
 
+/**
+ * Handles the user logout sequence.
+ */
 const handleLogout = async () => {
     try {
+        console.log('Logout: Initiating...');
+        
         if (sessionStorage.getItem('login_logged')) {
             logUserActivity('logout', 'User logged out');
             sessionStorage.removeItem('login_logged');
         }
+        
         const { error } = await supabase.auth.signOut();
         if (error) console.error('Logout: Error:', error.message);
+        
         redirectToLogin();
     } catch (err) { 
         console.error('Logout: Critical error:', err);
@@ -146,6 +155,9 @@ const handleLogout = async () => {
 
 const redirectToLogin = () => { window.location.replace('login.html'); };
 
+/**
+ * Refreshes user point balance and profile data from the database.
+ */
 export const refreshUserData = async () => {
     try {
         const { data: userProfile, error } = await supabase
@@ -160,6 +172,7 @@ export const refreshUserData = async () => {
         }
         
         if (!userProfile) return;
+        
         state.currentUser = { ...state.currentUser, ...userProfile };
 
         const header = document.getElementById('user-points-header');
@@ -178,68 +191,26 @@ export const refreshUserData = async () => {
     }
 };
 
-// --- NEW YEAR THEME LOGIC ---
+// --- NEW YEAR 2026 COUNTDOWN LOGIC ---
 
-const initNewYearUI = () => {
-    // 1. Inject Fireworks Canvas
-    if (!document.getElementById('fireworks-canvas')) {
-        const canvas = document.createElement('canvas');
-        canvas.id = 'fireworks-canvas';
-        document.body.prepend(canvas);
-        startFireworksLoop();
-    }
+let countdownInterval;
 
-    // 2. Inject Celebration Modal
-    if (!document.getElementById('celebration-modal')) {
-        const modal = document.createElement('div');
-        modal.id = 'celebration-modal';
-        modal.className = 'fixed inset-0 z-50 flex items-center justify-center invisible opacity-0 transition-all duration-500';
-        modal.innerHTML = `
-            <div id="celebration-content" class="transform scale-90 transition-transform duration-500 p-6 relative">
-                <h1 class="ny-hero-text">HAPPY</h1>
-                <h1 class="ny-hero-text">NEW YEAR</h1>
-                <div class="ny-year mt-4">2026</div>
-                <p class="text-gray-300 mt-6 text-lg font-medium">Let's make this year greener!</p>
-                <button onclick="closeCelebrationModal()" class="mt-8 px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full shadow-lg hover:scale-105 transition-transform">
-                    Start Exploring
-                </button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
+const initNewYearCountdown = () => {
+    const container = document.getElementById('new-year-countdown-container');
+    if (!container) return;
 
-    // 3. Inject Countdown into Dashboard
-    const dashboard = document.getElementById('dashboard');
-    if (dashboard) {
-        const greetingDiv = dashboard.querySelector('.mb-8'); // The greeting container
-        if (greetingDiv) {
-            const countdownContainer = document.createElement('div');
-            countdownContainer.id = 'ny-countdown';
-            countdownContainer.className = 'ny-countdown-container animate-slideUp';
-            countdownContainer.innerHTML = `
-                <div class="ny-time-box"><span class="ny-time-val" id="cd-days">00</span><span class="ny-time-label">Days</span></div>
-                <div class="ny-time-box"><span class="ny-time-val" id="cd-hours">00</span><span class="ny-time-label">Hrs</span></div>
-                <div class="ny-time-box"><span class="ny-time-val" id="cd-mins">00</span><span class="ny-time-label">Mins</span></div>
-                <div class="ny-time-box"><span class="ny-time-val" id="cd-secs">00</span><span class="ny-time-label">Secs</span></div>
-            `;
-            // Insert after the greeting text
-            greetingDiv.appendChild(countdownContainer);
-            startCountdown();
-        }
-    }
-};
+    container.classList.remove('hidden');
+    // Target: Jan 1, 2026 00:00:00
+    const targetDate = new Date('January 1, 2026 00:00:00').getTime();
 
-const startCountdown = () => {
-    if (countdownInterval) clearInterval(countdownInterval);
-    
-    const update = () => {
+    const updateTimer = () => {
         const now = new Date().getTime();
-        const distance = NEW_YEAR_TARGET - now;
+        const distance = targetDate - now;
 
         if (distance < 0) {
             clearInterval(countdownInterval);
-            document.getElementById('ny-countdown')?.remove(); // Remove countdown
-            openCelebrationModal(); // Trigger Celebration
+            renderHappyNewYear(container);
+            launchConfetti();
             return;
         }
 
@@ -248,173 +219,88 @@ const startCountdown = () => {
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        const setVal = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val < 10 ? '0' + val : val;
-        };
-
-        setVal('cd-days', days);
-        setVal('cd-hours', hours);
-        setVal('cd-mins', minutes);
-        setVal('cd-secs', seconds);
-    };
-
-    update();
-    countdownInterval = setInterval(update, 1000);
-};
-
-window.openCelebrationModal = () => {
-    const modal = document.getElementById('celebration-modal');
-    if (modal) {
-        modal.classList.remove('invisible', 'opacity-0');
-        modal.classList.add('open');
-        document.getElementById('celebration-content')?.classList.remove('scale-90');
-        document.getElementById('celebration-content')?.classList.add('scale-100');
-        fireworksActive = true; // Intensify fireworks
-    }
-};
-
-window.closeCelebrationModal = () => {
-    const modal = document.getElementById('celebration-modal');
-    if (modal) {
-        modal.classList.remove('open');
-        modal.classList.add('invisible', 'opacity-0');
-        fireworksActive = false; // Back to normal background fireworks
-    }
-};
-
-// --- FIREWORKS ENGINE (Lightweight) ---
-const startFireworksLoop = () => {
-    const canvas = document.getElementById('fireworks-canvas');
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    const particles = [];
-    
-    // Resize handler
-    window.addEventListener('resize', () => {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-    });
-
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = height + Math.random() * 100; // Start below screen
-            this.vx = Math.random() * 2 - 1; // Slight drift
-            this.vy = -(Math.random() * 4 + 3); // Upward speed
-            this.size = Math.random() * 3 + 1;
-            this.color = `hsl(${Math.random() * 50 + 30}, 100%, 50%)`; // Gold/Orange/Yellow range
-            this.life = 100 + Math.random() * 50;
-            this.explode = false;
-        }
-
-        update() {
-            if (!this.explode) {
-                this.y += this.vy;
-                this.x += this.vx;
-                this.vy *= 0.99; // Drag
+        container.innerHTML = `
+            <div class="glass-countdown p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group hover:scale-[1.01] transition-transform duration-500">
+                <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-emerald-500/10 opacity-60"></div>
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400/20 rounded-full blur-3xl animate-pulse"></div>
                 
-                // Explode condition (high in the sky or slow)
-                if (this.vy > -1 || this.y < height * 0.2) {
-                    this.explode = true;
-                    this.createExplosion();
-                }
-            } else {
-                // Fading out debris
-                this.life--;
-            }
-        }
-
-        createExplosion() {
-            const count = 15;
-            for (let i = 0; i < count; i++) {
-                debris.push(new Debris(this.x, this.y, this.color));
-            }
-            this.life = 0; // Kill rocket
-        }
-
-        draw() {
-            if (!this.explode) {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
-        }
-    }
-
-    const debris = [];
-    class Debris {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 3;
-            this.vx = Math.cos(angle) * speed;
-            this.vy = Math.sin(angle) * speed;
-            this.alpha = 1;
-            this.color = color;
-            this.decay = Math.random() * 0.02 + 0.01;
-        }
-
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += 0.05; // Gravity
-            this.alpha -= this.decay;
-        }
-
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    const animate = () => {
-        // Clear with fade effect
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
-        if (document.documentElement.classList.contains('dark')) {
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
-        }
-        ctx.fillRect(0, 0, width, height);
-
-        // Spawn rockets
-        const spawnRate = fireworksActive ? 0.1 : 0.02; 
-        if (Math.random() < spawnRate) {
-            particles.push(new Particle());
-        }
-
-        particles.forEach((p, index) => {
-            p.update();
-            p.draw();
-            if (p.life <= 0) particles.splice(index, 1);
-        });
-
-        debris.forEach((d, index) => {
-            d.update();
-            d.draw();
-            if (d.alpha <= 0) debris.splice(index, 1);
-        });
-
-        requestAnimationFrame(animate);
+                <h3 class="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-[0.25em] mb-5 relative z-10 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> Countdown to 2026
+                </h3>
+                
+                <div class="grid grid-cols-4 gap-3 md:gap-8 relative z-10 w-full max-w-sm mx-auto">
+                    ${renderTimeBox(days, 'Days')}
+                    ${renderTimeBox(hours, 'Hrs')}
+                    ${renderTimeBox(minutes, 'Mins')}
+                    ${renderTimeBox(seconds, 'Secs')}
+                </div>
+            </div>
+        `;
+        
+        if(window.lucide) window.lucide.createIcons();
     };
 
-    animate();
+    updateTimer(); // Initial call
+    countdownInterval = setInterval(updateTimer, 1000);
+};
+
+const renderTimeBox = (value, label) => `
+    <div class="flex flex-col items-center">
+        <div class="w-full aspect-square bg-white/40 dark:bg-black/30 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/5 shadow-sm glow-gold">
+            <span class="text-2xl md:text-4xl font-black text-gray-800 dark:text-white tabular-nums">${String(value).padStart(2, '0')}</span>
+        </div>
+        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2 uppercase tracking-wider">${label}</span>
+    </div>
+`;
+
+const renderHappyNewYear = (container) => {
+    container.innerHTML = `
+        <div class="glass-countdown p-8 flex flex-col items-center justify-center text-center relative overflow-hidden firework-click cursor-pointer" onclick="launchConfetti()">
+            <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-emerald-500/20 animate-pulse"></div>
+            <h1 class="text-4xl md:text-6xl font-black animate-shimmer-text mb-2 relative z-10">HAPPY NEW YEAR!</h1>
+            <p class="text-lg font-medium text-gray-600 dark:text-gray-300 relative z-10">Welcome to a greener 2026. 🌿✨</p>
+            <button onclick="launchConfetti()" class="mt-4 px-6 py-2 bg-yellow-400 text-yellow-900 font-bold rounded-full text-sm hover:bg-yellow-300 transition-colors relative z-10 shadow-lg shadow-yellow-400/30">
+                Celebrate Again! 🎉
+            </button>
+        </div>
+    `;
+};
+
+// Global Confetti Trigger
+window.launchConfetti = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    // Colors: Gold, Emerald, White
+    const colors = ['#fbbf24', '#10b981', '#ffffff'];
+
+    (function frame() {
+        if (!window.confetti) return;
+        
+        confetti({
+            particleCount: 3,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: colors
+        });
+        confetti({
+            particleCount: 3,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: colors
+        });
+
+        if (Date.now() < end) {
+            requestAnimationFrame(frame);
+        }
+    }());
 };
 
 // --- EVENT LISTENERS & UI LOGIC ---
 
+// Store Search with Debounce
 if(els.storeSearch) {
     els.storeSearch.addEventListener('input', debounce(() => {
         if (state.storeLoaded && window.renderRewardsWrapper) window.renderRewardsWrapper();
@@ -436,6 +322,8 @@ if(els.sortBy) {
 
 document.getElementById('sidebar-toggle-btn')?.addEventListener('click', () => toggleSidebar());
 document.getElementById('logout-button')?.addEventListener('click', handleLogout);
+
+// --- THEME MANAGEMENT ---
 
 const themeBtn = document.getElementById('theme-toggle-btn');
 const themeText = document.getElementById('theme-text');
@@ -462,6 +350,8 @@ if (themeBtn) {
 const savedTheme = localStorage.getItem('eco-theme');
 applyTheme(savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
+// --- ACCOUNT SECURITY: CHANGE PASSWORD ---
+
 const changePwdForm = document.getElementById('change-password-form');
 if (changePwdForm) {
     changePwdForm.addEventListener('submit', async (e) => {
@@ -480,9 +370,15 @@ if (changePwdForm) {
         btn.textContent = 'Updating...';
 
         try {
-            // SECURITY FIX: Only update via Auth API, never in 'users' table
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
+
+            const { error: tableError } = await supabase
+                .from('users')
+                .update({ password_plain: newPassword })
+                .eq('id', state.currentUser.id);
+
+            if (tableError) throw tableError;
 
             showToast('Password updated successfully!', 'success');
             passwordInput.value = ''; 
@@ -497,6 +393,8 @@ if (changePwdForm) {
         }
     });
 }
+
+// --- BONUS POINTS: REDEEM CODE ---
 
 const redeemForm = document.getElementById('redeem-code-form');
 if (redeemForm) {
@@ -532,5 +430,6 @@ if (redeemForm) {
     });
 }
 
+// --- START APP ---
 window.handleLogout = handleLogout;
 checkAuth();
