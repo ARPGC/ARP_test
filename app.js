@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with New Year Theme (Countdown, Fireworks, Celebration)
+ * Fully updated with New Year Theme Logic & Loader Fix
  */
 
 import { supabase } from './supabase-client.js';
@@ -105,9 +105,16 @@ const initializeApp = async () => {
             showToast('Partial data load failure.', 'warning');
         }
         
+        // --- CRITICAL FIX: Force Hide Loader ---
         setTimeout(() => {
             const loader = document.getElementById('app-loading');
-            if (loader) loader.classList.add('loaded');
+            if (loader) {
+                loader.classList.add('loaded'); // Try CSS class first
+                // Fallback: Force hide via JS styles (Fixes cache issues)
+                loader.style.opacity = '0';
+                loader.style.visibility = 'hidden';
+                loader.style.pointerEvents = 'none';
+            }
         }, 500);
 
         if(window.lucide) window.lucide.createIcons();
@@ -115,6 +122,9 @@ const initializeApp = async () => {
 
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err);
+        // Force hide loader even on crash so user sees error toast
+        const loader = document.getElementById('app-loading');
+        if (loader) loader.style.display = 'none';
         showToast('App failed to initialize.', 'error');
     }
 };
@@ -380,7 +390,6 @@ const startFireworksLoop = () => {
         ctx.fillRect(0, 0, width, height);
 
         // Spawn rockets
-        // Intense mode (Celebration) vs Chill mode (Background)
         const spawnRate = fireworksActive ? 0.1 : 0.02; 
         if (Math.random() < spawnRate) {
             particles.push(new Particle());
