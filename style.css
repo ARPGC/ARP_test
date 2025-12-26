@@ -12,18 +12,14 @@ html, body {
     --tw-shadow: 0 0 #0000 !important;
     --tw-shadow-colored: 0 0 #0000 !important;
     
-    /* Leaderboard Tokens */
+    /* Core EcoCampus Tokens (Preserved) */
     --radius: 24px;
     --gold: #D4AF37;
     --silver: #C0C0C0;
     --bronze: #CD7F32;
     --forest-accent: #1e8f4b;
-    
-    /* New Year 2026 Tokens */
-    --ny-gold: #F59E0B;
-    --ny-gold-light: #FCD34D;
-    --ny-midnight: #1E293B;
-    --ny-accent: #8B5CF6; /* Violet for fireworks vibe */
+    --emerald-500: #10B981;
+    --emerald-600: #059669;
 }
 
 *, *::before, *::after {
@@ -43,16 +39,16 @@ html, body {
     flex-direction: column; /* Mobile Default */
     position: relative;
     overflow: hidden;
-    background-color: #F8FAFC; /* Slate-50 */
+    background-color: #F8FAFC;
     background-image: radial-gradient(#E2E8F0 1px, transparent 1px);
     background-size: 24px 24px;
 }
 .dark .app-container {
-    background-color: #020617; /* Slate-950 (Midnight) */
+    background-color: #020617;
     background-image: radial-gradient(#1E293B 1px, transparent 1px);
 }
 
-/* Desktop Layout: Side-by-Side */
+/* Desktop Layout */
 @media (min-width: 1024px) {
     .app-container {
         flex-direction: row; 
@@ -85,7 +81,47 @@ header, nav {
 }
 
 /* =========================================
-   2. ANIMATIONS & PERFORMANCE
+   2. NEW YEAR CELEBRATION LAYER (NEW)
+   ========================================= */
+
+/* Fireworks Canvas - Full Screen Overlay */
+#fireworks-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* Let clicks pass through */
+    z-index: 9999; /* Very high z-index for celebration */
+}
+
+/* Countdown Widget - Glassmorphism */
+#new-year-widget {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+#new-year-widget:active {
+    transform: scale(0.98);
+}
+
+/* New Year Modal Animation */
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+#new-year-modal.visible .bg-white {
+    animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* =========================================
+   3. ANIMATIONS & CORE UI
    ========================================= */
 @keyframes slideInRight {
     from { opacity: 0; transform: translateX(20px); }
@@ -100,45 +136,24 @@ header, nav {
 .page.active { display: block; }
 
 @keyframes pulse-logo {
-    0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.5)); }
-    50% { transform: scale(1.05); opacity: 0.9; filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.8)); }
+    0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3)); }
+    50% { transform: scale(1.05); opacity: 0.9; filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.5)); }
 }
 .app-loader-logo {
     animation: pulse-logo 2.5s infinite ease-in-out;
 }
 
 @keyframes pulse-points {
-    0% { transform: scale(1); color: var(--ny-gold); }
-    50% { transform: scale(1.2) rotate(-5deg); color: var(--ny-gold-light); text-shadow: 0 0 10px var(--ny-gold); }
-    100% { transform: scale(1); color: var(--ny-gold); }
+    0% { transform: scale(1); color: var(--emerald-500); }
+    50% { transform: scale(1.2); color: var(--emerald-600); }
+    100% { transform: scale(1); color: var(--emerald-500); }
 }
 .points-pulse {
     animation: pulse-points 0.4s ease-out;
 }
 
-/* --- NEW YEAR FIREWORKS (CSS Only - Lightweight) --- */
-@keyframes firework-burst {
-    0% { transform: translate(var(--x), var(--initialY)); width: var(--initialSize); opacity: 1; }
-    50% { width: 0.5vmin; opacity: 1; }
-    100% { width: var(--finalSize); opacity: 0; }
-}
-
-/* --- LOW DATA / REDUCED MOTION --- */
-@media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .firework {
-        animation: none !important;
-        transition: none !important;
-    }
-}
-
-body.low-data-mode .leaf,
-body.low-data-mode .animate-float,
-body.low-data-mode .firework {
-    display: none !important; 
-}
-
 /* =========================================
-   3. SIDEBAR & NAVIGATION (RESPONSIVE)
+   4. SIDEBAR & NAVIGATION
    ========================================= */
 #sidebar {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -170,23 +185,23 @@ body.low-data-mode .firework {
     #sidebar-overlay { display: none !important; }
 }
 
-/* Active States - New Year Gold Accent */
+/* Active Nav Items - Green Theme */
 .sidebar-nav-item.active {
-    background-color: #FFFBEB; /* Amber-50 */
-    color: #B45309; /* Amber-700 */
+    background-color: #ECFDF5; /* Emerald-50 */
+    color: #047857; /* Emerald-700 */
     font-weight: 600;
-    border-right: 3px solid var(--ny-gold);
+    border-right: 3px solid #10B981;
 }
-.sidebar-nav-item.active svg { color: #B45309; }
+.sidebar-nav-item.active svg { color: #047857; }
 
 .dark .sidebar-nav-item.active {
-    background-color: rgba(245, 158, 11, 0.15); /* Gold transparent */
-    color: #FCD34D; /* Amber-300 */
-    border-right: 3px solid var(--ny-gold);
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34D399; /* Emerald-400 */
+    border-right: 3px solid #34D399;
 }
-.dark .sidebar-nav-item.active svg { color: #FCD34D; }
+.dark .sidebar-nav-item.active svg { color: #34D399; }
 
-/* Force White Text (GreenLens) */
+/* Force White Text for Immersive Pages */
 #sidebar.force-dark-text .sidebar-nav-item,
 #sidebar.force-dark-text h2, 
 #sidebar.force-dark-text p,
@@ -201,19 +216,14 @@ body.low-data-mode .firework {
     border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-@media (min-width: 1024px) {
-    .glass-bottom-bar { display: none !important; }
-}
-
-.nav-item.active { color: var(--ny-gold) !important; }
-.nav-item.active svg { color: var(--ny-gold) !important; filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4)); }
-.dark .nav-item.active { color: var(--ny-gold-light) !important; }
-.dark .nav-item.active svg { color: var(--ny-gold-light) !important; }
-
-#theme-toggle-btn > span { transition: transform 0.3s ease-in-out; }
+/* Bottom Nav */
+.nav-item.active { color: #10B981 !important; }
+.nav-item.active svg { color: #10B981 !important; filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3)); }
+.dark .nav-item.active { color: #34D399 !important; }
+.dark .nav-item.active svg { color: #34D399 !important; }
 
 /* =========================================
-   4. GLASSMORPHISM & CARDS (PREMIUM)
+   5. GLASSMORPHISM & CARDS
    ========================================= */
 .glass-card {
     background: rgba(255, 255, 255, 0.85);
@@ -226,31 +236,30 @@ body.low-data-mode .firework {
     overflow: hidden;
 }
 .dark .glass-card {
-    background: rgba(15, 23, 42, 0.70); /* Darker midnight blue */
-    border-color: rgba(245, 158, 11, 0.15); /* Subtle gold border */
+    background: rgba(30, 41, 59, 0.70);
+    border-color: rgba(255, 255, 255, 0.05);
     box-shadow: 0 0 15px rgba(0,0,0,0.3);
 }
 
 .glass-green-card {
-    /* Updated to Midnight/Gold Gradient for Hero Card */
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
     border-radius: 1.5rem;
-    color: #F8FAFC;
+    color: #ECFDF5;
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(245, 158, 11, 0.3); /* Gold border */
+    border: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
 }
 .glass-green-card::before {
     content: '';
     position: absolute;
     top: -50%; left: -50%; width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(245,158,11,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
     pointer-events: none;
 }
 .dark .glass-green-card {
-    background: linear-gradient(135deg, #020617 0%, #0F172A 100%);
-    border-color: rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #065F46 0%, #064E3B 100%);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .glass-bottom-bar {
@@ -266,236 +275,111 @@ body.low-data-mode .firework {
 }
 
 .btn-eco-gradient {
-    /* New Year Gold Gradient */
-    background-image: linear-gradient(135deg, #B45309, #D97706);
-    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4) !important;
+    background-image: linear-gradient(135deg, #10B981, #059669);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
     color: white;
 }
 .btn-eco-gradient:hover {
-    background-image: linear-gradient(135deg, #D97706, #F59E0B);
-    filter: brightness(1.1);
+    background-image: linear-gradient(135deg, #34D399, #10B981);
+    filter: brightness(1.05);
 }
 
 /* =========================================
-   5. RESPONSIVE GRIDS
+   6. RESPONSIVE GRIDS & UTILITIES
    ========================================= */
 @media (min-width: 768px) {
-    #product-grid, #store-detail-page .grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    }
+    #product-grid, #store-detail-page .grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    #dashboard .grid-cols-3 { gap: 1.5rem; }
 }
 @media (min-width: 1280px) {
-    #product-grid, #store-detail-page .grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    }
-}
-@media (min-width: 768px) {
-    #dashboard .grid-cols-3 {
-        gap: 1.5rem;
-    }
+    #product-grid, #store-detail-page .grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 }
 @media (min-width: 1024px) {
-    #event-list {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
-    }
+    #event-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
 }
 
-/* =========================================
-   6. LEADERBOARD DESIGN
-   ========================================= */
-.leaf-layer {
-    /* Renaming purely for CSS compatibility, but keeping logic */
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 5; 
-    height: 100%;
-}
-
+/* Leaderboard Elements */
 .leaf {
     position: absolute;
-    top: -10vh;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    background: var(--ny-gold); /* Confetti Gold */
-    box-shadow: 0 0 5px var(--ny-gold-light);
+    background: #10B981;
     animation: leafFall linear infinite;
+    opacity: 0;
 }
-.dark .leaf {
-    background: var(--ny-gold-light);
-}
-
 @keyframes leafFall {
     0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
-    10% { opacity: 1; } 
+    10% { opacity: 1; }
     100% { transform: translateY(120vh) translateX(40px) rotate(360deg); opacity: 0; }
 }
+.leaf:nth-child(1) { left: 5%; animation-duration: 8s; animation-delay: 0s; }
+.leaf:nth-child(2) { left: 20%; animation-duration: 12s; animation-delay: 2s; }
+.leaf:nth-child(3) { left: 40%; animation-duration: 10s; animation-delay: 1s; }
+.leaf:nth-child(4) { left: 60%; animation-duration: 14s; animation-delay: 3s; }
+.leaf:nth-child(5) { left: 80%; animation-duration: 9s; animation-delay: .5s; }
 
-.leaf:nth-child(1) { left: 5%;  animation-duration: 8s; animation-delay: 0s; background: #FCD34D; }
-.leaf:nth-child(2) { left: 18%; animation-duration: 12s; animation-delay: 2s; background: #A78BFA; } /* Violet confetti */
-.leaf:nth-child(3) { left: 32%; animation-duration: 10s; animation-delay: 1s; background: #F87171; } /* Red confetti */
-.leaf:nth-child(4) { left: 46%; animation-duration: 14s; animation-delay: 3s; background: #60A5FA; } /* Blue confetti */
-.leaf:nth-child(5) { left: 60%; animation-duration: 9s; animation-delay: .5s; background: #34D399; } /* Green confetti */
-.leaf:nth-child(6) { left: 72%; animation-duration: 11s; animation-delay: 4s; background: #FCD34D; }
-.leaf:nth-child(7) { left: 84%; animation-duration: 13s; animation-delay: 1.5s;}
-.leaf:nth-child(8) { left: 92%; animation-duration: 7s; animation-delay: 2.5s;}
-
-.podium-wrapper {
-    position: relative;
-    margin-bottom: 40px;
-    padding-top: 10px;
-    z-index: 10;
-}
-.podium {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    align-items: flex-end;
-}
+/* Podium & Badge */
+.podium-wrapper { position: relative; margin-bottom: 40px; padding-top: 10px; z-index: 10; }
+.podium { display: flex; justify-content: center; gap: 10px; align-items: flex-end; }
 .champ {
-    text-align: center;
-    padding: 15px 5px;
-    border-radius: var(--radius);
-    width: 32%;
-    opacity: 0;
-    animation: raise 0.8s ease forwards;
+    text-align: center; padding: 15px 5px; border-radius: var(--radius); width: 32%;
+    opacity: 0; animation: raise 0.8s ease forwards;
     background: linear-gradient(to bottom, #ffffff, #f1f5f9);
     box-shadow: 0 10px 25px rgba(0,0,0,0.06) !important;
-    color: #1a1a1a;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
     border: 1px solid #e2e8f0;
+    display: flex; flex-direction: column; justify-content: flex-end;
 }
-.dark .champ {
-    background: linear-gradient(to bottom, #1e293b, #0f172a);
-    color: #f3f4f6;
-    border: 1px solid #334155;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.1) !important; /* Gold glow */
-}
-
-.champ:nth-child(1) { animation-delay: .1s; height: 140px; } 
-.champ:nth-child(2) { animation-delay: .2s; height: 170px; z-index: 2; border-color: var(--ny-gold); } /* 1st place gold border */
-.champ:nth-child(3) { animation-delay: .3s; height: 130px; } 
-
-@keyframes raise {
-    0%   { opacity: 0; transform: translateY(40px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
+.dark .champ { background: linear-gradient(to bottom, #1e293b, #0f172a); border-color: #334151; }
+.champ:nth-child(1) { animation-delay: .1s; height: 140px; }
+.champ:nth-child(2) { animation-delay: .2s; height: 170px; z-index: 2; border-color: #10B981; }
+.champ:nth-child(3) { animation-delay: .3s; height: 130px; }
+@keyframes raise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
 
 .badge {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin: -40px auto 10px auto;
-    font-weight: 700;
-    font-size: 16px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #1a1a1a;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    border: 3px solid #fff;
-    flex-shrink: 0;
+    width: 50px; height: 50px; border-radius: 50%; margin: -40px auto 10px auto;
+    font-weight: 700; display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; border: 3px solid #fff;
+    position: relative; overflow: hidden;
 }
-.dark .badge {
-    border-color: #374151;
-    color: #000;
-}
-.badge::after {
-    content: "";
-    position: absolute;
-    top: -50%; left: -150%; width: 70%; height: 200%;
-    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.8), transparent);
-    transform: skewX(-25deg);
-    animation: shine 3.5s ease-in-out infinite;
-}
-.gold   { background: var(--gold); }
+.gold { background: var(--gold); }
 .silver { background: var(--silver); }
 .bronze { background: var(--bronze); }
-
-@keyframes shine {
-    0%   { left: -150%; }
-    50%  { left: 120%; }
-    100% { left: 120%; }
+.badge::after {
+    content: ""; position: absolute; top: -50%; left: -150%; width: 70%; height: 200%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.8), transparent);
+    transform: skewX(-25deg); animation: shine 3.5s ease-in-out infinite;
 }
+@keyframes shine { 0% { left: -150%; } 50%, 100% { left: 120%; } }
 
-.champ-name   { font-weight: 700; line-height: 1.2; margin-bottom: 4px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
-.champ-points { font-size: 12px; font-weight: 600; color: #555; }
-.dark .champ-points { color: #9ca3af; }
-.champ-class { 
-    font-size: 10px; color: var(--forest-accent); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;
-}
-.dark .champ-class { color: #34d399; }
-.rank { font-size: 10px; opacity: .5; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;}
-
-.list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
 .list .item {
     display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;
-    border-radius: var(--radius); transition: transform .2s ease; background: #ffffff;
-    border: 1px solid #f0f0f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+    border-radius: var(--radius); background: #ffffff; border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
 }
 .dark .list .item { background: #1f2937; border-color: #374151; box-shadow: none !important; }
-.list .item:hover { transform: translateY(-2px); border-color: var(--ny-gold-light); }
-.dark .list .item:hover { border-color: var(--ny-gold); }
-
-.user { display: flex; align-items: center; gap: 12px; }
-.circle { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: 700; background: #e8f5e9; color: var(--forest-accent); flex-shrink: 0; overflow: hidden; object-fit: cover; }
-.dark .circle { background: #064e3b; color: #a7f3d0; }
-.user-info { display: flex; flex-direction: column; justify-content: center; }
-.user-info strong { font-size: 14px; color: #222; display: flex; align-items: center; }
-.dark .user-info strong { color: #f3f4f6; }
-.sub-class { font-size: 10px; color: var(--forest-accent); font-weight: 600; display: block; margin-top: 1px; text-transform: uppercase; }
-.dark .sub-class { color: #34d399; }
-.points-display { font-weight: 700; font-size: 14px; color: #1a1a1a; }
-.dark .points-display { color: #e5e7eb; }
-.item.is-me { border: 2px solid var(--ny-gold); background: #FFFBEB; }
-.dark .item.is-me { background: #451a03; border-color: var(--ny-gold); }
+.item.is-me { border: 2px solid #10B981; background: #ECFDF5; }
+.dark .item.is-me { background: #064E3B; border-color: #10B981; }
 
 /* =========================================
-   7. MODALS, UTILITIES & CHATBOT
+   7. MODALS & TOASTS
    ========================================= */
-.checkin-completed {
-    background: #F3F4F6 !important;
-    background-image: none !important;
-    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
-    border: 1px solid #E5E7EB !important;
-    color: #9CA3AF !important;
-    cursor: default !important;
-    transform: none !important;
-}
-.dark .checkin-completed {
-    background: #1F2937 !important;
-    border-color: #374151 !important;
-    color: #6B7280 !important;
-}
-.checkin-completed .checkin-hide-on-complete { display: none !important; }
-.checkin-completed .checkin-show-on-complete { display: flex !important; }
-.checkin-completed h3, .checkin-completed span, .checkin-completed i, .checkin-completed p { color: #6B7280 !important; }
-.dark .checkin-completed h3, .dark .checkin-completed span, .dark .checkin-completed i, .dark .checkin-completed p { color: #9CA3AF !important; }
-
-/* Transitions */
-#camera-modal, #checkin-modal, #chatbot-modal, #eco-quiz-modal, #purchase-modal, #qr-modal {
+#checkin-modal, #chatbot-modal, #eco-quiz-modal, #purchase-modal, #qr-modal, #gallery-modal {
     transition: opacity 0.3s ease-in-out, visibility 0.3s;
 }
-#camera-modal.open, #checkin-modal.open, #chatbot-modal.open, #eco-quiz-modal.open {
-    opacity: 1; visibility: visible;
+#checkin-modal.open, #chatbot-modal.open, #eco-quiz-modal.open { opacity: 1; visibility: visible; }
+#checkin-modal-content, #chatbot-modal-content, #eco-quiz-modal-content { transition: transform 0.3s ease-in-out; }
+#checkin-modal.open #checkin-modal-content, #chatbot-modal.open #chatbot-modal-content { transform: translateY(0); }
+
+/* Toast */
+#app-toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 110;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    min-width: 280px; max-width: 90%; padding: 14px 20px;
+    border-radius: 50px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); backdrop-filter: blur(8px);
+    opacity: 0; animation: toastSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-#checkin-modal-content, #chatbot-modal-content, #eco-quiz-modal-content {
-    transition: transform 0.3s ease-in-out;
-}
-#checkin-modal.open #checkin-modal-content, 
-#chatbot-modal.open #chatbot-modal-content,
-#eco-quiz-modal.open #eco-quiz-modal-content {
-    transform: translateY(0);
-}
+@keyframes toastSlideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
 /* Chatbot Desktop */
 @media (min-width: 1024px) {
@@ -521,109 +405,12 @@ body.low-data-mode .firework {
      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-chevron-down'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
-.leaderboard-switch { border-radius: 9999px; }
-.leaderboard-tab-btn { border-radius: 9999px; transition: all 0.2s ease-in-out; }
-.leaderboard-tab-btn.active { background-color: #ffffff; color: #10B981; box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important; }
-.dark .leaderboard-tab-btn.active { background-color: #1f2937; color: #34D399; }
-
-.slider-container { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-.slider-item { scroll-snap-align: center; }
-.slider-dot { transition: all 0.3s ease; }
-.slider-dot.active { background-color: #10B981; transform: scale(1.25); }
-.dark .slider-dot.active { background-color: #34D399; }
-
-.avatar-stack { display: flex; align-items: center; }
-.avatar-stack img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffffff; margin-left: -10px; object-fit: cover; }
-.dark .avatar-stack img { border-color: #1f2937; }
-.avatar-stack img:first-child { margin-left: 0; }
-.avatar-stack .more-count { width: 32px; height: 32px; border-radius: 50%; background: #f3f4f6; border: 2px solid #ffffff; margin-left: -10px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #6b7280; z-index: 1; }
-.dark .avatar-stack .more-count { background: #374151; border-color: #1f2937; color: #e5e7eb; }
-
-.event-poster-container { position: relative; width: 100%; padding-top: 56.25%; border-radius: 1rem; overflow: hidden; background-color: #f3f4f6; }
-.dark .event-poster-container { background-color: #374151; }
-.event-poster-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-
-.quiz-option { transition: all 0.2s ease; }
-.quiz-option:active { transform: scale(0.98); }
-.quiz-option.selected { border-color: #4f46e5; background-color: #eef2ff; }
-.dark .quiz-option.selected { border-color: #6366f1; background-color: #312e81; }
-.tick-icon { width: 14px; height: 14px; object-fit: contain; display: inline-block; vertical-align: middle; margin-left: 4px; margin-top: -2px; }
-
-#department-detail-page, #product-detail-page { padding: 0 !important; background-color: #f9fafb; z-index: 20; }
-.dark #department-detail-page, .dark #product-detail-page { background-color: #111827; }
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-.nav-item span { font-size: 10px; letter-spacing: 0.2px; font-weight: 700; }
-.nav-item.active { color: var(--ny-gold) !important; }
-.nav-item.active svg { stroke-width: 2.5px; transform: translateY(-2px); transition: transform 0.2s ease; }
-.dark .nav-item.active { color: var(--ny-gold-light) !important; }
-
-@media (hover: hover) {
-    .bg-white.rounded-3xl:hover { transform: translateY(-2px); box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05) !important; }
+/* Santa Hat Helper (Preserved for Chatbot Icon) */
+.santa-hat-overlay { position: relative; display: inline-block; }
+.santa-hat-overlay::after {
+    content: '🎅'; position: absolute; top: -15px; right: -10px;
+    font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    animation: hat-bounce 3s infinite ease-in-out;
+    z-index: 10; pointer-events: none;
 }
-
-@keyframes slideUp { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.animate-slideUp { animation: slideUp 0.35s ease forwards; }
-
-@keyframes float { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.1); } 100% { transform: translate(0,0) scale(1); } }
-.animate-float { animation: float 18s infinite ease-in-out; }
-
-.typing-dot { width: 6px; height: 6px; background: #10B981; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out both; margin: 0 2px; }
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
-@keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
-.masonry-grid { column-count: 2; column-gap: 1rem; }
-@media (min-width: 768px) { .masonry-grid { column-count: 3; } }
-@media (min-width: 1024px) { .masonry-grid { column-count: 4; } }
-
-#gallery-modal { transition: opacity 0.3s ease-in-out; backdrop-filter: blur(10px); }
-@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-.animate-breathe { animation: breathe 6s ease-in-out infinite; }
-
-.rounded-t-full { border-top-left-radius: 9999px; border-top-right-radius: 9999px; }
-.font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-.main-content, #sidebar, header { transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease; will-change: background-color; }
-
-/* =========================================
-   8. TOAST NOTIFICATIONS
-   ========================================= */
-#app-toast {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 110;
-    display: flex; align-items: center; justify-content: center; gap: 12px;
-    min-width: 280px; max-width: 90%; padding: 14px 20px;
-    border-radius: 50px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; color: white;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); backdrop-filter: blur(8px);
-    opacity: 0; animation: toastSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.toast-success { background: rgba(16, 185, 129, 0.95); border: 1px solid rgba(16, 185, 129, 1); }
-.toast-error   { background: rgba(220, 38, 38, 0.95); border: 1px solid rgba(220, 38, 38, 1); }
-.toast-warning { background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(245, 158, 11, 1); }
-
-@keyframes toastSlideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-.toast-hiding { transition: all 0.3s ease; transform: translate(-50%, 20px) !important; opacity: 0 !important; }
-
-/* =========================================
-   9. NEW YEAR THEME EXTRAS
-   ========================================= */
-
-/* Fireworks Container */
-#fireworks-container {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 10; overflow: hidden;
-}
-
-/* New Year Chatbot Glow */
-.chatbot-trigger-glow {
-    position: absolute; inset: 0; border-radius: 50%;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.6), inset 0 0 10px rgba(245, 158, 11, 0.4);
-    animation: pulse-glow 2s infinite;
-}
-@keyframes pulse-glow {
-    0% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(1); opacity: 0.6; }
-}
+@keyframes hat-bounce { 0%, 100% { transform: rotate(15deg) translateY(0); } 50% { transform: rotate(5deg) translateY(-5px); } }
