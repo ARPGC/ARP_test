@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with Christmas Theme Logic & Performance Optimizations
+ * Fully updated with New Year 2026 Theme Logic & Performance Optimizations
  */
 
 import { supabase } from './supabase-client.js';
@@ -48,17 +48,8 @@ const initializeApp = async () => {
     try {
         console.log('Init: Fetching user profile...');
         
-        // CHRISTMAS: Festive Console Welcome 🎄
-        console.log("%c🎄 Merry Christmas from EcoCampus! 🎅", "color: #ef4444; font-size: 16px; font-weight: bold; background: #ecfdf5; padding: 5px; border-radius: 5px;");
-
-        // PERFORMANCE: Remove snow DOM elements if in Low Data Mode to save memory
-        if (document.body.classList.contains('low-data-mode')) {
-            const snowContainer = document.getElementById('snow-container');
-            if (snowContainer) {
-                snowContainer.remove();
-                console.log("❄️ Snowfall disabled for performance.");
-            }
-        }
+        // NEW YEAR: Festive Console Welcome 🎉🎆
+        console.log("%c🎉🎆 Happy New Year 2026 from EcoCampus! 🥂✨", "color: #F59E0B; font-size: 16px; font-weight: bold; background: #FFFBEB; padding: 5px; border-radius: 5px;");
 
         // Fetch specific columns to optimize bandwidth
         const { data: userProfile, error } = await supabase
