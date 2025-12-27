@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with New Year 2026 Theme & Performance Optimizations
+ * Fully updated with New Year 2026 Theme, Loader Fix & Performance Optimizations
  */
 
 import { supabase } from './supabase-client.js';
@@ -38,6 +38,9 @@ const checkAuth = async () => {
     } catch (err) { 
         console.error('CRITICAL: Auth check failed unexpectedly:', err); 
         showToast('System error. Please refresh the page.', 'error');
+        // Emergency loader removal in case of critical failure
+        const loader = document.getElementById('app-loading');
+        if(loader) loader.style.display = 'none';
     }
 };
 
@@ -114,29 +117,26 @@ const initializeApp = async () => {
             showToast('Partial data load failure.', 'warning');
         }
         
-        // Remove app loader after delay for smooth transition
-        // FIX: Added explicit display none to force removal even if CSS fails
-        setTimeout(() => {
-            const loader = document.getElementById('app-loading');
-            if (loader) {
-                loader.classList.add('loaded');
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 600); // Wait for CSS transition then hide
-            }
-        }, 500);
-
-        // Initialize Lucide icons
-        if(window.lucide) window.lucide.createIcons();
-        
         setupFileUploads();
 
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err);
         showToast('App failed to initialize.', 'error');
-        // Force remove loader on error so user sees toast
-        const loader = document.getElementById('app-loading');
-        if (loader) loader.style.display = 'none';
+    } finally {
+        // --- LOADER FAIL-SAFE REMOVAL ---
+        // This runs regardless of errors to ensure user isn't stuck on white screen
+        // even if CSS caching is active.
+        setTimeout(() => {
+            const loader = document.getElementById('app-loading');
+            if (loader) {
+                loader.classList.add('loaded'); // Try CSS transition
+                // FORCE REMOVE via inline style after short delay
+                setTimeout(() => { loader.style.display = 'none'; }, 300);
+            }
+        }, 500);
+
+        // Initialize Lucide icons
+        if(window.lucide) window.lucide.createIcons();
     }
 };
 
@@ -228,20 +228,18 @@ const initNewYearCountdown = () => {
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
+        // Design matches your image: Dark Blue BG, White Text, Blue/Purple accent
         container.innerHTML = `
-            <div class="glass-countdown p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group hover:scale-[1.01] transition-transform duration-500">
-                <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-emerald-500/10 opacity-60"></div>
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400/20 rounded-full blur-3xl animate-pulse"></div>
-                
-                <h3 class="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-[0.25em] mb-5 relative z-10 flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i> Countdown to 2026
+            <div class="glass-countdown p-6 flex flex-col items-center justify-center text-center relative overflow-hidden rounded-3xl" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155;">
+                <h3 class="text-xl font-bold text-white mb-5">
+                    Time until <span style="color: #818cf8;">2026</span>
                 </h3>
                 
-                <div class="grid grid-cols-4 gap-3 md:gap-8 relative z-10 w-full max-w-sm mx-auto">
-                    ${renderTimeBox(days, 'Days')}
-                    ${renderTimeBox(hours, 'Hrs')}
-                    ${renderTimeBox(minutes, 'Mins')}
-                    ${renderTimeBox(seconds, 'Secs')}
+                <div class="grid grid-cols-4 gap-3 w-full max-w-sm mx-auto">
+                    ${renderTimeBox(days, 'DAYS')}
+                    ${renderTimeBox(hours, 'HRS')}
+                    ${renderTimeBox(minutes, 'MINS')}
+                    ${renderTimeBox(seconds, 'SECS', true)}
                 </div>
             </div>
         `;
@@ -253,22 +251,24 @@ const initNewYearCountdown = () => {
     countdownInterval = setInterval(updateTimer, 1000);
 };
 
-const renderTimeBox = (value, label) => `
+const renderTimeBox = (value, label, isLast = false) => `
     <div class="flex flex-col items-center">
-        <div class="w-full aspect-square bg-white/40 dark:bg-black/30 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/5 shadow-sm glow-gold">
-            <span class="text-2xl md:text-4xl font-black text-gray-800 dark:text-white tabular-nums">${String(value).padStart(2, '0')}</span>
+        <div class="w-full aspect-square bg-slate-800/50 backdrop-blur-md rounded-2xl flex items-center justify-center border border-slate-700 shadow-lg">
+            <span class="text-3xl md:text-4xl font-black ${isLast ? 'text-blue-400' : 'text-white'} tabular-nums font-mono">
+                ${String(value).padStart(2, '0')}
+            </span>
         </div>
-        <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-2 uppercase tracking-wider">${label}</span>
+        <span class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">${label}</span>
     </div>
 `;
 
 const renderHappyNewYear = (container) => {
     container.innerHTML = `
-        <div class="glass-countdown p-8 flex flex-col items-center justify-center text-center relative overflow-hidden firework-click cursor-pointer" onclick="launchConfetti()">
-            <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-emerald-500/20 animate-pulse"></div>
-            <h1 class="text-4xl md:text-6xl font-black animate-shimmer-text mb-2 relative z-10">HAPPY NEW YEAR!</h1>
-            <p class="text-lg font-medium text-gray-600 dark:text-gray-300 relative z-10">Welcome to a greener 2026. 🌿✨</p>
-            <button onclick="launchConfetti()" class="mt-4 px-6 py-2 bg-yellow-400 text-yellow-900 font-bold rounded-full text-sm hover:bg-yellow-300 transition-colors relative z-10 shadow-lg shadow-yellow-400/30">
+        <div class="glass-countdown p-8 flex flex-col items-center justify-center text-center relative overflow-hidden rounded-3xl" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155;">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse"></div>
+            <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 relative z-10">HAPPY 2026!</h1>
+            <p class="text-lg font-medium text-slate-300 relative z-10">Welcome to a greener future. 🌿✨</p>
+            <button onclick="launchConfetti()" class="mt-4 px-6 py-2 bg-blue-500 text-white font-bold rounded-full text-sm hover:bg-blue-600 transition-colors relative z-10 shadow-lg shadow-blue-500/30">
                 Celebrate Again! 🎉
             </button>
         </div>
@@ -283,8 +283,8 @@ window.launchConfetti = () => {
     const duration = 3000;
     const end = Date.now() + duration;
 
-    // Colors: Gold, Emerald, White
-    const colors = ['#fbbf24', '#10b981', '#ffffff'];
+    // Colors: Blue, Purple, White (Matching the new theme)
+    const colors = ['#60a5fa', '#a78bfa', '#ffffff'];
 
     (function frame() {
         confetti({
