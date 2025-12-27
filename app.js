@@ -115,9 +115,15 @@ const initializeApp = async () => {
         }
         
         // Remove app loader after delay for smooth transition
+        // FIX: Added explicit display none to force removal even if CSS fails
         setTimeout(() => {
             const loader = document.getElementById('app-loading');
-            if (loader) loader.classList.add('loaded');
+            if (loader) {
+                loader.classList.add('loaded');
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 600); // Wait for CSS transition then hide
+            }
         }, 500);
 
         // Initialize Lucide icons
@@ -128,6 +134,9 @@ const initializeApp = async () => {
     } catch (err) { 
         console.error('CRITICAL: App initialization crashed:', err);
         showToast('App failed to initialize.', 'error');
+        // Force remove loader on error so user sees toast
+        const loader = document.getElementById('app-loading');
+        if (loader) loader.style.display = 'none';
     }
 };
 
@@ -268,6 +277,9 @@ const renderHappyNewYear = (container) => {
 
 // Global Confetti Trigger
 window.launchConfetti = () => {
+    // Safety check if confetti lib failed to load
+    if (!window.confetti) return;
+
     const duration = 3000;
     const end = Date.now() + duration;
 
@@ -275,8 +287,6 @@ window.launchConfetti = () => {
     const colors = ['#fbbf24', '#10b981', '#ffffff'];
 
     (function frame() {
-        if (!window.confetti) return;
-        
         confetti({
             particleCount: 3,
             angle: 60,
