@@ -1,7 +1,3 @@
-{
-type: uploaded file
-fileName: style.css
-fullContent:
 /* =========================================
    1. GLOBAL RESET & APP STRUCTURE
    ========================================= */
@@ -24,10 +20,10 @@ html, body {
     --forest-accent: #1e8f4b;
     
     /* NEW YEAR 2026 THEME TOKENS */
+    --ny-dark-bg: #0f172a;
+    --ny-card-bg: rgba(30, 41, 59, 0.6);
+    --ny-text-highlight: #818cf8;
     --ny-gold: #fbbf24;
-    --ny-gold-gradient: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-    --ny-glow: 0 0 20px rgba(251, 191, 36, 0.4);
-    --ny-text-shimmer: linear-gradient(45deg, #b45309, #fbbf24, #fff, #fbbf24, #b45309);
 }
 
 *, *::before, *::after {
@@ -120,15 +116,14 @@ header, nav {
 
 /* --- LOW DATA / REDUCED MOTION --- */
 @media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .confetti-canvas {
+    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page {
         animation: none !important;
         transition: none !important;
     }
 }
 
 body.low-data-mode .leaf,
-body.low-data-mode .animate-float,
-body.low-data-mode .confetti-canvas {
+body.low-data-mode .animate-float {
     display: none !important; /* Hide heavy visuals */
 }
 
@@ -527,9 +522,18 @@ body.low-data-mode .confetti-canvas {
     }
 }
 
-/* Loader */
-#app-loading { opacity: 1; visibility: visible; transition: opacity 0.5s ease-out; }
-#app-loading.loaded { opacity: 0; visibility: hidden; pointer-events: none; }
+/* --- LOADER FIX --- */
+#app-loading { 
+    opacity: 1; 
+    visibility: visible; 
+    transition: opacity 0.5s ease-out, visibility 0.5s;
+    z-index: 9999;
+}
+#app-loading.loaded { 
+    opacity: 0 !important; 
+    visibility: hidden !important; 
+    pointer-events: none !important; 
+}
 
 /* Custom Form & Tabs */
 .custom-select {
@@ -739,7 +743,7 @@ body.low-data-mode .confetti-canvas {
 
 /* Shimmer Text Effect */
 .animate-shimmer-text {
-    background: var(--ny-text-shimmer);
+    background: var(--ny-text-highlight);
     background-size: 200% auto;
     color: transparent;
     -webkit-background-clip: text;
@@ -781,5 +785,4 @@ body.low-data-mode .confetti-canvas {
 }
 .firework-click:active::after {
     animation: firework-burst 0.4s ease-out;
-}
 }
