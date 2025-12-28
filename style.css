@@ -300,7 +300,12 @@ body.low-data-mode .hero-particle {
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
-   
+    animation: floatParticle 8s infinite ease-in-out;
+}
+@keyframes floatParticle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+    50% { transform: translateY(-20px) scale(1.2); opacity: 0.6; }
+}
 
 /* Hero Timer Box Styling */
 .hero-timer-box {
