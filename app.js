@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Fully updated with New Year 2026 Theme, Loader Fix & Performance Optimizations
+ * Enhanced New Year 2026 Hero Banner, Festive Greetings & Performance Optimizations
  */
 
 import { supabase } from './supabase-client.js';
@@ -38,7 +38,7 @@ const checkAuth = async () => {
     } catch (err) { 
         console.error('CRITICAL: Auth check failed unexpectedly:', err); 
         showToast('System error. Please refresh the page.', 'error');
-        // Emergency loader removal in case of critical failure
+        // Emergency loader removal
         const loader = document.getElementById('app-loading');
         if(loader) loader.style.display = 'none';
     }
@@ -51,7 +51,7 @@ const initializeApp = async () => {
     try {
         console.log('Init: Fetching user profile...');
         
-        // NEW YEAR: Console Welcome
+        // Console Art
         console.log("%c🎉 Ready for 2026! EcoCampus Loaded. 🌿", "color: #fbbf24; font-size: 16px; font-weight: bold; background: #064e3b; padding: 5px; border-radius: 5px;");
 
         // PERFORMANCE: Remove heavy DOM elements if in Low Data Mode
@@ -89,7 +89,13 @@ const initializeApp = async () => {
         if (!sessionStorage.getItem('login_logged')) {
             logUserActivity('login', 'User logged in');
             sessionStorage.setItem('login_logged', '1');
-            showToast(`Welcome back, ${userProfile.full_name}!`, 'success');
+            
+            // Check Date for Festive Greeting (Jan 1 - Jan 5)
+            const today = new Date();
+            const isNewYearWeek = today.getMonth() === 0 && today.getDate() <= 5; 
+            const greetingMsg = isNewYearWeek ? `Happy New Year, ${userProfile.full_name}! 🎆` : `Welcome back, ${userProfile.full_name}!`;
+            
+            showToast(greetingMsg, 'success');
         }
 
         // Set initial navigation state
@@ -104,7 +110,7 @@ const initializeApp = async () => {
             }
             renderDashboard();
 
-            // 2. Initialize New Year Countdown
+            // 2. Initialize New Year Hero Banner
             initNewYearCountdown();
 
             // 3. Load Events Data (Background Fetch)
@@ -125,7 +131,6 @@ const initializeApp = async () => {
     } finally {
         // --- LOADER FAIL-SAFE REMOVAL ---
         // This runs regardless of errors to ensure user isn't stuck on white screen
-        // even if CSS caching is active.
         setTimeout(() => {
             const loader = document.getElementById('app-loading');
             if (loader) {
@@ -200,7 +205,7 @@ export const refreshUserData = async () => {
     }
 };
 
-// --- NEW YEAR 2026 COUNTDOWN LOGIC ---
+// --- NEW YEAR 2026 HERO BANNER LOGIC ---
 
 let countdownInterval;
 
@@ -211,6 +216,17 @@ const initNewYearCountdown = () => {
     container.classList.remove('hidden');
     // Target: Jan 1, 2026 00:00:00
     const targetDate = new Date('January 1, 2026 00:00:00').getTime();
+
+    // OPTIONAL: Update the Dashboard Greeting dynamically if it's actually New Year
+    // This finds the existing greeting element and updates it
+    const greetingEl = document.getElementById('user-name-greeting');
+    if (greetingEl) {
+        const now = new Date();
+        if (now.getFullYear() === 2026 && now.getMonth() === 0 && now.getDate() === 1) {
+             const parent = greetingEl.parentElement; // The <h2> tag
+             if(parent) parent.innerHTML = `Happy New Year, <span class="text-brand-600">${state.currentUser.full_name}</span>!`;
+        }
+    }
 
     const updateTimer = () => {
         const now = new Date().getTime();
@@ -228,18 +244,33 @@ const initNewYearCountdown = () => {
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        // Design matches your image: Dark Blue BG, White Text, Blue/Purple accent
+        // --- NEW HERO BANNER HTML ---
+        // Uses the .glass-hero class defined in style.css for the holographic look
         container.innerHTML = `
-            <div class="glass-countdown p-6 flex flex-col items-center justify-center text-center relative overflow-hidden rounded-3xl" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155;">
-                <h3 class="text-xl font-bold text-white mb-5">
-                    Time until <span style="color: #818cf8;">2026</span>
-                </h3>
+            <div class="glass-hero p-6 relative w-full mb-6 group cursor-pointer overflow-hidden transition-all duration-500 hover:scale-[1.01]" onclick="launchConfetti()">
                 
-                <div class="grid grid-cols-4 gap-3 w-full max-w-sm mx-auto">
-                    ${renderTimeBox(days, 'DAYS')}
-                    ${renderTimeBox(hours, 'HRS')}
-                    ${renderTimeBox(minutes, 'MINS')}
-                    ${renderTimeBox(seconds, 'SECS', true)}
+                <div class="hero-particle w-24 h-24 top-[-20px] right-[-20px] bg-purple-500/20 blur-xl"></div>
+                <div class="hero-particle w-12 h-12 bottom-[10px] left-[10px] bg-blue-400/20 blur-lg delay-700"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    
+                    <div class="text-center md:text-left">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-3 shadow-inner">
+                            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse box-shadow-green"></span>
+                            <span class="text-[10px] font-bold text-gray-100 uppercase tracking-widest">Live Countdown</span>
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-bold text-white mb-1 tracking-tight">
+                            Time until <span class="text-shimmer font-black">2026</span>
+                        </h2>
+                        <p class="text-sm text-gray-300 font-medium">Let's make this year greener together.</p>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 md:gap-4">
+                        ${renderHeroTimeBox(days, 'DAYS')}
+                        ${renderHeroTimeBox(hours, 'HRS')}
+                        ${renderHeroTimeBox(minutes, 'MINS')}
+                        ${renderHeroTimeBox(seconds, 'SECS', true)}
+                    </div>
                 </div>
             </div>
         `;
@@ -251,25 +282,28 @@ const initNewYearCountdown = () => {
     countdownInterval = setInterval(updateTimer, 1000);
 };
 
-const renderTimeBox = (value, label, isLast = false) => `
-    <div class="flex flex-col items-center">
-        <div class="w-full aspect-square bg-slate-800/50 backdrop-blur-md rounded-2xl flex items-center justify-center border border-slate-700 shadow-lg">
-            <span class="text-3xl md:text-4xl font-black ${isLast ? 'text-blue-400' : 'text-white'} tabular-nums font-mono">
-                ${String(value).padStart(2, '0')}
-            </span>
-        </div>
-        <span class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">${label}</span>
+const renderHeroTimeBox = (value, label, isAccent = false) => `
+    <div class="flex flex-col items-center justify-center p-3 hero-timer-box min-w-[65px] md:min-w-[75px]">
+        <span class="text-2xl md:text-3xl font-black ${isAccent ? 'text-blue-300' : 'text-white'} tabular-nums font-mono leading-none mb-1">
+            ${String(value).padStart(2, '0')}
+        </span>
+        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">${label}</span>
     </div>
 `;
 
 const renderHappyNewYear = (container) => {
     container.innerHTML = `
-        <div class="glass-countdown p-8 flex flex-col items-center justify-center text-center relative overflow-hidden rounded-3xl" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155;">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse"></div>
-            <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 relative z-10">HAPPY 2026!</h1>
-            <p class="text-lg font-medium text-slate-300 relative z-10">Welcome to a greener future. 🌿✨</p>
-            <button onclick="launchConfetti()" class="mt-4 px-6 py-2 bg-blue-500 text-white font-bold rounded-full text-sm hover:bg-blue-600 transition-colors relative z-10 shadow-lg shadow-blue-500/30">
-                Celebrate Again! 🎉
+        <div class="glass-hero p-8 flex flex-col items-center justify-center text-center relative overflow-hidden" onclick="launchConfetti()">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20 animate-pulse"></div>
+            
+            <h1 class="text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight">
+                HAPPY NEW YEAR!
+            </h1>
+            <p class="text-lg font-medium text-gray-200 relative z-10 opacity-90 mb-6">
+                Welcome to a greener future. 🌿✨
+            </p>
+            <button onclick="launchConfetti()" class="relative z-20 px-8 py-3 bg-white text-indigo-900 font-bold rounded-full text-sm hover:bg-gray-50 transition-colors shadow-lg active:scale-95">
+                Celebrate 🎉
             </button>
         </div>
     `;
@@ -283,8 +317,8 @@ window.launchConfetti = () => {
     const duration = 3000;
     const end = Date.now() + duration;
 
-    // Colors: Blue, Purple, White (Matching the new theme)
-    const colors = ['#60a5fa', '#a78bfa', '#ffffff'];
+    // Theme Colors: Blue, Purple, White, Gold
+    const colors = ['#60a5fa', '#a78bfa', '#ffffff', '#fbbf24'];
 
     (function frame() {
         confetti({
