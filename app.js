@@ -311,20 +311,27 @@ const renderHeroTimeBox = (value, label, isAccent = false) => `
 
 // --- FIXED POSITION CELEBRATION CARD (CLEAN & STATIC) ---
 const renderHappyNewYear = (container) => {
-    // REMOVED: Floating particles divs
-    // KEPT: Gradient background, text styling, and confetti click handler
     container.innerHTML = `
-        <div class="glass-hero min-h-[200px] p-6 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 mb-6" onclick="launchConfetti()">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20"></div>
+        <div class="glass-hero new-year-fixed min-h-[200px] p-6 
+                    flex flex-col items-center justify-center 
+                    text-center relative overflow-hidden mb-6"
+             onclick="launchConfetti()">
+
+            <div class="absolute inset-0 bg-gradient-to-r 
+                        from-blue-600/20 via-purple-600/20 to-blue-600/20"></div>
             
-            <h1 class="text-3xl sm:text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight drop-shadow-md w-full break-words">
+            <h1 class="text-3xl sm:text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10">
                 HAPPY NEW YEAR!
             </h1>
-            <p class="text-base md:text-lg font-medium text-gray-200 relative z-10 opacity-90 mb-6">
+
+            <p class="text-base md:text-lg font-medium text-gray-200 relative z-10 mb-6">
                 Welcome to a greener future. 🌿✨
             </p>
-            <button onclick="launchConfetti(event)" class="relative z-20 px-8 py-3 bg-white text-indigo-900 font-bold rounded-full text-sm hover:bg-gray-50 transition-colors shadow-lg active:scale-95 group">
-                <span class="group-hover:animate-pulse">Celebrate Again 🎉</span>
+
+            <button onclick="launchConfetti(event)"
+                class="relative z-20 px-8 py-3 bg-white text-indigo-900 
+                       font-bold rounded-full text-sm shadow-lg active:scale-95">
+                Celebrate Again 🎉
             </button>
         </div>
     `;
