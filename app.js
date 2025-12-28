@@ -216,7 +216,7 @@ const initNewYearCountdown = () => {
     container.classList.remove('hidden');
     
     // TARGET: Jan 1, 2026 00:00:00
-    const targetDate = new Date('January 1, 2026 00:00:00').getTime();
+    const targetDate = new Date('december 28, 2025 10:48:00').getTime();
 
     // Clear existing interval if re-initializing
     if (countdownInterval) clearInterval(countdownInterval);
