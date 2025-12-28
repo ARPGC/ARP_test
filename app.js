@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Final Version: Fixed New Year Celebration State, Holographic Banner & Core Logic
+ * Final Version: Fixed New Year Celebration State, Static Background (No Float) & Core Logic
  */
 
 import { supabase } from './supabase-client.js';
@@ -216,7 +216,7 @@ const initNewYearCountdown = () => {
     container.classList.remove('hidden');
     
     // TARGET: Jan 1, 2026 00:00:00
-    const targetDate = new Date('January 1, 2025 00:00:00').getTime();
+    const targetDate = new Date('January 1, 2026 00:00:00').getTime();
 
     // Clear existing interval if re-initializing
     if (countdownInterval) clearInterval(countdownInterval);
@@ -309,22 +309,20 @@ const renderHeroTimeBox = (value, label, isAccent = false) => `
     </div>
 `;
 
-// --- FIXED POSITION CELEBRATION CARD ---
+// --- FIXED POSITION CELEBRATION CARD (CLEAN & STATIC) ---
 const renderHappyNewYear = (container) => {
+    // REMOVED: Floating particles divs
+    // KEPT: Gradient background, text styling, and confetti click handler
     container.innerHTML = `
-        <div class="glass-hero min-h-[220px] p-8 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 mb-6" onclick="launchConfetti()">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20 animate-pulse"></div>
+        <div class="glass-hero min-h-[200px] p-6 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 mb-6" onclick="launchConfetti()">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20"></div>
             
-            <div class="hero-particle w-20 h-20 top-[-10px] right-[10px] bg-yellow-400/20"></div>
-            <div class="hero-particle w-16 h-16 bottom-[10px] left-[20px] bg-blue-400/20 delay-500"></div>
-
-            <h1 class="text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight drop-shadow-md">
+            <h1 class="text-3xl sm:text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight drop-shadow-md w-full break-words">
                 HAPPY NEW YEAR!
             </h1>
-            <p class="text-lg font-medium text-gray-200 relative z-10 opacity-90 mb-6">
+            <p class="text-base md:text-lg font-medium text-gray-200 relative z-10 opacity-90 mb-6">
                 Welcome to a greener future. 🌿✨
             </p>
-            
             <button onclick="launchConfetti(event)" class="relative z-20 px-8 py-3 bg-white text-indigo-900 font-bold rounded-full text-sm hover:bg-gray-50 transition-colors shadow-lg active:scale-95 group">
                 <span class="group-hover:animate-pulse">Celebrate Again 🎉</span>
             </button>
