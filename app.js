@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Final Version: New Year 2026 Theme, Holographic Banner, Fixed Celebration State & Core Logic
+ * Final Version: Fixed New Year Celebration State, Holographic Banner & Core Logic
  */
 
 import { supabase } from './supabase-client.js';
@@ -216,7 +216,7 @@ const initNewYearCountdown = () => {
     container.classList.remove('hidden');
     
     // TARGET: Jan 1, 2026 00:00:00
-    const targetDate = new Date('december 28, 2025 10:48:00').getTime();
+    const targetDate = new Date('January 1, 2025 00:00:00').getTime();
 
     // Clear existing interval if re-initializing
     if (countdownInterval) clearInterval(countdownInterval);
@@ -235,7 +235,7 @@ const initNewYearCountdown = () => {
         const now = new Date().getTime();
         const distance = targetDate - now;
 
-        // --- TIMEOUT CHECK: IS IT 2026? ---
+        // --- FIXED STATE CHECK: IS IT 2026? ---
         if (distance < 0) {
             // Stop the countdown loop immediately
             clearInterval(countdownInterval);
@@ -244,7 +244,7 @@ const initNewYearCountdown = () => {
             renderHappyNewYear(container);
             
             // Auto-launch confetti only if the transition just happened (within last 10s)
-            // or if user refreshes page near the event.
+            // This prevents confetti spam on page refresh unless it's THE moment.
             if (distance > -10000) {
                 launchConfetti();
             }
@@ -290,7 +290,7 @@ const initNewYearCountdown = () => {
         if(window.lucide) window.lucide.createIcons();
     };
 
-    // Run once immediately
+    // Run once immediately to avoid 1s delay
     updateTimer(); 
     
     // Start interval only if in future
@@ -309,16 +309,16 @@ const renderHeroTimeBox = (value, label, isAccent = false) => `
     </div>
 `;
 
-// --- FIXED CELEBRATION RENDERER ---
+// --- FIXED POSITION CELEBRATION CARD ---
 const renderHappyNewYear = (container) => {
     container.innerHTML = `
-        <div class="glass-hero p-8 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500" onclick="launchConfetti()">
+        <div class="glass-hero min-h-[220px] p-8 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 mb-6" onclick="launchConfetti()">
             <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20 animate-pulse"></div>
             
             <div class="hero-particle w-20 h-20 top-[-10px] right-[10px] bg-yellow-400/20"></div>
             <div class="hero-particle w-16 h-16 bottom-[10px] left-[20px] bg-blue-400/20 delay-500"></div>
 
-            <h1 class="text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight">
+            <h1 class="text-4xl md:text-6xl font-black text-shimmer mb-3 relative z-10 leading-tight drop-shadow-md">
                 HAPPY NEW YEAR!
             </h1>
             <p class="text-lg font-medium text-gray-200 relative z-10 opacity-90 mb-6">
