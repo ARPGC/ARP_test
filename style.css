@@ -757,3 +757,12 @@ body.low-data-mode .hero-particle {
     transform: translate(-50%, 20px) !important;
     opacity: 0 !important;
 }
+
+/* --- FIX: Keep Happy New Year card fully static --- */
+.new-year-fixed,
+.new-year-fixed * {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+}
+
