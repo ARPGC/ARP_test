@@ -215,7 +215,7 @@ const initNewYearCountdown = () => {
 
     container.classList.remove('hidden');
     // Target: Jan 1, 2026 00:00:00
-    const targetDate = new Date('december 28, 2026 10:23:00').getTime();
+    const targetDate = new Date('december 28, 2025 10:25:00').getTime();
 
     // OPTIONAL: Update the Dashboard Greeting dynamically if it's actually New Year
     // This finds the existing greeting element and updates it
