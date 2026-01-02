@@ -18,12 +18,6 @@ html, body {
     --silver: #C0C0C0;
     --bronze: #CD7F32;
     --forest-accent: #1e8f4b;
-    
-    /* New Year 2026 Theme Colors */
-    --ny-midnight: #0f172a;
-    --ny-purple: #3b0764;
-    --ny-accent: #818cf8;
-    --ny-gold: #fbbf24;
 }
 
 *, *::before, *::after {
@@ -129,15 +123,14 @@ header, nav {
 
 /* --- LOW DATA / REDUCED MOTION --- */
 @media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .hero-particle {
+    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page {
         animation: none !important;
         transition: none !important;
     }
 }
 
 body.low-data-mode .leaf,
-body.low-data-mode .animate-float,
-body.low-data-mode .hero-particle {
+body.low-data-mode .animate-float {
     display: none !important; /* Hide heavy visuals */
 }
 
@@ -270,66 +263,7 @@ body.low-data-mode .hero-particle {
 }
 
 /* =========================================
-   5. NEW YEAR HERO BANNER (PREMIUM UI)
-   ========================================= */
-.glass-hero {
-    position: relative;
-    overflow: hidden;
-    border-radius: 1.75rem;
-    /* Deep Midnight to Purple Gradient */
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-    box-shadow: 0 20px 40px -10px rgba(49, 46, 129, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Shimmer Text Animation */
-.text-shimmer {
-    background: linear-gradient(to right, #818cf8 0%, #c7d2fe 50%, #818cf8 100%);
-    background-size: 200% auto;
-    color: transparent;
-    -webkit-background-clip: text;
-    background-clip: text;
-    animation: shine 4s linear infinite;
-}
-@keyframes shine { 
-    to { background-position: 200% center; } 
-}
-
-/* Floating Particles in Banner */
-.hero-particle {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    animation: floatParticle 8s infinite ease-in-out;
-}
-@keyframes floatParticle {
-    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-    50% { transform: translateY(-20px) scale(1.2); opacity: 0.6; }
-}
-
-/* Hero Timer Box Styling */
-.hero-timer-box {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border-radius: 1rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-/* Confetti Canvas */
-#confetti-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 100; /* Above content */
-}
-
-/* =========================================
-   6. RESPONSIVE GRIDS (Product, Events, etc.)
+   5. RESPONSIVE GRIDS (Product, Events, etc.)
    ========================================= */
 @media (min-width: 768px) {
     #product-grid, #store-detail-page .grid {
@@ -359,7 +293,7 @@ body.low-data-mode .hero-particle {
 }
 
 /* =========================================
-   7. LEADERBOARD DESIGN
+   6. LEADERBOARD DESIGN
    ========================================= */
 .leaf-layer {
     position: absolute;
@@ -521,7 +455,7 @@ body.low-data-mode .hero-particle {
 .dark .item.is-me { background: #064e3b; border-color: #34d399; }
 
 /* =========================================
-   8. MODALS, UTILITIES & CHATBOT DESKTOP
+   7. MODALS, UTILITIES & CHATBOT DESKTOP
    ========================================= */
 .checkin-completed {
     background: #F3F4F6 !important;
@@ -704,7 +638,7 @@ body.low-data-mode .hero-particle {
 }
 
 /* =========================================
-   9. TOAST NOTIFICATIONS (Mobile Optimized)
+   8. TOAST NOTIFICATIONS (Mobile Optimized)
    ========================================= */
 #app-toast {
     position: fixed;
@@ -757,12 +691,3 @@ body.low-data-mode .hero-particle {
     transform: translate(-50%, 20px) !important;
     opacity: 0 !important;
 }
-
-/* --- FIX: Keep Happy New Year card fully static --- */
-.new-year-fixed,
-.new-year-fixed * {
-    animation: none !important;
-    transform: none !important;
-    transition: none !important;
-}
-
