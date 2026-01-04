@@ -805,3 +805,34 @@ body.low-data-mode .hero-particle {
     background-image: radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
     background-size: 20px 20px;
 }
+
+/* =========================================
+   11. MOVIE TICKETS CARD (NEW)
+   ========================================= */
+.glass-card-movie {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    /* Neon Purple/Pink Glow */
+    box-shadow: 0 10px 30px -5px rgba(236, 72, 153, 0.3);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dark .glass-card-movie {
+    background: rgba(30, 10, 40, 0.8); /* Dark Plum */
+    border-color: rgba(236, 72, 153, 0.3); /* Pink-500/30 */
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card-movie:active {
+    transform: scale(0.98);
+}
+
+/* Cinema Pattern */
+.bg-pattern-cinema {
+    background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
+    background-size: 15px 15px;
+}
