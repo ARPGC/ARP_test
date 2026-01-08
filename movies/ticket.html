@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Ticket</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+    <header class="header">
+        <a href="index.html" style="color: inherit; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="arrow-left"></i> Back
+        </a>
+        <div style="font-weight: 700;">Event Pass</div>
+    </header>
+
+    <div class="ticket-container" style="padding-top: 40px;">
+        <div class="ticket-card">
+            <div class="ticket-header">
+                <div style="font-size: 10px; opacity: 0.8; letter-spacing: 1px; margin-bottom: 4px;">CAMPUS TALKIES</div>
+                <h2 style="font-size: 24px; margin: 0;" id="tMovie">Loading...</h2>
+            </div>
+            <div class="ticket-body">
+                <div class="ticket-row">
+                    <div>
+                        <div class="t-label">Date</div>
+                        <div class="t-val" id="tDate">...</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="t-label">Time</div>
+                        <div class="t-val" id="tTime">...</div>
+                    </div>
+                </div>
+                <div class="ticket-row">
+                    <div>
+                        <div class="t-label">Venue</div>
+                        <div class="t-val" id="tVenue">...</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="t-label">Seat</div>
+                        <div class="t-val" style="font-size: 24px; color: var(--accent);" id="tSeat">--</div>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px dashed var(--border); margin: 20px 0;"></div>
+
+                <div style="text-align: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">
+                    Scan at Entrance
+                </div>
+                <div class="qr-area" id="qrContainer"></div>
+                <div style="text-align: center; font-size: 10px; color: #94a3b8; font-family: monospace;" id="tId">
+                    ID: ...
+                </div>
+            </div>
+            <div style="background: #f8fafc; padding: 12px; text-align: center; font-size: 11px; color: var(--text-secondary); border-top: 1px solid var(--border);">
+                Booked via EcoCampus App
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from '../supabase-client.js';
+
+        async function loadTicket() {
+            const params = new URLSearchParams(window.location.search);
+            const bookingId = params.get('id');
+            if(!bookingId) return;
+
+            const { data, error } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    screenings ( show_time, venue ),
+                    screenings ( movies ( title ) )
+                `)
+                .eq('id', bookingId)
+                .single();
+
+            if(error || !data) {
+                alert("Ticket not found");
+                return;
+            }
+
+            const dateObj = new Date(data.screenings.show_time);
+            
+            document.getElementById('tMovie').textContent = data.screenings.movies.title;
+            document.getElementById('tDate').textContent = dateObj.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
+            document.getElementById('tTime').textContent = dateObj.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+            document.getElementById('tVenue').textContent = data.screenings.venue;
+            document.getElementById('tSeat').textContent = data.seat_number;
+            document.getElementById('tId').textContent = `ID: ${data.id.split('-')[0].toUpperCase()}`;
+
+            new QRCode(document.getElementById("qrContainer"), {
+                text: data.qr_code || `TICKET:${data.id}`,
+                width: 140,
+                height: 140
+            });
+        }
+        
+        loadTicket();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
