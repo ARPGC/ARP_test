@@ -4,8 +4,9 @@ const params = new URLSearchParams(window.location.search);
 const screeningId = params.get('id');
 
 const state = {
-    selectedSeat: null, // { id: 'A1', price: 100 }
+    selectedSeat: null, 
     userPoints: 0,
+    userGender: null, // Stores 'Male' or 'Female'
     config: {
         platinum: 200, gold: 160, silver: 120, bronze: 80
     }
@@ -15,19 +16,39 @@ async function init() {
     if(!screeningId) { alert("Invalid Show"); window.location.href='index.html'; return; }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if(!user) window.location.href='../login.html';
+    if(!user) { window.location.href='../login.html'; return; }
 
-    // 1. Fetch User Points
-    const { data: profile } = await supabase.from('users').select('current_points').eq('id', user.id).single();
-    state.userPoints = profile.current_points;
+    // 1. Fetch User Points AND Gender
+    // Using maybeSingle() to prevent 406 errors if row is missing
+    const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('current_points, gender') // Make sure 'gender' column exists in your DB
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (profileError || !profile) {
+        console.error("Profile Fetch Error:", profileError);
+        alert("Could not load user profile. Please try logging in again.");
+        return;
+    }
+
+    state.userPoints = profile.current_points || 0;
+    state.userGender = profile.gender; // Expecting 'Male' or 'Female' (Case sensitive usually)
+    
     document.getElementById('userBal').textContent = state.userPoints;
 
     // 2. Fetch Screening Info
-    const { data: screening } = await supabase
+    const { data: screening, error: screenError } = await supabase
         .from('screenings')
         .select(`*, movies(title)`)
         .eq('id', screeningId)
-        .single();
+        .maybeSingle();
+    
+    if (screenError || !screening) {
+        alert("Screening not found.");
+        window.location.href = 'index.html';
+        return;
+    }
     
     document.getElementById('movieTitle').textContent = screening.movies.title;
     const d = new Date(screening.show_time);
@@ -47,14 +68,56 @@ async function init() {
         .select('seat_number')
         .eq('screening_id', screeningId);
     
-    const takenSeats = new Set(bookings.map(b => b.seat_number));
+    const takenSeats = new Set(bookings ? bookings.map(b => b.seat_number) : []);
 
     renderSeats(takenSeats);
+    applyGenderRestrictions();
+}
+
+function applyGenderRestrictions() {
+    // Normalize gender string just in case
+    const gender = state.userGender ? state.userGender.toLowerCase() : '';
+    
+    const leftWing = document.getElementById('leftWing');  // Gents
+    const rightWing = document.getElementById('rightWing'); // Ladies
+
+    const gentsLabel = leftWing.querySelector('.wing-label');
+    const ladiesLabel = rightWing.querySelector('.wing-label');
+
+    if (gender === 'male') {
+        // Disable Right Wing (Ladies)
+        rightWing.style.opacity = '0.3';
+        rightWing.style.pointerEvents = 'none';
+        ladiesLabel.textContent = "Ladies Only (Locked)";
+        
+        // Highlight Left
+        gentsLabel.textContent = "Gents Section (Your Seat)";
+        gentsLabel.style.color = "var(--accent)";
+    } 
+    else if (gender === 'female') {
+        // Disable Left Wing (Gents)
+        leftWing.style.opacity = '0.3';
+        leftWing.style.pointerEvents = 'none';
+        gentsLabel.textContent = "Gents Only (Locked)";
+
+        // Highlight Right
+        ladiesLabel.textContent = "Ladies Section (Your Seat)";
+        ladiesLabel.style.color = "var(--accent)";
+    }
+    else {
+        // Fallback if gender is null or 'Other' -> Open both or handle as needed
+        // Currently keeping both open if gender is unknown
+        console.log("Gender unknown, displaying all seats.");
+    }
 }
 
 function renderSeats(takenSeats) {
     const leftWing = document.getElementById('leftWing');
     const rightWing = document.getElementById('rightWing');
+    
+    // Clear existing seats except headers if any (though cleaner to rebuild)
+    // Assuming structure from HTML: Wing -> Wing-Label
+    
     const rows = 10;
     const colsPerWing = 5;
     const rowLabels = "ABCDEFGHIJ".split('');
@@ -122,12 +185,13 @@ function updateCheckout() {
         lbl.textContent = '0 Pts';
         btn.textContent = 'Select Seat';
         btn.disabled = true;
+        btn.style.background = '';
     } else {
         lbl.textContent = `${state.selectedSeat.price} Pts`;
         btn.textContent = `Book ${state.selectedSeat.id}`;
         
         if(state.userPoints < state.selectedSeat.price) {
-            btn.textContent = 'Low Points';
+            btn.textContent = 'Insufficient Points';
             btn.disabled = true;
             btn.style.background = '#ef4444';
         } else {
@@ -165,6 +229,6 @@ window.confirmBooking = async () => {
 const vp = document.getElementById('viewport');
 const st = document.getElementById('stage');
 let scale = 0.9;
-st.style.transform = `scale(${scale})`;
+if(st) st.style.transform = `scale(${scale})`;
 
 init();
