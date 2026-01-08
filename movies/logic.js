@@ -9,19 +9,23 @@ const els = {
 async function init() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        // Redirect if not logged in
-        // Adjust path if needed (e.g., ../login.html)
+        // Not logged in, optional redirect or just return
         return;
     }
 
-    // 1. Fetch Points (Safer fetch)
+    // 1. Fetch Points (SAFE MODE)
+    // using maybeSingle() avoids 406 Not Acceptable error if row is missing
     const { data: profile } = await supabase
         .from('users')
         .select('current_points')
         .eq('id', user.id)
         .maybeSingle();
         
-    if(profile && els.points) els.points.textContent = profile.current_points;
+    if(profile && els.points) {
+        els.points.textContent = profile.current_points;
+    } else {
+        if(els.points) els.points.textContent = '0';
+    }
 
     // 2. Fetch Movies
     loadMovies();
@@ -31,7 +35,6 @@ async function init() {
 async function loadMovies() {
     const now = new Date().toISOString();
     
-    // Join movies with screenings to get earliest showtime
     const { data: screenings, error } = await supabase
         .from('screenings')
         .select(`
