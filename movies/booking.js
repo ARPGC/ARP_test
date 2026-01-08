@@ -6,7 +6,7 @@ const screeningId = params.get('id');
 const state = {
     selectedSeat: null, 
     userPoints: 0,
-    userGender: null, // Stores 'Male' or 'Female'
+    userGender: null, 
     config: {
         platinum: 200, gold: 160, silver: 120, bronze: 80
     }
@@ -18,16 +18,15 @@ async function init() {
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) { window.location.href='../login.html'; return; }
 
-    // 1. Fetch User Points AND Gender (SAFE MODE)
+    // 🔴 FIX: Changed .eq('id', ...) to .eq('auth_user_id', ...) to match app.js
     const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('current_points, gender') 
-        .eq('id', user.id)
-        .maybeSingle(); // Prevents 406 error if row missing
+        .eq('auth_user_id', user.id) // Correct column for Auth linking
+        .maybeSingle();
 
     if (profileError || !profile) {
         console.warn("Profile load issue:", profileError);
-        // Default values if profile fails to load prevents crash
         state.userPoints = 0;
         state.userGender = 'unknown'; 
     } else {
@@ -35,7 +34,9 @@ async function init() {
         state.userGender = profile.gender;
     }
     
-    document.getElementById('userBal').textContent = state.userPoints;
+    // UI Update
+    const balEl = document.getElementById('userBal');
+    if(balEl) balEl.textContent = state.userPoints;
 
     // 2. Fetch Screening Info
     const { data: screening, error: screenError } = await supabase
@@ -54,7 +55,6 @@ async function init() {
     const d = new Date(screening.show_time);
     document.getElementById('movieTime').textContent = `${d.toLocaleDateString()} • ${d.toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'})}`;
 
-    // Update prices from DB
     state.config = {
         platinum: screening.price_platinum,
         gold: screening.price_gold,
@@ -76,30 +76,21 @@ async function init() {
 
 function applyGenderRestrictions() {
     const gender = state.userGender ? state.userGender.toLowerCase() : '';
-    
-    const leftWing = document.getElementById('leftWing');  // Gents
-    const rightWing = document.getElementById('rightWing'); // Ladies
+    const leftWing = document.getElementById('leftWing');  
+    const rightWing = document.getElementById('rightWing'); 
 
-    const gentsLabel = leftWing.querySelector('.wing-label');
-    const ladiesLabel = rightWing.querySelector('.wing-label');
-
-    // Reset styles
+    // Reset
     leftWing.style.opacity = '1'; leftWing.style.pointerEvents = 'auto';
     rightWing.style.opacity = '1'; rightWing.style.pointerEvents = 'auto';
 
+    // Logic: Male -> Left Only, Female -> Right Only
     if (gender === 'male') {
-        // Disable Right (Ladies)
         rightWing.style.opacity = '0.3';
         rightWing.style.pointerEvents = 'none';
-        ladiesLabel.textContent = "Ladies Only (Locked)";
-        gentsLabel.style.color = "var(--accent)";
     } 
     else if (gender === 'female') {
-        // Disable Left (Gents)
         leftWing.style.opacity = '0.3';
         leftWing.style.pointerEvents = 'none';
-        gentsLabel.textContent = "Gents Only (Locked)";
-        ladiesLabel.style.color = "var(--accent)";
     }
 }
 
@@ -107,30 +98,26 @@ function renderSeats(takenSeats) {
     const leftWing = document.getElementById('leftWing');
     const rightWing = document.getElementById('rightWing');
     
-    // Clear previous seats but keep labels
-    leftWing.querySelectorAll('.seat').forEach(e => e.remove());
-    rightWing.querySelectorAll('.seat').forEach(e => e.remove());
+    leftWing.innerHTML = '<div class="wing-label">GENTS SECTION</div>';
+    rightWing.innerHTML = '<div class="wing-label">LADIES SECTION</div>';
 
-    const rows = 10;
+    const rows = 12;
     const colsPerWing = 5;
-    const rowLabels = "ABCDEFGHIJ".split('');
+    const rowLabels = "ABCDEFGHIJKL".split('');
 
     for(let r=0; r<rows; r++) {
         let tier = 'bronze';
         let price = state.config.bronze;
 
         if (r < 2) { tier = 'platinum'; price = state.config.platinum; }
-        else if (r < 5) { tier = 'gold'; price = state.config.gold; }
-        else if (r < 8) { tier = 'silver'; price = state.config.silver; }
+        else if (r < 6) { tier = 'gold'; price = state.config.gold; }
+        else if (r < 10) { tier = 'silver'; price = state.config.silver; }
 
         const rowLetter = rowLabels[r];
 
-        // Left Wing (1-5)
         for(let c=1; c<=colsPerWing; c++) {
             createSeat(leftWing, rowLetter, c, tier, price, takenSeats);
         }
-
-        // Right Wing (6-10)
         for(let c=colsPerWing+1; c<=colsPerWing*2; c++) {
             createSeat(rightWing, rowLetter, c, tier, price, takenSeats);
         }
@@ -142,7 +129,7 @@ function createSeat(container, row, col, tier, price, takenSeats) {
     const el = document.createElement('div');
     el.className = 'seat';
     el.dataset.tier = tier;
-    el.textContent = seatId;
+    el.textContent = seatId; // Optional: hide text for cleaner look
     
     if(takenSeats.has(seatId)) {
         el.classList.add('taken');
@@ -213,7 +200,6 @@ window.confirmBooking = async () => {
     window.location.href = 'index.html'; 
 };
 
-// Zoom / Drag Logic
 const vp = document.getElementById('viewport');
 const st = document.getElementById('stage');
 if(st) st.style.transform = `scale(0.9)`;
