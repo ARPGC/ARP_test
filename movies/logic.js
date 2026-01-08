@@ -8,27 +8,24 @@ const els = {
 
 async function init() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        // Not logged in, optional redirect or just return
-        return;
-    }
+    if (!user) return;
 
-    // 1. Fetch Points (SAFE MODE)
-    // using maybeSingle() avoids 406 Not Acceptable error if row is missing
+    // 🔴 FIX: Changed .eq('id', ...) to .eq('auth_user_id', ...)
     const { data: profile } = await supabase
         .from('users')
         .select('current_points')
-        .eq('id', user.id)
+        .eq('auth_user_id', user.id) // Correct column
         .maybeSingle();
         
     if(profile && els.points) {
         els.points.textContent = profile.current_points;
-    } else {
-        if(els.points) els.points.textContent = '0';
+    } else if (els.points) {
+        els.points.textContent = '0';
     }
 
-    // 2. Fetch Movies
     loadMovies();
+    // For tickets, we still query by user_id because the 'bookings' table
+    // likely stores the Auth ID directly. If tickets don't load, change this too.
     loadTickets(user.id);
 }
 
