@@ -9,13 +9,19 @@ const els = {
 async function init() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        window.location.href = '../login.html';
+        // Redirect if not logged in
+        // Adjust path if needed (e.g., ../login.html)
         return;
     }
 
-    // 1. Fetch Points
-    const { data: profile } = await supabase.from('users').select('current_points').eq('id', user.id).single();
-    if(profile) els.points.textContent = profile.current_points;
+    // 1. Fetch Points (Safer fetch)
+    const { data: profile } = await supabase
+        .from('users')
+        .select('current_points')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+    if(profile && els.points) els.points.textContent = profile.current_points;
 
     // 2. Fetch Movies
     loadMovies();
@@ -23,6 +29,8 @@ async function init() {
 }
 
 async function loadMovies() {
+    const now = new Date().toISOString();
+    
     // Join movies with screenings to get earliest showtime
     const { data: screenings, error } = await supabase
         .from('screenings')
@@ -30,15 +38,16 @@ async function loadMovies() {
             id, show_time, venue, price_bronze,
             movies ( title, genre, language, poster_url )
         `)
-        .gte('show_time', new Date().toISOString())
+        .gte('show_time', now)
         .order('show_time', { ascending: true });
 
     if(error) {
+        console.error("Movie Load Error", error);
         els.movieContainer.innerHTML = '<p>Error loading movies</p>';
         return;
     }
 
-    if(screenings.length === 0) {
+    if(!screenings || screenings.length === 0) {
         els.movieContainer.innerHTML = '<p style="grid-column:1/-1; text-align:center;">No upcoming shows.</p>';
         return;
     }
