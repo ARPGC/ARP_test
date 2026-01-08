@@ -8,25 +8,31 @@ const els = {
 
 async function init() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // 🔴 FIX: Changed .eq('id', ...) to .eq('auth_user_id', ...)
-    const { data: profile } = await supabase
-        .from('users')
-        .select('current_points')
-        .eq('auth_user_id', user.id) // Correct column
-        .maybeSingle();
-        
-    if(profile && els.points) {
-        els.points.textContent = profile.current_points;
-    } else if (els.points) {
-        els.points.textContent = '0';
+    if (!user) {
+        // Not logged in
+        return;
     }
 
+    // 1. Fetch the PUBLIC Profile ID first
+    // We need this ID to find tickets in the 'bookings' table
+    const { data: profile } = await supabase
+        .from('users')
+        .select('id, current_points')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+        
+    let publicUserId = user.id; // Default fallback
+    
+    if (profile) {
+        publicUserId = profile.id; // Use the correct profile ID
+        if(els.points) els.points.textContent = profile.current_points;
+    } else {
+        if(els.points) els.points.textContent = '0';
+    }
+
+    // 2. Load Data using the correct ID
     loadMovies();
-    // For tickets, we still query by user_id because the 'bookings' table
-    // likely stores the Auth ID directly. If tickets don't load, change this too.
-    loadTickets(user.id);
+    loadTickets(publicUserId);
 }
 
 async function loadMovies() {
@@ -66,14 +72,19 @@ async function loadMovies() {
 }
 
 async function loadTickets(userId) {
-    const { data: bookings } = await supabase
+    // Now querying with the correct userId (Public ID)
+    const { data: bookings, error } = await supabase
         .from('bookings')
         .select(`
             id, seat_number, status,
             screenings ( show_time, venue, movies ( title, poster_url ) )
         `)
-        .eq('user_id', userId)
+        .eq('user_id', userId) 
         .order('created_at', { ascending: false });
+
+    if(error) {
+        console.error("Ticket Load Error", error);
+    }
 
     if(!bookings || bookings.length === 0) {
         els.ticketContainer.innerHTML = '<p style="text-align:center; color:#94a3b8;">No bookings found.</p>';
@@ -83,9 +94,9 @@ async function loadTickets(userId) {
     els.ticketContainer.innerHTML = bookings.map(b => `
         <div class="ticket-card" onclick="window.location.href='ticket.html?id=${b.id}'">
             <div style="display:flex; gap:12px; padding:12px;">
-                <img src="${b.screenings.movies.poster_url}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;">
+                <img src="${b.screenings?.movies?.poster_url || ''}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;">
                 <div>
-                    <div style="font-weight:700;">${b.screenings.movies.title}</div>
+                    <div style="font-weight:700;">${b.screenings?.movies?.title || 'Movie'}</div>
                     <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
                         Seat ${b.seat_number} • ${new Date(b.screenings.show_time).toLocaleDateString()}
                     </div>
