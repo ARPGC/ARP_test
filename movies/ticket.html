@@ -1,109 +1,196 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Ticket</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Event Pass</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-body:#f2f2f7;
+            --surface-card:#fff;
+            --surface-inner:#f5f5f7;
+            --border-color:#e5e5ea;
+            --text-primary:#000;
+            --text-secondary:#6e6e73;
+            --accent-color:#4f46e5;
+            --shadow:0 20px 40px -10px rgba(0,0,0,.15);
+        }
+        [data-theme="dark"]{
+            --bg-body:#050505;
+            --surface-card:#121212;
+            --surface-inner:#1e1e1e;
+            --border-color:#2a2a2a;
+            --text-primary:#fff;
+            --text-secondary:#a0a0a0;
+            --shadow:0 20px 40px -10px rgba(0,0,0,.5);
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:'Plus Jakarta Sans',sans-serif;
+            background:var(--bg-body);
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:16px;
+        }
+
+        /* TOAST */
+        .toast{
+            position:fixed;
+            bottom:90px;
+            left:50%;
+            transform:translateX(-50%);
+            background:#0f172a;
+            color:#fff;
+            padding:14px 18px;
+            border-radius:16px;
+            font-size:13px;
+            font-weight:700;
+            z-index:9999;
+        }
+        .toast.error{background:#dc2626}
+
+        .ticket-wrapper{width:100%;filter:drop-shadow(var(--shadow))}
+        .ticket{
+            background:var(--surface-card);
+            border-radius:24px;
+            overflow:hidden;
+            border:1px solid var(--border-color);
+        }
+        .header{
+            padding:28px 24px 20px;
+            text-align:center;
+            border-bottom:1px dashed var(--border-color);
+        }
+        .content{padding:24px}
+        .movie-card{display:flex;gap:16px;margin-bottom:24px}
+        .poster{width:75px;height:110px;border-radius:12px;object-fit:cover}
+        .movie-title{font-size:20px;font-weight:800}
+        .info-grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:16px;
+            background:var(--surface-inner);
+            padding:16px;
+            border-radius:16px;
+            border:1px solid var(--border-color);
+        }
+        .label{font-size:10px;color:var(--text-secondary);font-weight:700}
+        .value{font-size:14px;font-weight:700}
+        .value.highlight{color:var(--accent-color);font-size:16px}
+        .footer{text-align:center;padding:24px}
+        .qr-wrapper{background:#fff;padding:10px;border-radius:12px;display:inline-block}
+        .footer-text{font-size:11px;color:var(--text-secondary);margin-top:8px}
+    </style>
 </head>
 <body>
 
-    <header class="header">
-        <a href="index.html" style="color: inherit; display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="arrow-left"></i> Back
-        </a>
-        <div style="font-weight: 700;">Event Pass</div>
-    </header>
+<div class="ticket-wrapper">
+    <div class="ticket">
 
-    <div class="ticket-container" style="padding-top: 40px;">
-        <div class="ticket-card">
-            <div class="ticket-header">
-                <div style="font-size: 10px; opacity: 0.8; letter-spacing: 1px; margin-bottom: 4px;">CAMPUS TALKIES</div>
-                <h2 style="font-size: 24px; margin: 0;" id="tMovie">Loading...</h2>
-            </div>
-            <div class="ticket-body">
-                <div class="ticket-row">
-                    <div>
-                        <div class="t-label">Date</div>
-                        <div class="t-val" id="tDate">...</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="t-label">Time</div>
-                        <div class="t-val" id="tTime">...</div>
-                    </div>
-                </div>
-                <div class="ticket-row">
-                    <div>
-                        <div class="t-label">Venue</div>
-                        <div class="t-val" id="tVenue">...</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="t-label">Seat</div>
-                        <div class="t-val" style="font-size: 24px; color: var(--accent);" id="tSeat">--</div>
-                    </div>
-                </div>
+        <div class="header">
+            <h2 id="movieTitle">Loading…</h2>
+        </div>
 
-                <div style="border-top: 1px dashed var(--border); margin: 20px 0;"></div>
-
-                <div style="text-align: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">
-                    Scan at Entrance
-                </div>
-                <div class="qr-area" id="qrContainer"></div>
-                <div style="text-align: center; font-size: 10px; color: #94a3b8; font-family: monospace;" id="tId">
-                    ID: ...
+        <div class="content">
+            <div class="movie-card">
+                <img id="poster" class="poster">
+                <div>
+                    <div class="movie-title" id="title">…</div>
                 </div>
             </div>
-            <div style="background: #f8fafc; padding: 12px; text-align: center; font-size: 11px; color: var(--text-secondary); border-top: 1px solid var(--border);">
-                Booked via EcoCampus App
+
+            <div class="info-grid">
+                <div>
+                    <div class="label">Date</div>
+                    <div class="value" id="date">—</div>
+                </div>
+                <div>
+                    <div class="label">Time</div>
+                    <div class="value" id="time">—</div>
+                </div>
+                <div>
+                    <div class="label">Seat</div>
+                    <div class="value highlight" id="seat">—</div>
+                </div>
+                <div>
+                    <div class="label">Venue</div>
+                    <div class="value" id="venue">—</div>
+                </div>
             </div>
         </div>
+
+        <div class="footer">
+            <div class="qr-wrapper" id="qr"></div>
+            <div class="footer-text" id="ticketId">ID: —</div>
+        </div>
+
     </div>
+</div>
 
-    <script type="module">
-        import { supabase } from '../supabase-client.js';
+<script type="module">
+import { supabase } from '../supabase-client.js';
 
-        async function loadTicket() {
-            const params = new URLSearchParams(window.location.search);
-            const bookingId = params.get('id');
-            if(!bookingId) return;
+function toast(msg,type='error'){
+    const t=document.createElement('div');
+    t.className=`toast ${type}`;
+    t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),3000);
+}
 
-            const { data, error } = await supabase
-                .from('bookings')
-                .select(`
-                    *,
-                    screenings ( show_time, venue ),
-                    screenings ( movies ( title ) )
-                `)
-                .eq('id', bookingId)
-                .single();
+async function loadTicket(){
+    const id=new URLSearchParams(location.search).get('id');
+    if(!id){toast('Invalid ticket');return;}
 
-            if(error || !data) {
-                alert("Ticket not found");
-                return;
-            }
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user){toast('Login required');return;}
 
-            const dateObj = new Date(data.screenings.show_time);
-            
-            document.getElementById('tMovie').textContent = data.screenings.movies.title;
-            document.getElementById('tDate').textContent = dateObj.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
-            document.getElementById('tTime').textContent = dateObj.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-            document.getElementById('tVenue').textContent = data.screenings.venue;
-            document.getElementById('tSeat').textContent = data.seat_number;
-            document.getElementById('tId').textContent = `ID: ${data.id.split('-')[0].toUpperCase()}`;
+    const {data:profile}=await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id',user.id)
+        .single();
 
-            new QRCode(document.getElementById("qrContainer"), {
-                text: data.qr_code || `TICKET:${data.id}`,
-                width: 140,
-                height: 140
-            });
-        }
-        
-        loadTicket();
-        lucide.createIcons();
-    </script>
+    const {data,error}=await supabase
+        .from('bookings')
+        .select(`
+            id, seat_number, qr_code,
+            screenings (
+                show_time, venue,
+                movies ( title, poster_url )
+            )
+        `)
+        .eq('id',id)
+        .eq('user_id',profile.id)
+        .single();
+
+    if(error||!data){toast('Ticket not found');return;}
+
+    const d=new Date(data.screenings.show_time);
+    movieTitle.textContent=data.screenings.movies.title;
+    title.textContent=data.screenings.movies.title;
+    poster.src=data.screenings.movies.poster_url||'https://placehold.co/150';
+    date.textContent=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    time.textContent=d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    venue.textContent=data.screenings.venue;
+    seat.textContent=data.seat_number;
+    ticketId.textContent=`ID: ${data.id.split('-')[0].toUpperCase()}`;
+
+    new QRCode(qr,{
+        text:data.qr_code||`TICKET:${data.id}`,
+        width:120,height:120
+    });
+}
+
+loadTicket();
+</script>
+
 </body>
 </html>
