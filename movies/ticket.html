@@ -1,187 +1,205 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Event Pass</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
+        /* =====================================================
+           APP THEME TOKENS (MATCHES MOVIES SECTION)
+        ===================================================== */
         :root {
-            --bg-body:#f2f2f7;
-            --surface-card:#ffffff;
-            --surface-inner:#f5f5f7;
-            --border:#e5e5ea;
-            --text-primary:#000;
-            --text-secondary:#6e6e73;
-            --accent:#4f46e5;
-            --shadow:0 20px 40px -10px rgba(0,0,0,.15);
-        }
-        [data-theme="dark"] {
-            --bg-body:#050505;
-            --surface-card:#121212;
-            --surface-inner:#1e1e1e;
-            --border:#2a2a2a;
-            --text-primary:#fff;
-            --text-secondary:#a0a0a0;
-            --shadow:0 20px 40px -10px rgba(0,0,0,.5);
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --surface: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #4f46e5;
+            --shadow: 0 10px 30px rgba(0,0,0,.08);
         }
 
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{
-            font-family:'Plus Jakarta Sans',sans-serif;
-            background:var(--bg-body);
-            min-height:100vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            padding:16px;
+        /* DARK MODE (AUTO – SAME AS APP) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #020617;
+                --card: #0f172a;
+                --surface: #020617;
+                --border: #1e293b;
+                --text: #f8fafc;
+                --muted: #94a3b8;
+                --accent: #818cf8;
+                --shadow: 0 20px 40px rgba(0,0,0,.45);
+            }
         }
 
-        /* THEME TOGGLE */
-        .theme-toggle{
-            position:fixed;
-            top:18px;
-            right:18px;
-            width:42px;
-            height:42px;
-            border-radius:50%;
-            background:var(--surface-card);
-            border:1px solid var(--border);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:18px;
-            cursor:pointer;
-            z-index:10;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
         }
 
-        .ticket-wrapper{width:100%;max-width:420px;filter:drop-shadow(var(--shadow))}
-        .ticket{
-            background:var(--surface-card);
-            border-radius:28px;
-            overflow:hidden;
-            border:1px solid var(--border);
+        /* =====================================================
+           TICKET CARD
+        ===================================================== */
+        .ticket-wrapper {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .ticket {
+            background: var(--card);
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
         }
 
         /* HEADER */
-        .header{
-            padding:26px 24px 18px;
-            text-align:center;
-            border-bottom:1px dashed var(--border);
+        .header {
+            padding: 26px 24px 18px;
+            text-align: center;
+            border-bottom: 1px dashed var(--border);
         }
-        .logo{
-            width:64px;
-            margin-bottom:10px;
+
+        .logo {
+            width: 60px;
+            margin-bottom: 12px;
         }
-        .collab{
-            font-size:11px;
-            color:var(--text-secondary);
-            font-weight:700;
-            letter-spacing:1px;
-            margin-bottom:6px;
+
+        .collab {
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 6px;
         }
-        .partner-pill{
-            display:inline-flex;
-            align-items:center;
-            gap:10px;
-            background:var(--surface-inner);
-            padding:6px 14px;
-            border-radius:999px;
-            border:1px solid var(--border);
-            font-size:13px;
-            font-weight:700;
+
+        .partner-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 700;
         }
-        .partner-pill img{
-            width:22px;
-            height:22px;
-            border-radius:50%;
-            object-fit:cover;
+
+        .partner-pill img {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         /* CONTENT */
-        .content{padding:24px}
-        .movie{
-            display:flex;
-            gap:16px;
-            margin-bottom:22px;
-        }
-        .poster{
-            width:78px;
-            height:116px;
-            border-radius:14px;
-            object-fit:cover;
-        }
-        .movie h2{
-            font-size:22px;
-            font-weight:800;
-            line-height:1.2;
-            margin-bottom:8px;
-        }
-        .tags span{
-            font-size:12px;
-            background:var(--surface-inner);
-            padding:4px 10px;
-            border-radius:8px;
-            margin-right:6px;
-            color:var(--text-secondary);
-            font-weight:600;
+        .content {
+            padding: 24px;
         }
 
-        .info{
-            background:var(--surface-inner);
-            border-radius:18px;
-            padding:18px;
-            border:1px solid var(--border);
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:16px;
+        .movie {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 22px;
         }
-        .label{
-            font-size:11px;
-            color:var(--text-secondary);
-            font-weight:700;
+
+        .poster {
+            width: 78px;
+            height: 116px;
+            border-radius: 14px;
+            object-fit: cover;
         }
-        .value{
-            font-size:15px;
-            font-weight:800;
+
+        .movie h2 {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 8px;
         }
-        .seat{color:var(--accent);font-size:18px}
+
+        .tags span {
+            font-size: 12px;
+            background: var(--surface);
+            padding: 4px 10px;
+            border-radius: 8px;
+            margin-right: 6px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .info {
+            background: var(--surface);
+            border-radius: 18px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+            letter-spacing: .4px;
+        }
+
+        .value {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .seat {
+            color: var(--accent);
+            font-size: 18px;
+        }
 
         /* FOOTER */
-        .footer{
-            padding:22px;
-            text-align:center;
+        .footer {
+            padding: 22px;
+            text-align: center;
         }
-        .screen-pill{
-            display:inline-block;
-            background:var(--surface-inner);
-            border:1px solid var(--border);
-            padding:6px 14px;
-            border-radius:999px;
-            font-size:11px;
-            font-weight:800;
-            margin-bottom:14px;
+
+        .screen-pill {
+            display: inline-block;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 14px;
+            color: var(--text);
         }
-        .qr{
-            background:#fff;
-            padding:10px;
-            border-radius:14px;
-            display:inline-block;
+
+        .qr {
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 16px;
+            display: inline-block;
         }
-        .ticket-id{
-            margin-top:10px;
-            font-size:11px;
-            color:var(--text-secondary);
-            font-family:monospace;
+
+        .ticket-id {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--muted);
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
-
-<button class="theme-toggle" id="themeBtn">🌙</button>
 
 <div class="ticket-wrapper">
     <div class="ticket">
@@ -242,14 +260,8 @@ import { supabase } from '../supabase-client.js';
 
 const id = new URLSearchParams(location.search).get('id');
 
-const themeBtn = document.getElementById('themeBtn');
-themeBtn.onclick = () => {
-    const t = document.documentElement.getAttribute('data-theme');
-    document.documentElement.setAttribute('data-theme', t === 'dark' ? 'light' : 'dark');
-};
-
 const { data:{user} } = await supabase.auth.getUser();
-if(!user) location.href='../login.html';
+if (!user) location.href = '../login.html';
 
 const { data:profile } = await supabase
     .from('users')
@@ -286,9 +298,9 @@ venue.textContent = data.screenings.venue;
 ticketId.textContent = `ID: ${data.id.split('-')[0].toUpperCase()}-${data.seat_number}`;
 
 new QRCode(qr,{
-    text:data.qr_code,
-    width:130,
-    height:130
+    text: data.qr_code,
+    width: 130,
+    height: 130
 });
 </script>
 
