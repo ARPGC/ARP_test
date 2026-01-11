@@ -7,34 +7,40 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 
     <style>
         /* =====================================================
-           APP THEME TOKENS (MATCHES MOVIES SECTION)
+           APP THEME TOKENS (INHERITS FROM STYLE.CSS NOW)
+           Overrides kept for specific ticket layout if needed,
+           but mostly relies on CSS variables from style.css
         ===================================================== */
+        /*
+          The variables below serve as fallbacks or local overrides.
+          The global theme logic in style.css handles --bg-app, --bg-surface etc.
+          We map local variables to the global ones for consistency.
+        */
         :root {
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --surface: #f1f5f9;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --muted: #64748b;
+            --bg: var(--bg-app, #f8fafc);
+            --card: var(--bg-surface, #ffffff);
+            --surface: var(--bg-app, #f1f5f9);
+            --border: var(--border, #e2e8f0);
+            --text: var(--text-primary, #0f172a);
+            --muted: var(--text-secondary, #64748b);
             --accent: #4f46e5;
             --shadow: 0 10px 30px rgba(0,0,0,.08);
         }
 
-        /* DARK MODE (AUTO – SAME AS APP) */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #020617;
-                --card: #0f172a;
-                --surface: #020617;
-                --border: #1e293b;
-                --text: #f8fafc;
-                --muted: #94a3b8;
-                --accent: #818cf8;
-                --shadow: 0 20px 40px rgba(0,0,0,.45);
-            }
+        /* DARK MODE SUPPORT VIA DATA ATTRIBUTE (Handled by JS) */
+        [data-theme="dark"] {
+            --bg: var(--bg-app, #0f172a);
+            --card: var(--bg-surface, #1e293b);
+            --surface: #020617; /* Slightly darker than card */
+            --border: var(--border, #334155);
+            --text: var(--text-primary, #f8fafc);
+            --muted: var(--text-secondary, #94a3b8);
+            --accent: #818cf8;
+            --shadow: 0 20px 40px rgba(0,0,0,.45);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,6 +53,7 @@
             align-items: center;
             justify-content: center;
             padding: 16px;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         /* =====================================================
@@ -63,6 +70,7 @@
             overflow: hidden;
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
+            transition: background 0.3s ease, border-color 0.3s ease;
         }
 
         /* HEADER */
@@ -258,6 +266,23 @@
 <script type="module">
 import { supabase } from '../supabase-client.js';
 
+/* =====================================================
+   THEME SYNC LOGIC (NEW)
+===================================================== */
+function applyTheme() {
+    const savedTheme = localStorage.getItem('eco-theme');
+    const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+}
+
+// Apply theme immediately on load
+applyTheme();
+
 const id = new URLSearchParams(location.search).get('id');
 
 const { data:{user} } = await supabase.auth.getUser();
@@ -282,26 +307,30 @@ const { data } = await supabase
     .eq('user_id', profile.id)
     .single();
 
-const d = new Date(data.screenings.show_time);
+if (data) {
+    const d = new Date(data.screenings.show_time);
 
-partnerName.textContent = data.screenings.partner_name;
-partnerLogo.src = data.screenings.partner_logo;
+    partnerName.textContent = data.screenings.partner_name;
+    partnerLogo.src = data.screenings.partner_logo;
 
-title.textContent = data.screenings.movies.title;
-poster.src = data.screenings.movies.poster_url;
+    title.textContent = data.screenings.movies.title;
+    poster.src = data.screenings.movies.poster_url;
 
-date.textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-time.textContent = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-seat.textContent = data.seat_number;
-venue.textContent = data.screenings.venue;
+    date.textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    time.textContent = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    seat.textContent = data.seat_number;
+    venue.textContent = data.screenings.venue;
 
-ticketId.textContent = `ID: ${data.id.split('-')[0].toUpperCase()}-${data.seat_number}`;
+    ticketId.textContent = `ID: ${data.id.split('-')[0].toUpperCase()}-${data.seat_number}`;
 
-new QRCode(qr,{
-    text: data.qr_code,
-    width: 130,
-    height: 130
-});
+    new QRCode(qr,{
+        text: data.qr_code,
+        width: 130,
+        height: 130
+    });
+} else {
+    document.body.innerHTML = '<p style="text-align:center;color:red;margin-top:20px;">Ticket not found or access denied.</p>';
+}
 </script>
 
 </body>
