@@ -16,6 +16,20 @@ function showToast(message, type = 'success') {
 }
 
 /* =====================================================
+   THEME SYNC LOGIC (NEW)
+===================================================== */
+function applyTheme() {
+    const savedTheme = localStorage.getItem('eco-theme');
+    const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+}
+
+/* =====================================================
    DOM REFERENCES
 ===================================================== */
 const els = {
@@ -28,6 +42,9 @@ const els = {
    INIT
 ===================================================== */
 async function init() {
+    // 1. Apply Theme Immediately
+    applyTheme();
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
