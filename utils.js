@@ -154,6 +154,9 @@ export const formatDate = (dateString, options = {}) => {
 };
 
 export const getIconForHistory = (type) => {
+    // Normalizing type to lower case to handle potential inconsistencies
+    const safeType = (type || '').toLowerCase();
+
     const icons = { 
         'checkin': 'calendar-check', 
         'event': 'calendar-check', 
@@ -163,10 +166,14 @@ export const getIconForHistory = (type) => {
         'coupon': 'ticket', 
         'quiz': 'brain', 
         'streak_restore': 'zap',
-        // ADDED: Specific icon for movie booking transactions
-        'movie_booking': 'clapperboard' 
+        
+        // --- MOVIE ICONS (Multiple keys to catch any DB value) ---
+        'movie_booking': 'clapperboard',
+        'ticket': 'clapperboard',      // Covers "Ticket"
+        'booking': 'clapperboard',     // Covers "Booking"
+        'movie': 'clapperboard'        // Covers "Movie"
     };
-    return icons[type] || 'help-circle';
+    return icons[safeType] || 'help-circle';
 };
 
 export const getIconForChallenge = (type) => {
