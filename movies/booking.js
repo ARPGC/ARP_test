@@ -16,6 +16,20 @@ function showToast(message, type = 'success') {
 }
 
 /* =====================================================
+   THEME SYNC LOGIC (NEW)
+===================================================== */
+function applyTheme() {
+    const savedTheme = localStorage.getItem('eco-theme');
+    const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+    }
+}
+
+/* =====================================================
    URL PARAMS & STATE
 ===================================================== */
 const params = new URLSearchParams(window.location.search);
@@ -38,6 +52,9 @@ const state = {
    INIT
 ===================================================== */
 async function init() {
+    // 1. Apply Theme Immediately
+    applyTheme();
+
     if (!screeningId) {
         showToast('Invalid show', 'error');
         window.location.href = 'index.html';
@@ -255,6 +272,8 @@ window.confirmBooking = async () => {
         return;
     }
 
+    // New icon type 'movie_booking' is now supported in utils.js
+    // Database trigger handles the logging, but utils maps it to the new icon.
     showToast('Ticket booked successfully', 'success');
     setTimeout(() => {
         window.location.href = 'index.html';
