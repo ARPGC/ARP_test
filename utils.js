@@ -154,7 +154,18 @@ export const formatDate = (dateString, options = {}) => {
 };
 
 export const getIconForHistory = (type) => {
-    const icons = { 'checkin': 'calendar-check', 'event': 'calendar-check', 'challenge': 'award', 'plastic': 'recycle', 'order': 'shopping-cart', 'coupon': 'ticket', 'quiz': 'brain', 'streak_restore': 'zap' };
+    const icons = { 
+        'checkin': 'calendar-check', 
+        'event': 'calendar-check', 
+        'challenge': 'award', 
+        'plastic': 'recycle', 
+        'order': 'shopping-cart', 
+        'coupon': 'ticket', 
+        'quiz': 'brain', 
+        'streak_restore': 'zap',
+        // ADDED: Specific icon for movie booking transactions
+        'movie_booking': 'clapperboard' 
+    };
     return icons[type] || 'help-circle';
 };
 
