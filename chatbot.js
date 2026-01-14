@@ -9,7 +9,7 @@ import { els, logUserActivity } from './utils.js';
 const EDGE_FUNCTION_URL = 'https://aggqmjxhnsbmsymwblqg.supabase.co/functions/v1/chat-ai'; 
 
 // ==========================================
-// 🧠 AI LOGIC (EcoBuddy's Brain - 2026 Edition)
+// 🧠 AI LOGIC (EcoBuddy's Brain)
 // ==========================================
 
 const getSystemPrompt = () => {
@@ -29,12 +29,8 @@ const getSystemPrompt = () => {
         : "Loading...";
     
     return `
-    You are **EcoBuddy**, the funny, friendly AI bestie for the **EcoCampus** App! 🎆🥂
+    You are **EcoBuddy**, the funny, friendly AI bestie for the **EcoCampus** App! 🌿😎
     
-    **🎉 CURRENT THEME: HAPPY NEW YEAR 2026!**
-    - Wish the user a "Happy New Year" and motivate them to keep their "Green Resolutions" for 2026.
-    - Be optimistic, golden, and full of energy!
-
     **🆔 IDENTITY:**
     - **Creator:** Mr. Mohit Mali (SYBAF).
     - **Origin:** BKBNC Green Club Initiative.
@@ -97,13 +93,13 @@ const getSystemPrompt = () => {
     5. **Leaderboard:** Student vs Dept rankings.
 
     **🧠 CORE STUDENT TEAM:**
-    1. **Mohit Mali (Founder/Dev)**
+    1. **Mohit Mali (Founder/Developer/Leader)**
     2. **Amit Rai (Marketing)**
     3. **Darshana Jagtap (PR)**
     4. **Shruti Kadam (HR)**
     5. **Aashish Yadav (Event Head)**
-    6. **Abhishek Gupta (Digital Strategy)**
-    7. **Harshad Lokare (Documentation)**
+    6. **Abhishek Gupta (Creative Head)**
+    7. **Shruti Rasure (Documentation)**
 
     **👤 USER CONTEXT:** User: **${user.full_name}**. Points: **${user.current_points}**.
     
@@ -113,7 +109,7 @@ const getSystemPrompt = () => {
     - Leaders: \n${topRankers}
     
     **🗣️ VIBE:**
-    - Celebration, College Senior, Emojis (🎆, 🥂, ✨, 🌿).
+    - Cool, college senior vibe. Emojis (🔥, 🌿, 🚀).
     - **STRICTLY** follow the Security Protocol regarding votes.
     `;
 };
@@ -184,7 +180,7 @@ const loadChatHistory = async () => {
             data.reverse().forEach(msg => appendMessageUI(msg.message, msg.role, false)); 
             setTimeout(() => chatOutput.scrollTop = chatOutput.scrollHeight, 100);
         } else {
-            appendMessageUI(`Hi ${state.currentUser.full_name}! Happy New Year 2026! 🎆 Ask me about the **Mr. & Miss BKBNC** results or how to start your green journey this year! 🥂`, 'bot');
+            appendMessageUI(`Hi ${state.currentUser.full_name}! I'm EcoBuddy. Ask me about the **Mr. & Miss BKBNC** results or how to earn points! 👑🌿`, 'bot');
         }
     } catch (err) {
         console.error("Load History Error:", err);
@@ -192,7 +188,7 @@ const loadChatHistory = async () => {
 };
 
 // ==========================================
-// 🎨 UI HANDLERS (UPDATED FOR NEW YEAR THEME)
+// 🎨 UI HANDLERS
 // ==========================================
 
 const chatOutput = document.getElementById('chatbot-messages');
@@ -207,19 +203,19 @@ const appendMessageUI = (text, sender, animate = true) => {
     const parsedText = marked.parse(text);
 
     if (sender === 'user') {
-        // User Bubble - UPDATED TO AMBER/GOLD GRADIENT
+        // User Bubble
         div.innerHTML = `
-            <div class="max-w-[85%] p-4 px-5 rounded-[20px] rounded-br-lg text-white shadow-md bg-gradient-to-br from-amber-500 to-orange-600">
+            <div class="max-w-[85%] p-4 px-5 rounded-[20px] rounded-br-lg text-white shadow-md bg-gradient-to-br from-[#34c46e] to-[#169653]">
                 <div class="text-sm leading-relaxed">${parsedText}</div>
             </div>`;
     } else {
-        // Bot Bubble - UPDATED TO MIDNIGHT BLUE TEXT + GOLD BORDER
+        // Bot Bubble WITH EARTH LOGO
         div.innerHTML = `
             <div class="flex items-end gap-2 max-w-[90%]">
-                <div class="w-8 h-8 rounded-full bg-white p-0.5 shadow-sm flex-shrink-0 border border-amber-200">
+                <div class="w-8 h-8 rounded-full bg-white p-0.5 shadow-sm flex-shrink-0 border border-[#c8ffe1]">
                     <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-full h-full object-contain rounded-full">
                 </div>
-                <div class="p-4 px-5 rounded-[20px] rounded-bl-lg border border-amber-100 dark:border-amber-900/40 bg-white/85 dark:bg-[#0f172a]/80 text-slate-800 dark:text-amber-50">
+                <div class="p-4 px-5 rounded-[20px] rounded-bl-lg border border-[#c8ffe1]/75 dark:border-white/10 bg-white/85 dark:bg-[#1e3c2d]/70 text-[#2c4434] dark:text-[#e7ffef]">
                     <div class="text-sm leading-relaxed">${parsedText}</div>
                 </div>
             </div>`;
@@ -246,18 +242,18 @@ if (chatForm) {
         saveMessageToDB('user', message);
         logUserActivity('chat_message', 'User sent a chat message');
 
-        // 3. UI: Show Typing - UPDATED COLORS
+        // 3. UI: Show Typing
         const typingId = 'typing-' + Date.now();
         const typingDiv = document.createElement('div');
         typingDiv.id = typingId;
         typingDiv.className = 'msg-group w-full flex justify-start animate-slideUp';
         typingDiv.innerHTML = `
             <div class="flex items-end gap-2 max-w-[90%]">
-                <div class="w-8 h-8 rounded-full bg-white p-0.5 shadow-sm flex-shrink-0 border border-amber-200">
+                <div class="w-8 h-8 rounded-full bg-white p-0.5 shadow-sm flex-shrink-0 border border-[#c8ffe1]">
                     <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" class="w-full h-full object-contain rounded-full">
                 </div>
-                <div class="p-4 px-5 rounded-[20px] rounded-bl-lg border border-amber-100 dark:border-amber-900/40 bg-white/85 dark:bg-[#0f172a]/80 flex items-center gap-1 h-[54px]">
-                     <div class="typing-dot bg-amber-500"></div><div class="typing-dot bg-amber-500"></div><div class="typing-dot bg-amber-500"></div>
+                <div class="p-4 px-5 rounded-[20px] rounded-bl-lg border border-[#c8ffe1]/75 dark:border-white/10 bg-white/85 dark:bg-[#1e3c2d]/70 flex items-center gap-1 h-[54px]">
+                     <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
                 </div>
             </div>`;
         
