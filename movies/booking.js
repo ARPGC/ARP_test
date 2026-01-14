@@ -16,7 +16,7 @@ function showToast(message, type = 'success') {
 }
 
 /* =====================================================
-   THEME SYNC LOGIC (NEW)
+   THEME SYNC LOGIC
 ===================================================== */
 function applyTheme() {
     const savedTheme = localStorage.getItem('eco-theme');
@@ -111,13 +111,27 @@ async function init() {
         bronze: screening.price_bronze
     };
 
-    // 3. Fetch taken seats
-    const { data: bookings } = await supabase
-        .from('bookings')
-        .select('seat_number')
-        .eq('screening_id', screeningId);
+    // 3. Fetch taken seats using RPC to bypass RLS (View All Taken Seats)
+    let takenSeats = new Set();
+    
+    // Attempt to fetch via RPC first (Secure way to see all bookings)
+    const { data: rpcBookings, error: rpcError } = await supabase
+        .rpc('get_taken_seats', { p_screening_id: screeningId });
 
-    const takenSeats = new Set(bookings ? bookings.map(b => b.seat_number) : []);
+    if (!rpcError && rpcBookings) {
+        takenSeats = new Set(rpcBookings.map(b => b.seat_number));
+    } else {
+        // Fallback: If RPC fails or doesn't exist, try standard select (Subject to RLS)
+        console.warn("RPC fetch failed, falling back to RLS-restricted select.", rpcError);
+        const { data: tableBookings } = await supabase
+            .from('bookings')
+            .select('seat_number')
+            .eq('screening_id', screeningId);
+            
+        if (tableBookings) {
+            tableBookings.forEach(b => takenSeats.add(b.seat_number));
+        }
+    }
 
     renderSeats(takenSeats);
     applyGenderRestrictions();
