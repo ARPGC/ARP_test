@@ -51,6 +51,7 @@
     <div id="v-loading" class="fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col items-center justify-center">
         <i data-lucide="loader-2" class="w-10 h-10 text-green-600 animate-spin mb-4"></i>
         <p class="text-sm font-bold text-gray-500">Verifying Permissions...</p>
+        <p id="v-loading-msg" class="text-xs text-gray-400 mt-2">Connecting...</p>
     </div>
 
     <main id="volunteer-panel" class="flex-grow p-6 overflow-y-auto max-w-lg mx-auto w-full relative">
@@ -183,25 +184,38 @@
         // AUTH & INIT CHECK
         document.addEventListener('DOMContentLoaded', async () => {
             const loading = document.getElementById('v-loading');
+            const msg = document.getElementById('v-loading-msg');
             
             try {
                 // 1. Check Session
+                msg.textContent = "Checking Session...";
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error || !session) {
+                    console.log("No session found, redirecting to login.");
                     window.location.replace('../login.html');
                     return;
                 }
 
                 // 2. Fetch User & Verify Volunteer Status
+                // USING maybeSingle() to avoid 406 Error if user is missing in DB
+                msg.textContent = "Fetching Profile...";
                 const { data: user, error: userError } = await supabase
                     .from('users')
-                    .select('*')
+                    .select('id, full_name, is_volunteer, profile_img_url') // Select only what we need
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (userError || !user) {
-                    alert("Error loading profile.");
+                if (userError) {
+                    console.error("Supabase Error:", userError);
+                    alert(`Database Error: ${userError.message}`);
+                    window.location.replace('../index.html');
+                    return;
+                }
+
+                if (!user) {
+                    console.error("User ID exists in Auth but not in 'public.users' table.");
+                    alert("Profile not found! Please contact admin to create your student profile.");
                     window.location.replace('../index.html');
                     return;
                 }
@@ -227,7 +241,8 @@
                 }, 500);
 
             } catch (err) {
-                console.error("Volunteer Init Error:", err);
+                console.error("Volunteer Init Critical Error:", err);
+                alert("Critical Error. Check console.");
                 window.location.replace('../index.html');
             }
         });
