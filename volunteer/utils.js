@@ -1,7 +1,7 @@
 import { supabase } from '../supabase-client.js';
 import { state, CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET } from '../state.js';
 
-// 1. Toast Notification (Standalone)
+// 1. Toast Notifications (Standalone)
 export const showToast = (message, type = 'success') => {
     const existingToast = document.getElementById('app-toast');
     if (existingToast) existingToast.remove();
