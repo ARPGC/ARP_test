@@ -1,7 +1,7 @@
 import { supabase } from '../supabase-client.js';
 import { state, CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET } from '../state.js';
 
-// 1. Toast Notification (Reuses existing CSS)
+// 1. Toast Notification (Standalone)
 export const showToast = (message, type = 'success') => {
     const existingToast = document.getElementById('app-toast');
     if (existingToast) existingToast.remove();
@@ -10,19 +10,21 @@ export const showToast = (message, type = 'success') => {
     toast.id = 'app-toast';
     
     const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
-    // Use simple SVG string to avoid dependency on Lucide if not loaded yet, or strictly use font-awesome if preferred. 
-    // Here we assume Lucide is available globally or we use simple innerHTML icons.
-    const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'alert-triangle' : 'check-circle';
+    
+    // Simple SVG icons to avoid dependency on global Lucide if not ready
+    let iconSvg = '';
+    if (type === 'error') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    else if (type === 'warning') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    else iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
 
     toast.className = `fixed bottom-10 left-1/2 -translate-x-1/2 z-[150] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[280px] justify-center`;
     
     toast.innerHTML = `
-        <i data-lucide="${icon}" class="w-5 h-5"></i>
+        <div class="w-5 h-5">${iconSvg}</div>
         <span class="text-sm font-bold tracking-tight">${message}</span>
     `;
 
     document.body.appendChild(toast);
-    if (window.lucide) window.lucide.createIcons();
 
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-4');
@@ -30,7 +32,7 @@ export const showToast = (message, type = 'success') => {
     }, 3000);
 };
 
-// 2. Image Upload
+// 2. Image Upload (Standalone)
 export const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -52,12 +54,12 @@ export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
     return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
 };
 
-// 4. Activity Logger
-export const logUserActivity = async (actionType, description, metadata = {}) => {
+// 4. Activity Logger (Standalone)
+export const logUserActivity = async (actionType, description, userId, metadata = {}) => {
     try {
-        if (!state.currentUser) return;
+        if (!userId) return;
         supabase.from('user_activity_log').insert({
-            user_id: state.currentUser.id,
+            user_id: userId,
             action_type: actionType,
             description: description,
             metadata: metadata
