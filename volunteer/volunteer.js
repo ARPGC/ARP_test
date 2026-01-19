@@ -1,6 +1,7 @@
 import { supabase } from '../supabase-client.js';
 import { state } from '../state.js';
-import { els, showToast, uploadToCloudinary, getPlaceholderImage, logUserActivity } from '../utils.js';
+// CHANGED: Import from local utils to avoid circular dependency with app.js
+import { showToast, uploadToCloudinary, getPlaceholderImage, logUserActivity } from './utils.js';
 
 let html5QrcodeScanner = null;
 let currentScannedStudentId = null;
@@ -22,7 +23,7 @@ const setupEventListeners = () => {
     // Weight Input for Auto-Calculation
     const weightInput = document.getElementById('v-weight');
     if (weightInput) {
-        weightInput.removeEventListener('input', calculateMetrics); // Prevent duplicates
+        weightInput.removeEventListener('input', calculateMetrics); 
         weightInput.addEventListener('input', calculateMetrics);
     }
     
@@ -45,12 +46,9 @@ const setupEventListeners = () => {
 // 2. VIEW CONTROLLERS
 // ==========================================
 
-// Exposed to window for HTML buttons to call
 window.openPlasticCollection = () => {
     document.getElementById('volunteer-menu').classList.add('hidden');
     document.getElementById('volunteer-work-area').classList.remove('hidden');
-    
-    // Reset state for new entry
     clearForm();
     startScanner();
 };
@@ -61,7 +59,6 @@ window.resetVolunteerForm = () => {
     document.getElementById('volunteer-menu').classList.remove('hidden');
     document.getElementById('scanner-container').classList.add('hidden');
     document.getElementById('collection-form').classList.add('hidden');
-    
     clearForm();
 };
 
@@ -75,9 +72,14 @@ const clearForm = () => {
         img.classList.add('hidden');
     }
 
-    document.getElementById('v-proof-preview-container').classList.remove('hidden');
-    document.getElementById('v-calc-points').textContent = '0';
-    document.getElementById('v-calc-co2').textContent = '0.00';
+    const preview = document.getElementById('v-proof-preview-container');
+    if(preview) preview.classList.remove('hidden');
+    
+    const pts = document.getElementById('v-calc-points');
+    if(pts) pts.textContent = '0';
+    
+    const co2 = document.getElementById('v-calc-co2');
+    if(co2) co2.textContent = '0.00';
     
     currentScannedStudentId = null;
     currentGpsCoords = null;
@@ -93,12 +95,8 @@ const startScanner = () => {
     scannerContainer.classList.remove('hidden');
     document.getElementById('collection-form').classList.add('hidden');
 
-    if (html5QrcodeScanner) {
-        // Scanner already active
-        return;
-    }
+    if (html5QrcodeScanner) return;
 
-    // Initialize Scanner
     html5QrcodeScanner = new Html5Qrcode("qr-reader");
 
     const config = { 
@@ -108,7 +106,7 @@ const startScanner = () => {
     };
 
     html5QrcodeScanner.start(
-        { facingMode: "environment" }, // Prefer back camera
+        { facingMode: "environment" }, 
         config,
         onScanSuccess,
         onScanError
@@ -121,15 +119,12 @@ const startScanner = () => {
 
 const onScanSuccess = async (decodedText, decodedResult) => {
     console.log(`Scan result: ${decodedText}`);
-    
-    // Stop scanning once code is found
     stopScanner();
 
     // Basic Validation (Assuming Student ID is 7 digits)
     const studentId = decodedText.trim();
     if (!/^\d{7}$/.test(studentId)) {
         showToast("Invalid QR. Expected 7-digit Student ID.", "error");
-        // Restart scanner after short delay if needed, or force user to retry
         setTimeout(startScanner, 2000); 
         return;
     }
@@ -138,7 +133,7 @@ const onScanSuccess = async (decodedText, decodedResult) => {
 };
 
 const onScanError = (errorMessage) => {
-    // Ignore frame errors to prevent console spam
+    // Ignore frame errors
 };
 
 window.closeScanner = () => {
@@ -171,19 +166,15 @@ const fetchStudentDetails = async (studentId) => {
 
         if (error || !data) throw new Error("Student not found in database.");
 
-        // Store ID for submission
         currentScannedStudentId = data.id;
 
-        // Populate UI
         document.getElementById('v-student-name').textContent = data.full_name;
         document.getElementById('v-student-id').textContent = `ID: ${data.student_id}`;
         document.getElementById('v-student-img').src = data.profile_img_url || getPlaceholderImage('100x100', 'User');
         
-        // Show Form
         document.getElementById('scanner-container').classList.add('hidden');
         document.getElementById('collection-form').classList.remove('hidden');
 
-        // Start GPS Fetch immediately
         getGPSLocation();
 
     } catch (err) {
@@ -199,11 +190,7 @@ const fetchStudentDetails = async (studentId) => {
 
 const calculateMetrics = (e) => {
     const weight = parseFloat(e.target.value) || 0;
-    
-    // 1kg = 100 Points
     const points = Math.max(1, Math.round(weight * 100));
-    
-    // 1kg = 1.6kg CO2 Saved (Approx)
     const co2 = (weight * 1.6).toFixed(2);
 
     document.getElementById('v-calc-points').textContent = points;
@@ -278,7 +265,6 @@ const submitPlasticEntry = async (e) => {
         return;
     }
 
-    // Lock Button
     const btn = document.getElementById('v-submit-btn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -286,18 +272,16 @@ const submitPlasticEntry = async (e) => {
     if(window.lucide) window.lucide.createIcons();
 
     try {
-        // 1. Upload Image to Cloudinary
         const proofUrl = await uploadToCloudinary(currentProofFile);
 
         btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Saving...`;
 
-        // 2. Insert Record into Supabase
         const { error } = await supabase.from('plastic_submissions').insert({
             user_id: currentScannedStudentId,
             weight_kg: weight,
             plastic_type: 'PET',
-            status: 'pending', // Requires Admin Approval
-            verified_by: state.currentUser.id, // Volunteer ID
+            status: 'pending', 
+            verified_by: state.currentUser.id, 
             verified_at: new Date().toISOString(),
             location: locationName,
             volunteer_coords: currentGpsCoords || 'Unknown',
@@ -307,7 +291,6 @@ const submitPlasticEntry = async (e) => {
 
         if (error) throw error;
 
-        // Success State
         showToast("Entry Submitted! 🌿", "success");
         logUserActivity('volunteer_collection', `Collected ${weight}kg from user ${currentScannedStudentId}`);
         
