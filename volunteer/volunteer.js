@@ -1,12 +1,12 @@
 import { supabase } from '../supabase-client.js';
 import { state } from '../state.js';
-// CHANGED: Import from LOCAL utils to avoid circular dependency
+// Importing directly from utils.js to share logic
 import { showToast, uploadToCloudinary, getPlaceholderImage, logUserActivity } from './utils.js';
 
 let html5QrcodeScanner = null;
-let currentScannedStudentId = null;
-let currentGpsCoords = null;
-let currentProofFile = null;
+let currentScannedStudentId = null; // This is the UUID of the student being scanned
+let currentGpsCoords = null;        // Stores "Lat,Long" string
+let currentProofFile = null;        // Stores the file object
 
 // ==========================================
 // 1. INITIALIZATION
@@ -19,15 +19,16 @@ export const initVolunteerPanel = () => {
 };
 
 const setupEventListeners = () => {
-    // Weight Input
+    // 1. Weight Input Listener (Auto-calculate Points)
     const weightInput = document.getElementById('v-weight');
     if (weightInput) {
+        // Remove old listeners by cloning
         const newWeightInput = weightInput.cloneNode(true);
         weightInput.parentNode.replaceChild(newWeightInput, weightInput);
         newWeightInput.addEventListener('input', calculateMetrics);
     }
     
-    // File Input
+    // 2. File Input Listener (Preview Image)
     const proofInput = document.getElementById('v-proof-upload');
     if (proofInput) {
         const newProofInput = proofInput.cloneNode(true);
@@ -35,7 +36,7 @@ const setupEventListeners = () => {
         newProofInput.addEventListener('change', handleProofPreview);
     }
 
-    // Form Submission
+    // 3. Form Submission Listener
     const form = document.getElementById('plastic-submission-form');
     if (form) {
         const newForm = form.cloneNode(true);
@@ -77,11 +78,10 @@ const clearForm = () => {
     const preview = document.getElementById('v-proof-preview-container');
     if(preview) preview.classList.remove('hidden');
     
-    const pts = document.getElementById('v-calc-points');
-    if(pts) pts.textContent = '0';
-    
-    const co2 = document.getElementById('v-calc-co2');
-    if(co2) co2.textContent = '0.00';
+    // Reset Counters
+    document.getElementById('v-calc-points').textContent = '0';
+    document.getElementById('v-calc-co2').textContent = '0.00';
+    document.getElementById('v-gps-status').innerHTML = '<i data-lucide="crosshair" class="w-3 h-3"></i> Waiting for GPS...';
     
     currentScannedStudentId = null;
     currentGpsCoords = null;
@@ -97,8 +97,9 @@ const startScanner = () => {
     scannerContainer.classList.remove('hidden');
     document.getElementById('collection-form').classList.add('hidden');
 
-    if (html5QrcodeScanner) return;
+    if (html5QrcodeScanner) return; // Prevent duplicate instances
 
+    // Check if library is loaded
     if (typeof Html5Qrcode === 'undefined') {
         showToast("Scanner library loading...", "warning");
         setTimeout(startScanner, 500);
@@ -114,6 +115,7 @@ const startScanner = () => {
             aspectRatio: 1.0
         };
 
+        // Prefer back camera ("environment")
         html5QrcodeScanner.start(
             { facingMode: "environment" }, 
             config,
@@ -121,7 +123,7 @@ const startScanner = () => {
             onScanError
         ).catch(err => {
             console.error("Camera Start Error:", err);
-            showToast("Camera failed. Check permissions.", "error");
+            showToast("Camera permission denied.", "error");
             window.resetVolunteerForm();
         });
     } catch (e) {
@@ -133,11 +135,14 @@ const onScanSuccess = async (decodedText, decodedResult) => {
     console.log(`Scan result: ${decodedText}`);
     stopScanner();
 
-    // Basic Validation (Assuming Student ID is 7 digits)
+    // Basic Validation: Student ID should be ~7 digits
     const studentId = decodedText.trim();
     if (!/^\d{7}$/.test(studentId)) {
         showToast("Invalid QR. Expected 7-digit Student ID.", "error");
-        setTimeout(startScanner, 2000); 
+        // Restart scanner after a short delay if invalid
+        setTimeout(() => {
+            if(!html5QrcodeScanner) startScanner();
+        }, 2000); 
         return;
     }
 
@@ -145,7 +150,7 @@ const onScanSuccess = async (decodedText, decodedResult) => {
 };
 
 const onScanError = (errorMessage) => {
-    // Ignore frame errors
+    // We ignore frame errors to avoid console spam
 };
 
 window.closeScanner = () => {
@@ -163,13 +168,14 @@ const stopScanner = () => {
 };
 
 // ==========================================
-// 4. DATA FETCHING
+// 4. DATA FETCHING (Student Info)
 // ==========================================
 
 const fetchStudentDetails = async (studentId) => {
     try {
         showToast("Fetching Student Info...", "info");
         
+        // Find the user by their 7-digit Student ID
         const { data, error } = await supabase
             .from('users')
             .select('id, full_name, profile_img_url, student_id')
@@ -178,15 +184,19 @@ const fetchStudentDetails = async (studentId) => {
 
         if (error || !data) throw new Error("Student not found in database.");
 
+        // Store the UUID for the submission
         currentScannedStudentId = data.id;
 
+        // Update UI
         document.getElementById('v-student-name').textContent = data.full_name;
         document.getElementById('v-student-id').textContent = `ID: ${data.student_id}`;
         document.getElementById('v-student-img').src = data.profile_img_url || getPlaceholderImage('100x100', 'User');
         
+        // Switch Views
         document.getElementById('scanner-container').classList.add('hidden');
         document.getElementById('collection-form').classList.remove('hidden');
 
+        // Start GPS Fetch
         getGPSLocation();
 
     } catch (err) {
@@ -202,8 +212,12 @@ const fetchStudentDetails = async (studentId) => {
 
 const calculateMetrics = (e) => {
     const weight = parseFloat(e.target.value) || 0;
-    const points = Math.max(1, Math.round(weight * 100));
-    const co2 = (weight * 1.6).toFixed(2);
+    
+    // Rule: 1 KG = 100 Points
+    const points = Math.max(0, Math.round(weight * 100));
+    
+    // Rule: 1 KG = 1.60 KG CO2 Saved
+    const co2 = (weight * 1.60).toFixed(2);
 
     document.getElementById('v-calc-points').textContent = points;
     document.getElementById('v-calc-co2').textContent = co2;
@@ -216,9 +230,14 @@ const handleProofPreview = (e) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = document.getElementById('v-proof-img');
+            const container = document.getElementById('v-proof-preview-container');
+            
             img.src = e.target.result;
             img.classList.remove('hidden');
-            document.getElementById('v-proof-preview-container').classList.add('hidden');
+            container.classList.add('hidden');
+            
+            // Show retake button
+            document.getElementById('v-retake-btn').classList.remove('hidden');
         };
         reader.readAsDataURL(file);
     }
@@ -232,13 +251,17 @@ const getGPSLocation = () => {
         return;
     }
 
-    statusEl.innerHTML = `<span class="text-orange-500 flex items-center gap-1">Locating...</span>`;
+    statusEl.innerHTML = `<span class="text-orange-500 flex items-center gap-1"><i data-lucide="loader-2" class="animate-spin w-3 h-3"></i> Locating...</span>`;
+    if(window.lucide) window.lucide.createIcons();
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
+            // Store as "Lat,Long" string
             currentGpsCoords = `${position.coords.latitude},${position.coords.longitude}`;
-            statusEl.innerHTML = `<span class="text-green-600 flex items-center gap-1">Location Locked</span>`;
+            
+            statusEl.innerHTML = `<span class="text-green-600 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> Location Locked</span>`;
             statusEl.classList.remove('animate-pulse');
+            if(window.lucide) window.lucide.createIcons();
         },
         (error) => {
             console.error("GPS Error", error);
@@ -256,13 +279,14 @@ const getGPSLocation = () => {
 const submitPlasticEntry = async (e) => {
     e.preventDefault();
     
+    // 1. Validations
     if (!currentScannedStudentId) {
         showToast("No student selected.", "error");
         return;
     }
     
     const weight = parseFloat(document.getElementById('v-weight').value);
-    const program = document.getElementById('v-program').value;
+    const program = document.getElementById('v-program').value; // Get Selected Program
     const locationName = document.getElementById('v-location').value;
 
     if (!weight || weight <= 0) {
@@ -275,33 +299,45 @@ const submitPlasticEntry = async (e) => {
         return;
     }
 
+    // 2. Button Loading State
     const btn = document.getElementById('v-submit-btn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = `Uploading...`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4 mr-2"></i> Uploading...`;
+    if(window.lucide) window.lucide.createIcons();
 
     try {
+        // 3. Upload Photo to Cloudinary
         const proofUrl = await uploadToCloudinary(currentProofFile);
 
-        btn.innerHTML = `Saving...`;
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4 mr-2"></i> Saving...`;
+        if(window.lucide) window.lucide.createIcons();
 
+        // 4. Insert into Supabase
         const { error } = await supabase.from('plastic_submissions').insert({
-            user_id: currentScannedStudentId,
+            user_id: currentScannedStudentId,    // Who gave the plastic
             weight_kg: weight,
-            plastic_type: 'PET',
-            status: 'pending', 
-            verified_by: state.currentUser.id, 
+            plastic_type: 'PET',                 // Hardcoded as per requirement
+            status: 'pending',                   // Admin needs to approve
+            verified_by: state.currentUser.id,   // Volunteer ID (You)
             verified_at: new Date().toISOString(),
-            location: locationName,
-            volunteer_coords: currentGpsCoords || 'Unknown',
-            submission_url: proofUrl,
-            program: program
+            location: locationName,              // e.g. "Library"
+            volunteer_coords: currentGpsCoords || 'Unknown', // Stored in new column
+            submission_url: proofUrl,            // Cloudinary Image URL
+            program: program                     // "CEP", "Green Club", "Individual"
         });
 
         if (error) throw error;
 
-        showToast("Entry Submitted! 🌿", "success");
-        logUserActivity('volunteer_collection', `Collected ${weight}kg from user ${currentScannedStudentId}`, state.currentUser.id);
+        // 5. Success
+        showToast("Entry Submitted Successfully! 🌿", "success");
+        
+        // Log activity (optional, but good for tracking)
+        logUserActivity(
+            'volunteer_collection', 
+            `Collected ${weight}kg from ${currentScannedStudentId}`, 
+            state.currentUser.id
+        );
         
         window.resetVolunteerForm();
 
@@ -309,7 +345,9 @@ const submitPlasticEntry = async (e) => {
         console.error("Submission Error:", err);
         showToast("Failed to submit. Try again.", "error");
     } finally {
+        // Reset Button
         btn.disabled = false;
         btn.innerHTML = originalText;
+        if(window.lucide) window.lucide.createIcons();
     }
 };
