@@ -1,7 +1,7 @@
 import { supabase } from '../supabase-client.js';
 import { state } from '../state.js';
-// Import utilities from the root folder
-import { showToast, uploadToCloudinary, getPlaceholderImage, logUserActivity } from '../utils.js';
+// FIX: Import from LOCAL utils to avoid circular dependency with main App
+import { showToast, uploadToCloudinary, getPlaceholderImage, logUserActivity } from './utils.js';
 
 let html5QrcodeScanner = null;
 let currentScannedStudentId = null; // UUID of the student
