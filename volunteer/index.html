@@ -197,26 +197,18 @@
                     return;
                 }
 
-                // ==========================================
-                // DEBUGGING LOGS ADDED HERE
-                // ==========================================
                 console.log("LOGGED IN AUTH ID:", session.user.id);
 
                 // 2. Fetch User & Verify Volunteer Status
-                // USING maybeSingle() to avoid 406 Error if user is missing in DB
                 msg.textContent = "Fetching Profile...";
                 const { data: user, error: userError } = await supabase
                     .from('users')
-                    .select('id, full_name, is_volunteer, profile_img_url') // Select only what we need
-                    .eq('id', session.user.id)
+                    .select('id, full_name, is_volunteer, profile_img_url') 
+                    // FIX IS HERE: Use 'auth_user_id' instead of 'id'
+                    .eq('auth_user_id', session.user.id) 
                     .maybeSingle();
                 
-                // ==========================================
-                // DEBUGGING LOGS ADDED HERE
-                // ==========================================
                 console.log("DB FETCH RESULT:", user);
-                if (userError) console.error("DB FETCH ERROR:", userError);
-
 
                 if (userError) {
                     console.error("Supabase Error:", userError);
@@ -226,8 +218,8 @@
                 }
 
                 if (!user) {
-                    console.error("User ID exists in Auth but not in 'public.users' table.");
-                    alert("Profile not found! Please contact admin to create your student profile.");
+                    console.error("User not found. Ensure 'auth_user_id' column is populated.");
+                    alert("Profile not found! Please contact admin.");
                     window.location.replace('../index.html');
                     return;
                 }
