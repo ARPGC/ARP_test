@@ -197,6 +197,11 @@
                     return;
                 }
 
+                // ==========================================
+                // DEBUGGING LOGS ADDED HERE
+                // ==========================================
+                console.log("LOGGED IN AUTH ID:", session.user.id);
+
                 // 2. Fetch User & Verify Volunteer Status
                 // USING maybeSingle() to avoid 406 Error if user is missing in DB
                 msg.textContent = "Fetching Profile...";
@@ -205,6 +210,13 @@
                     .select('id, full_name, is_volunteer, profile_img_url') // Select only what we need
                     .eq('id', session.user.id)
                     .maybeSingle();
+                
+                // ==========================================
+                // DEBUGGING LOGS ADDED HERE
+                // ==========================================
+                console.log("DB FETCH RESULT:", user);
+                if (userError) console.error("DB FETCH ERROR:", userError);
+
 
                 if (userError) {
                     console.error("Supabase Error:", userError);
