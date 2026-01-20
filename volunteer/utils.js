@@ -1,17 +1,18 @@
 import { supabase } from '../supabase-client.js';
-import { state, CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET } from '../state.js';
+import { CLOUDINARY_API_URL, CLOUDINARY_UPLOAD_PRESET } from '../state.js';
 
-// 1. Toast Notifications (Standalone)
+// 1. Toast Notification
 export const showToast = (message, type = 'success') => {
-    const existingToast = document.getElementById('app-toast');
+    const existingToast = document.getElementById('v-toast');
     if (existingToast) existingToast.remove();
 
     const toast = document.createElement('div');
-    toast.id = 'app-toast';
+    toast.id = 'v-toast';
     
+    // Colors
     const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
     
-    // Simple SVG icons to avoid dependency on global Lucide if not ready
+    // Icons
     let iconSvg = '';
     if (type === 'error') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
     else if (type === 'warning') iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
@@ -32,7 +33,7 @@ export const showToast = (message, type = 'success') => {
     }, 3000);
 };
 
-// 2. Image Upload (Standalone)
+// 2. Cloudinary Upload
 export const uploadToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -49,12 +50,12 @@ export const uploadToCloudinary = async (file) => {
     }
 };
 
-// 3. Placeholder Helper
+// 3. Placeholder Image
 export const getPlaceholderImage = (size = '400x300', text = 'EcoCampus') => {
     return `https://placehold.co/${size}/EBFBEE/166534?text=${text}&font=inter`;
 };
 
-// 4. Activity Logger (Standalone)
+// 4. Activity Logger
 export const logUserActivity = async (actionType, description, userId, metadata = {}) => {
     try {
         if (!userId) return;
