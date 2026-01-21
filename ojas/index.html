@@ -2,68 +2,120 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OJAS 2.0 | Sports Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OJAS 2.0 | Student Portal</title>
+    
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script type="module" src="supabase.js"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="student.js"></script>
+
+    <style>
+        /* Custom Overrides for Professional Look */
+        body { background-color: #111827; color: white; font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 80px; }
+        .gold-text { background: linear-gradient(135deg, #FCD34D 0%, #D97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .nav-item.active { color: #FCD34D; border-bottom: 2px solid #FCD34D; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <div class="animate-pulse flex flex-col items-center">
-            <div class="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mb-4">
-                <i data-lucide="trophy" class="w-8 h-8 text-black"></i>
-            </div>
-            <h1 class="text-2xl font-bold gold-text">OJAS 2.0</h1>
-            <p id="auth-status" class="text-sm opacity-60 mt-2">Verifying Student ID...</p>
-        </div>
+    <div id="loader" class="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="text-xl font-bold gold-text tracking-widest">OJAS 2.0</h2>
+        <p class="text-xs text-gray-500 mt-2">Verifying Identity...</p>
     </div>
 
-    <div class="app-container">
-        <header class="flex items-center justify-between mb-8">
+    <div id="app" class="max-w-md mx-auto min-h-screen relative hidden">
+        
+        <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-md border-b border-gray-800 px-6 py-4 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black gold-text">OJAS 2.0</h1>
-                <p class="text-xs opacity-60">Annual Sports Meet</p>
+                <h1 class="text-2xl font-black gold-text tracking-tighter">OJAS</h1>
             </div>
-            <div class="flex items-center gap-3 bg-white/5 p-2 pr-4 rounded-full border border-white/10">
-                <img id="user-avatar" src="https://via.placeholder.com/40" class="w-8 h-8 rounded-full">
-                <div>
-                    <p id="user-name" class="text-xs font-bold leading-none">Student</p>
-                    <p id="user-class" class="text-[10px] opacity-60 leading-none mt-1">...</p>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <p id="header-name" class="text-sm font-bold text-white leading-none">Student</p>
+                    <p id="header-id" class="text-[10px] text-gray-400 font-mono mt-1">ID: ...</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
+                    <img id="header-avatar" src="https://via.placeholder.com/100" class="w-full h-full object-cover">
                 </div>
             </div>
         </header>
 
-        <section class="mb-8">
-            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="medal" class="w-4 h-4 text-yellow-500"></i> Register for Sports
-            </h2>
-            <div id="sports-container" class="sports-grid">
-                <div class="text-center col-span-2 opacity-50 text-sm">Loading sports...</div>
-            </div>
-        </section>
+        <nav class="flex border-b border-gray-800 bg-gray-900 sticky top-[73px] z-30">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-item active flex-1 py-4 text-sm font-bold text-gray-400 transition-colors">My Zone</button>
+            <button onclick="switchTab('sports')" id="tab-sports" class="nav-item flex-1 py-4 text-sm font-bold text-gray-400 transition-colors">Sports</button>
+            <button onclick="switchTab('schedule')" id="tab-schedule" class="nav-item flex-1 py-4 text-sm font-bold text-gray-400 transition-colors">Schedule</button>
+        </nav>
 
-        <section>
-            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                <i data-lucide="ticket" class="w-4 h-4 text-green-400"></i> My Events
-            </h2>
-            <div id="my-regs-list">
+        <main class="p-5">
+            
+            <div id="view-dashboard" class="animate-slide-up space-y-6">
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <p class="text-gray-400 text-xs uppercase tracking-wider font-bold mb-1">Total Points</p>
+                    <h2 class="text-4xl font-black text-white mb-2">0 <span class="text-base font-normal text-gray-500">pts</span></h2>
+                    <div class="flex gap-2 mt-4">
+                        <span id="badge-class" class="px-3 py-1 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">Class ...</span>
+                        <span id="badge-gender" class="px-3 py-1 bg-gray-800 rounded-lg text-xs font-bold text-gray-300 border border-gray-700">...</span>
+                    </div>
                 </div>
-        </section>
+
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="ticket" class="w-5 h-5 text-green-500"></i> My Registrations
+                    </h3>
+                    <div id="my-registrations-list" class="space-y-3">
+                        <p class="text-center text-gray-600 py-8 text-sm">No active registrations found.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-sports" class="hidden animate-slide-up">
+                <div class="mb-4">
+                    <input type="text" id="search-sports" placeholder="Search sports..." class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-500 transition-colors">
+                </div>
+                <div id="sports-grid" class="grid grid-cols-2 gap-4">
+                    </div>
+            </div>
+
+            <div id="view-schedule" class="hidden animate-slide-up">
+                <div class="glass-panel p-4 rounded-xl text-center mb-4">
+                    <p class="text-gray-400 text-xs">Live updates & fixtures</p>
+                </div>
+                <div id="schedule-list" class="space-y-3">
+                    <p class="text-center text-gray-600 py-10 text-sm">Schedule will be announced soon.</p>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <div id="reg-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modal-title" class="font-bold text-lg">Register</h3>
-                <button onclick="closeModal()"><i data-lucide="x" class="w-5 h-5 opacity-60"></i></button>
-            </div>
-            <div id="modal-body">
+    <div id="modal-reg" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-700 w-full max-w-sm rounded-3xl p-6 relative animate-slide-up">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-700">
+                    <i id="modal-icon" data-lucide="trophy" class="w-8 h-8 text-yellow-500"></i>
                 </div>
+                <h3 id="modal-title" class="text-xl font-bold text-white">Sport Name</h3>
+                <p id="modal-type" class="text-sm text-gray-400">Team Event</p>
+            </div>
+
+            <div id="modal-content"></div>
         </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-gray-900 px-6 py-3 rounded-full shadow-2xl z-[60] flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none font-bold text-sm min-w-[280px] justify-center">
+        <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+        <span id="toast-msg">Success message</span>
     </div>
 
 </body>
