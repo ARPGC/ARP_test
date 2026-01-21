@@ -775,14 +775,15 @@ body.low-data-mode .hero-particle {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15);
+    /* Gold/Yellow Glow for Sports Theme */
+    box-shadow: 0 10px 30px -5px rgba(234, 179, 8, 0.25);
     overflow: hidden;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .dark .glass-card-ojas {
-    background: rgba(30, 27, 75, 0.8); /* Indigo-950/80 */
-    border-color: rgba(99, 102, 241, 0.3); /* Indigo-500/30 */
+    background: rgba(40, 30, 10, 0.8); /* Dark Gold/Brown Tint */
+    border-color: rgba(234, 179, 8, 0.3); /* Yellow-500/30 */
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
 }
 
