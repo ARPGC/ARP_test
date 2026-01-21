@@ -8,7 +8,7 @@ let uploadedProofUrl = null;
 let isUploading = false;
 
 // ==========================================
-// 1. INTERNAL UTILITIES (Inlined to prevent crash)
+// 1. UI HELPERS (Inlined for reliability)
 // ==========================================
 
 const showToast = (message, type = 'success') => {
@@ -18,13 +18,27 @@ const showToast = (message, type = 'success') => {
     const toast = document.createElement('div');
     toast.id = 'v-toast';
     
+    // UI: Proper colors and bottom-center positioning
     const bgClass = type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-600';
     
-    toast.className = `fixed bottom-10 left-1/2 -translate-x-1/2 z-[150] flex items-center gap-3 px-6 py-3.5 rounded-2xl text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[280px] justify-center`;
-    toast.innerHTML = `<span class="text-sm font-bold tracking-tight">${message}</span>`;
+    toast.className = `fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-6 py-4 rounded-full text-white shadow-2xl animate-slideUp ${bgClass} transition-all duration-300 min-w-[300px] justify-center backdrop-blur-md`;
+    
+    // Icon selection
+    let icon = type === 'success' ? '✓' : type === 'error' ? '✕' : '!';
+    
+    toast.innerHTML = `
+        <span class="text-lg font-bold">${icon}</span>
+        <span class="text-sm font-bold tracking-wide">${message}</span>
+    `;
 
     document.body.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, 20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 };
 
 const uploadToCloudinary = async (file) => {
@@ -47,28 +61,26 @@ export const initVolunteerPanel = () => {
     
     console.log("Initializing Volunteer Panel...");
 
-    // 1. Weight Input - Direct Binding
+    // 1. Weight Input - Instant Calc
     const weightInput = document.getElementById('v-weight');
     if (weightInput) {
-        // Use 'oninput' to prevent multiple listeners piling up
         weightInput.oninput = (e) => calculateMetrics(e.target.value);
-        // Trigger once in case there's a value
         if (weightInput.value) calculateMetrics(weightInput.value);
     }
     
-    // 2. File Input - Direct Binding
+    // 2. File Input
     const proofInput = document.getElementById('v-proof-upload');
     if (proofInput) {
         proofInput.onchange = handleProofSelect;
     }
 
-    // 3. Form Submission - Direct Binding
+    // 3. Form Submission
     const form = document.getElementById('plastic-submission-form');
     if (form) {
         form.onsubmit = submitPlasticEntry;
     }
     
-    // 4. Manual Metric Reset
+    // Reset Labels
     document.getElementById('v-calc-points').textContent = '0';
     document.getElementById('v-calc-co2').textContent = '0.00';
 };
@@ -86,7 +98,7 @@ const calculateMetrics = (value) => {
         return;
     }
     
-    // Logic: 1 KG = 100 Points | 1 KG = 1.60 CO2
+    // Rule: 1 KG = 100 Points | 1 KG = 1.60 CO2
     const points = Math.round(weight * 100);
     const co2 = (weight * 1.60).toFixed(2);
 
@@ -98,7 +110,7 @@ const handleProofSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 1. Preview
+    // --- UI: Show Preview ---
     const img = document.getElementById('v-proof-img');
     const container = document.getElementById('v-proof-preview-container');
     const retakeBtn = document.getElementById('v-retake-btn');
@@ -106,33 +118,62 @@ const handleProofSelect = async (e) => {
     img.src = URL.createObjectURL(file);
     img.classList.remove('hidden');
     container.classList.add('hidden');
-    retakeBtn.classList.remove('hidden');
+    retakeBtn.classList.remove('hidden'); // Hide retake during upload
 
-    // 2. Instant Upload
+    // --- UI: Create Overlay Loader ---
+    // Remove existing loader if any
+    const existingLoader = document.getElementById('v-img-loader');
+    if(existingLoader) existingLoader.remove();
+
+    // Create new loader overlay
+    const loader = document.createElement('div');
+    loader.id = 'v-img-loader';
+    loader.className = 'absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-10 rounded-xl backdrop-blur-sm transition-all duration-300';
+    loader.innerHTML = `
+        <svg class="animate-spin h-8 w-8 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-xs font-bold uppercase tracking-wider">Uploading...</span>
+    `;
+    img.parentNode.appendChild(loader);
+
+    // --- LOGIC: Start Upload ---
     isUploading = true;
     uploadedProofUrl = null;
     toggleSubmitButton(false, "Uploading Photo...");
     
-    // Show overlay loader
-    let loader = document.getElementById('v-upload-loader');
-    if(!loader) {
-        loader = document.createElement('div');
-        loader.id = 'v-upload-loader';
-        loader.className = 'absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white z-10 rounded-xl';
-        loader.innerHTML = `<span class="animate-spin text-2xl">⏳</span><span class="text-xs font-bold mt-2">Uploading...</span>`;
-        img.parentElement.appendChild(loader);
-    }
-    loader.classList.remove('hidden');
-
     try {
         const url = await uploadToCloudinary(file);
         uploadedProofUrl = url;
-        loader.innerHTML = `<span class="text-2xl">✅</span><span class="text-xs font-bold mt-2 text-green-400">Done</span>`;
-        setTimeout(() => loader.classList.add('hidden'), 1000);
+        
+        // Success UI
+        loader.innerHTML = `
+            <div class="bg-green-500 rounded-full p-2 mb-2">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <span class="text-xs font-bold text-green-400 uppercase tracking-wider">Uploaded</span>
+        `;
+        
+        // Fade out loader after 1.5s
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 300);
+            retakeBtn.classList.remove('hidden'); // Show retake button now
+        }, 1500);
+
     } catch (err) {
         console.error(err);
-        showToast("Upload failed", "error");
-        loader.innerHTML = `<span class="text-2xl">❌</span><span class="text-xs font-bold mt-2 text-red-400">Failed</span>`;
+        showToast("Photo upload failed. Check internet.", "error");
+        
+        // Error UI
+        loader.innerHTML = `
+            <div class="bg-red-500 rounded-full p-2 mb-2">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            <span class="text-xs font-bold text-red-400">Failed</span>
+        `;
+        retakeBtn.classList.remove('hidden');
     } finally {
         isUploading = false;
         toggleSubmitButton(true);
@@ -143,8 +184,13 @@ const toggleSubmitButton = (enabled, text = null) => {
     const btn = document.getElementById('v-submit-btn');
     if (!btn) return;
     btn.disabled = !enabled;
-    if (text) btn.innerHTML = text;
-    else btn.innerHTML = `Submit Entry`;
+    
+    if (text) {
+        // Retain icon structure
+        btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`;
+    } else {
+        btn.innerHTML = `Submit Entry`;
+    }
 };
 
 // ==========================================
@@ -172,7 +218,14 @@ const clearForm = () => {
     if (form) form.reset();
     
     // UI Resets
-    document.getElementById('v-proof-img').classList.add('hidden');
+    const img = document.getElementById('v-proof-img');
+    img.classList.add('hidden');
+    img.src = '';
+    
+    // Clear loaders
+    const loader = document.getElementById('v-img-loader');
+    if(loader) loader.remove();
+
     document.getElementById('v-proof-preview-container').classList.remove('hidden');
     document.getElementById('v-retake-btn').classList.add('hidden');
     document.getElementById('v-calc-points').textContent = '0';
@@ -192,7 +245,7 @@ const startScanner = () => {
     if (html5QrcodeScanner) return;
 
     if (typeof Html5Qrcode === 'undefined') {
-        setTimeout(startScanner, 500); // Wait for library
+        setTimeout(startScanner, 500); 
         return;
     }
 
@@ -256,11 +309,12 @@ const getGPSLocation = () => {
         statusEl.innerHTML = `<span class="text-red-500">GPS Not Supported</span>`;
         return;
     }
-    statusEl.innerHTML = `<span class="text-orange-500">Locating...</span>`;
+    statusEl.innerHTML = `<span class="text-orange-500 font-medium">Acquiring GPS...</span>`;
+    
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             currentGpsCoords = `${pos.coords.latitude},${pos.coords.longitude}`;
-            statusEl.innerHTML = `<span class="text-green-600">Location Locked</span>`;
+            statusEl.innerHTML = `<span class="text-green-600 font-bold">✓ Location Locked</span>`;
         },
         () => { statusEl.innerHTML = `<span class="text-red-500">GPS Failed</span>`; }
     );
@@ -274,7 +328,7 @@ const submitPlasticEntry = async (e) => {
     e.preventDefault();
 
     if (isUploading) {
-        showToast("Wait for photo upload...", "warning");
+        showToast("Wait for photo upload to finish...", "warning");
         return;
     }
     if (!uploadedProofUrl) {
@@ -290,7 +344,7 @@ const submitPlasticEntry = async (e) => {
     const program = document.getElementById('v-program').value;
     const location = document.getElementById('v-location').value;
 
-    toggleSubmitButton(false, "Saving...");
+    toggleSubmitButton(false, "Saving Entry...");
 
     const { error } = await supabase.from('plastic_submissions').insert({
         user_id: currentScannedStudentId,
