@@ -1,0 +1,133 @@
+/* ojas/style.css */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --gold: #D4AF37;
+    --gold-glow: rgba(212, 175, 55, 0.3);
+    --dark-bg: #111827;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--dark-bg);
+    color: white;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* Auth Screen */
+#auth-screen {
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dashboard Layout */
+.app-container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-bottom: 100px;
+}
+
+/* Glass Cards */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.gold-text {
+    background: linear-gradient(135deg, #FFF 0%, #D4AF37 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Buttons */
+.btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, #D4AF37, #B8860B);
+    color: black;
+    font-weight: 800;
+    padding: 14px;
+    border-radius: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-secondary {
+    width: 100%;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-weight: 600;
+    padding: 14px;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Sports Grid */
+.sports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.sport-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.sport-card.selected {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-content {
+    background: #1F2937;
+    border: 1px solid var(--glass-border);
+    width: 100%;
+    max-width: 350px;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+}
+
+input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 12px;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    font-family: inherit;
+}
