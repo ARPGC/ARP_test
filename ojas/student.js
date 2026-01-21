@@ -1,139 +1,264 @@
 import { supabase } from './supabase.js';
 
-// --- CONFIG ---
+// --- CONFIGURATION ---
 const FIX_NUMBER = 5489;
 let currentUser = null;
-let myRegistrations = []; // Array of sport_ids
-let myTeams = []; // Array of team objects I belong to
+let myRegistrations = []; 
+let myTeams = []; 
 let currentManageTeamId = null;
 
-// --- INIT ---
+// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id');
-    if (!urlId) return showError('No ID Provided');
+
+    if (!urlId) return showError('Access Denied', 'No Student ID Provided');
+
     const studentId = parseInt(urlId) - FIX_NUMBER;
     await authenticateUser(studentId);
 });
 
+// --- AUTHENTICATION ---
 async function authenticateUser(studentId) {
     try {
-        const { data, error } = await supabase.from('users').select('*').eq('student_id', studentId.toString()).single();
-        if (error || !data) throw new Error('Student not found');
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('student_id', studentId.toString())
+            .single();
+
+        if (error || !data) throw new Error('Student not found in OJAS database');
+
         currentUser = data;
         
-        // Determine Category (Junior/Senior) based on class
-        currentUser.category = ['FYJC', 'SYJC'].includes(currentUser.class_name) ? 'Junior' : 'Senior';
+        // Auto-assign category
+        const juniorClasses = ['FYJC', 'SYJC'];
+        currentUser.category = juniorClasses.includes(currentUser.class_name) ? 'Junior' : 'Senior';
 
         renderHeader();
         await refreshData();
         
+        // Show App
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
+
     } catch (err) {
-        alert("Auth Failed: " + err.message);
+        showError('Unauthorized', err.message);
     }
 }
 
-// --- DATA FETCHING ---
+// --- DATA REFRESH ---
 async function refreshData() {
-    // 1. Fetch My Registrations (Individual)
-    const { data: regs } = await supabase.from('registrations').select('sport_id, status, sports(*)').eq('user_id', currentUser.id);
+    // 1. My Registrations
+    const { data: regs } = await supabase.from('registrations')
+        .select('sport_id, status, sports(id, name, type, icon, gender_category)')
+        .eq('user_id', currentUser.id);
     myRegistrations = regs || [];
 
-    // 2. Fetch My Team Memberships
+    // 2. My Teams
     const { data: teams } = await supabase.from('team_members')
         .select(`
-            status, 
-            team_id, 
+            id, status, team_id, 
             teams (
                 id, name, sport_id, team_code, status, captain_id,
-                sports (name, type, team_size)
+                sports (name, team_size)
             )
         `)
         .eq('user_id', currentUser.id);
     myTeams = teams || [];
 
-    // Render All Views
+    // Re-render active view
+    renderMyZone();
     renderRegistrationTab();
     renderTeamMarketplace();
-    renderMyZone();
 }
 
-// --- TAB 1: INDIVIDUAL REGISTRATION ---
+// --- UI RENDERING ---
+function renderHeader() {
+    document.getElementById('header-name').textContent = currentUser.name;
+    document.getElementById('header-id').textContent = `ID: ${currentUser.student_id}`;
+    document.getElementById('badge-class').textContent = currentUser.class_name || 'N/A';
+    document.getElementById('badge-category').textContent = currentUser.category;
+    
+    if (currentUser.avatar_url) {
+        document.getElementById('header-avatar').src = currentUser.avatar_url;
+    }
+}
+
+// 1. MY ZONE (Dashboard)
+function renderMyZone() {
+    // A. My Squads
+    const squadsContainer = document.getElementById('my-teams-list');
+    squadsContainer.innerHTML = '';
+    
+    if (myTeams.length === 0) {
+        squadsContainer.innerHTML = '<p class="text-xs text-gray-500 italic">No teams joined yet.</p>';
+    } else {
+        myTeams.forEach(mt => {
+            const isCaptain = mt.teams.captain_id === currentUser.id;
+            const action = isCaptain 
+                ? `<button onclick="openManageModal('${mt.team_id}')" class="mt-3 w-full py-2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 rounded-lg text-xs font-bold hover:bg-yellow-500 hover:text-black transition-colors">Manage Squad</button>` 
+                : `<div class="mt-2 text-[10px] text-gray-400 flex items-center gap-2"><div class="w-2 h-2 rounded-full ${mt.status === 'Accepted' ? 'bg-green-500' : 'bg-yellow-500'}"></div> Status: ${mt.status}</div>`;
+
+            squadsContainer.innerHTML += `
+                <div class="glass-panel p-4 rounded-xl border border-white/5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold text-white text-sm">${mt.teams.name}</h4>
+                            <p class="text-xs text-gray-400 font-mono mt-0.5">${mt.teams.team_code}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded bg-white/5 text-[10px] font-bold text-gray-300 border border-white/10">${mt.teams.sports.name}</span>
+                    </div>
+                    ${action}
+                </div>
+            `;
+        });
+    }
+
+    // B. Individual Registrations
+    const regContainer = document.getElementById('my-regs-list');
+    regContainer.innerHTML = '';
+    
+    if (myRegistrations.length === 0) {
+        regContainer.innerHTML = '<p class="text-xs text-gray-500 italic">No individual events registered.</p>';
+    } else {
+        myRegistrations.forEach(r => {
+            regContainer.innerHTML += `
+                <div class="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+                    <div class="flex items-center gap-3">
+                         <i data-lucide="${r.sports.icon || 'trophy'}" class="w-4 h-4 text-gray-500"></i>
+                         <span class="text-sm text-gray-300 font-medium">${r.sports.name}</span>
+                    </div>
+                    <button onclick="handleWithdraw(${r.sport_id})" class="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider border border-red-900/50 px-2 py-1 rounded hover:bg-red-900/20 transition-colors">Withdraw</button>
+                </div>
+            `;
+        });
+    }
+    lucide.createIcons();
+}
+
+// 2. REGISTRATION (Sports List)
 async function renderRegistrationTab() {
     const { data: sports } = await supabase.from('sports').select('*').eq('status', 'Open').order('name');
     const container = document.getElementById('sports-list');
     container.innerHTML = '';
 
     sports.forEach(s => {
-        // Check if already registered
         const isReg = myRegistrations.some(r => r.sport_id === s.id);
-        
-        const btnHtml = isReg 
-            ? `<button disabled class="px-6 py-2 bg-green-900/30 text-green-500 border border-green-800 rounded-lg text-xs font-bold uppercase tracking-wider">Registered</button>`
-            : `<button onclick="handleIndividualReg(${s.id}, '${s.name}')" class="px-6 py-2 btn-gold rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20">Register</button>`;
+        const btn = isReg 
+            ? `<button disabled class="px-4 py-2 bg-green-500/10 text-green-500 border border-green-500/30 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"><i data-lucide="check" class="w-3 h-3"></i> Joined</button>`
+            : `<button onclick="handleIndividualReg(${s.id}, '${s.name}')" class="px-4 py-2 bg-white/5 text-white border border-white/20 hover:bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">Register</button>`;
 
         container.innerHTML += `
-            <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+            <div class="glass-panel p-4 rounded-xl flex items-center justify-between group hover:border-white/10 transition-colors">
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">
-                        <i data-lucide="${s.icon || 'trophy'}" class="w-5 h-5 text-gray-400"></i>
+                    <div class="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center border border-white/5 group-hover:border-yellow-500/50 transition-colors">
+                        <i data-lucide="${s.icon || 'activity'}" class="w-5 h-5 text-gray-400 group-hover:text-yellow-500"></i>
                     </div>
                     <div>
                         <h4 class="font-bold text-white text-sm">${s.name}</h4>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">${s.type} • ${s.gender_category || 'Mixed'}</p>
+                        <div class="flex gap-2 mt-1">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase bg-white/5 px-1.5 rounded">${s.type}</span>
+                            <span class="text-[10px] text-gray-500 font-bold uppercase bg-white/5 px-1.5 rounded">${s.gender_category || 'Mixed'}</span>
+                        </div>
                     </div>
                 </div>
-                ${btnHtml}
+                ${btn}
             </div>
         `;
     });
     lucide.createIcons();
 }
 
-window.handleIndividualReg = async (sportId, sportName) => {
-    // 1. Profile Check
-    if (!currentUser.mobile || currentUser.mobile.length < 10) {
-        return showToast('Please update your mobile number in profile first!', 'error');
+// 3. TEAM MARKETPLACE
+async function renderTeamMarketplace() {
+    const container = document.getElementById('team-marketplace');
+    container.innerHTML = '<p class="text-center text-gray-500 text-xs animate-pulse">Scanning for open squads...</p>';
+
+    // Fetch Open Teams
+    const { data: openTeams } = await supabase
+        .from('teams')
+        .select(`
+            id, name, status, team_code, sport_id,
+            sports (name, gender_category, team_size),
+            captain:users (class_name, gender)
+        `)
+        .eq('status', 'Open');
+
+    if (!openTeams || openTeams.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 glass-panel rounded-xl"><p class="text-gray-500 text-xs">No open squads found.</p></div>';
+        return;
     }
 
-    // 2. Insert Registration
+    // Get current member counts
+    const { data: counts } = await supabase.from('team_members').select('team_id');
+    
+    container.innerHTML = '';
+    
+    openTeams.forEach(t => {
+        // Filter: Gender & Category
+        if (t.sports.gender_category !== 'Mixed' && t.captain.gender !== currentUser.gender) return;
+        const capCat = ['FYJC', 'SYJC'].includes(t.captain.class_name) ? 'Junior' : 'Senior';
+        if (capCat !== currentUser.category) return;
+
+        // Status Logic
+        const memberCount = counts.filter(c => c.team_id === t.id).length;
+        const isFull = memberCount >= t.sports.team_size;
+        const inTeam = myTeams.some(mt => mt.team_id === t.id);
+        const hasReg = myRegistrations.some(r => r.sport_id === t.sport_id);
+
+        let btn = '';
+        if (inTeam) btn = `<span class="text-[10px] font-bold text-green-500 border border-green-500/30 px-2 py-1 rounded">Joined</span>`;
+        else if (isFull) btn = `<span class="text-[10px] font-bold text-red-500 border border-red-500/30 px-2 py-1 rounded">Full</span>`;
+        else if (!hasReg) btn = `<button onclick="showToast('Register individually first!', 'error')" class="text-[10px] font-bold text-gray-500 border border-gray-600 px-2 py-1 rounded opacity-50 cursor-not-allowed">Locked</button>`;
+        else btn = `<button onclick="joinTeam('${t.id}')" class="text-[10px] font-bold text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded transition-colors shadow-lg shadow-blue-900/50">Join</button>`;
+
+        container.innerHTML += `
+            <div class="glass-panel p-3 rounded-xl flex justify-between items-center">
+                <div>
+                    <h4 class="font-bold text-white text-sm">${t.name}</h4>
+                    <p class="text-[10px] text-gray-400 mt-0.5">${t.sports.name} • <span class="${isFull ? 'text-red-400' : 'text-green-400'}">${memberCount}/${t.sports.team_size}</span></p>
+                </div>
+                ${btn}
+            </div>
+        `;
+    });
+}
+
+// --- ACTIONS ---
+
+window.handleIndividualReg = async (sportId, name) => {
+    // Basic Profile Check
+    if (!currentUser.mobile) return showToast('Error: Missing mobile number.', 'error');
+
     try {
-        const { error } = await supabase.from('registrations').insert({
-            user_id: currentUser.id,
-            sport_id: sportId
-        });
+        const { error } = await supabase.from('registrations').insert({ user_id: currentUser.id, sport_id: sportId });
         if (error) throw error;
-        
-        showToast(`Registered for ${sportName}!`);
+        showToast(`Registered for ${name}!`);
         await refreshData();
     } catch (err) {
         showToast('Registration failed.', 'error');
     }
 };
 
-// --- TAB 2: TEAMS (CREATE & JOIN) ---
-
-// A. Create Team Logic
 window.openCreateTeamModal = () => {
     const select = document.getElementById('create-team-sport-select');
     select.innerHTML = '<option value="">Select Sport...</option>';
     
-    // Logic: Only show Team Sports where I am Registered AND Not already in a team
-    const eligibleSports = myRegistrations.filter(r => {
-        const isTeamSport = r.sports.type === 'Team';
-        const alreadyInTeam = myTeams.some(t => t.teams.sport_id === r.sport_id);
-        return isTeamSport && !alreadyInTeam;
+    // Filter eligible sports (Team Type + Registered + Not in Team)
+    const eligible = myRegistrations.filter(r => {
+        const isTeam = r.sports.type === 'Team';
+        const inTeam = myTeams.some(t => t.teams.sport_id === r.sport_id);
+        return isTeam && !inTeam;
     });
 
-    if (eligibleSports.length === 0) return showToast('No eligible sports. Register individually first!', 'error');
+    if (eligible.length === 0) return showToast('No eligible sports. Register first!', 'error');
 
-    eligibleSports.forEach(r => {
-        const option = document.createElement('option');
-        option.value = r.sport_id;
-        option.text = r.sports.name;
-        select.appendChild(option);
+    eligible.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.sport_id;
+        opt.text = r.sports.name;
+        select.appendChild(opt);
     });
 
     document.getElementById('modal-create-team').classList.remove('hidden');
@@ -143,97 +268,34 @@ window.openCreateTeamModal = () => {
 window.handleCreateTeam = async () => {
     const sportId = document.getElementById('create-team-sport-select').value;
     const name = document.getElementById('create-team-name').value;
-
-    if (!sportId || !name) return showToast('Fill all fields', 'error');
+    
+    if(!sportId || !name) return showToast('Please fill all fields', 'error');
 
     // Generate Code
-    const code = name.substring(0, 3).toUpperCase() + Math.floor(1000 + Math.random() * 9000);
+    const code = name.substring(0,3).toUpperCase() + Math.floor(Math.random()*9000 + 1000);
 
     try {
-        // Transaction: Create Team -> Add Member (Captain) -> Update UI
+        // Create Team
         const { data: team, error: tErr } = await supabase.from('teams').insert({
-            name: name, sport_id: sportId, captain_id: currentUser.id, team_code: code, status: 'Open'
+            name: name, sport_id: sportId, captain_id: currentUser.id, team_code: code
         }).select().single();
         if (tErr) throw tErr;
 
+        // Add Captain
         const { error: mErr } = await supabase.from('team_members').insert({
             team_id: team.id, user_id: currentUser.id, status: 'Accepted'
         });
         if (mErr) throw mErr;
 
-        showToast('Team Created Successfully!');
+        showToast('Squad Created!');
         closeModal('modal-create-team');
         await refreshData();
     } catch (err) {
-        console.error(err);
-        showToast('Creation failed. Name taken?', 'error');
+        showToast('Error creating team', 'error');
     }
 };
 
-// B. Join Team (Marketplace) Logic
-async function renderTeamMarketplace() {
-    const container = document.getElementById('team-marketplace');
-    container.innerHTML = '<p class="text-center text-gray-500 text-xs">Loading...</p>';
-
-    // Fetch OPEN teams with their Captain details
-    const { data: openTeams } = await supabase
-        .from('teams')
-        .select(`
-            id, name, status, team_code, sport_id,
-            sports (name, gender_category, team_size),
-            captain:users (class_name, gender) 
-        `)
-        .eq('status', 'Open');
-
-    if (!openTeams || openTeams.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-500 text-xs py-4">No open teams available.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-    
-    // FETCH MEMBERS COUNTS for validation
-    const { data: memberCounts } = await supabase.from('team_members').select('team_id');
-    
-    openTeams.forEach(t => {
-        // 1. Filter: Gender (if sport is not mixed)
-        // Note: Simple logic - match user gender to captain gender for strict sports
-        if (t.sports.gender_category !== 'Mixed' && t.captain.gender !== currentUser.gender) return;
-
-        // 2. Filter: Category (Junior vs Senior)
-        const captainCat = ['FYJC', 'SYJC'].includes(t.captain.class_name) ? 'Junior' : 'Senior';
-        if (captainCat !== currentUser.category) return;
-
-        // 3. Status Logic
-        const currentCount = memberCounts.filter(m => m.team_id === t.id).length;
-        const isFull = currentCount >= t.sports.team_size;
-        const alreadyInThisTeam = myTeams.some(mt => mt.team_id === t.id);
-        const hasReg = myRegistrations.some(r => r.sport_id === t.sport_id);
-
-        let actionBtn = '';
-        if (alreadyInThisTeam) {
-            actionBtn = `<span class="text-xs font-bold text-green-500">Joined</span>`;
-        } else if (!hasReg) {
-            actionBtn = `<button onclick="showToast('Register individually first!', 'error')" class="px-3 py-1 bg-gray-800 text-gray-500 rounded text-[10px] font-bold">Register First</button>`;
-        } else if (isFull) {
-            actionBtn = `<span class="text-xs font-bold text-red-500">Full</span>`;
-        } else {
-            actionBtn = `<button onclick="handleJoinRequest('${t.id}')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold">Join</button>`;
-        }
-
-        container.innerHTML += `
-            <div class="glass-panel p-3 rounded-xl flex justify-between items-center">
-                <div>
-                    <h4 class="font-bold text-white text-sm">${t.name}</h4>
-                    <p class="text-[10px] text-gray-400">${t.sports.name} • ${currentCount}/${t.sports.team_size} Players</p>
-                </div>
-                ${actionBtn}
-            </div>
-        `;
-    });
-}
-
-window.handleJoinRequest = async (teamId) => {
+window.joinTeam = async (teamId) => {
     try {
         const { error } = await supabase.from('team_members').insert({
             team_id: teamId, user_id: currentUser.id, status: 'Pending'
@@ -242,164 +304,115 @@ window.handleJoinRequest = async (teamId) => {
         showToast('Request Sent!');
         await refreshData();
     } catch (err) {
-        showToast('Could not join team.', 'error');
+        showToast('Could not join.', 'error');
     }
 };
 
-// --- TAB 3: MY ZONE & MANAGEMENT ---
-async function renderMyZone() {
-    // 1. My Squads
-    const squadsContainer = document.getElementById('my-teams-list');
-    squadsContainer.innerHTML = '';
-    
-    myTeams.forEach(mt => {
-        const isCaptain = mt.teams.captain_id === currentUser.id;
-        const manageBtn = isCaptain 
-            ? `<button onclick="openManageModal('${mt.team_id}')" class="mt-2 w-full py-1.5 bg-gray-800 border border-gray-600 text-xs font-bold text-white rounded hover:bg-gray-700">Manage Team</button>` 
-            : `<p class="mt-2 text-[10px] text-gray-500 text-center">Member • ${mt.status}</p>`;
-
-        squadsContainer.innerHTML += `
-            <div class="glass-panel p-4 rounded-xl border border-gray-700">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-bold text-white">${mt.teams.name}</h4>
-                        <p class="text-xs text-yellow-500 font-mono">${mt.teams.team_code}</p>
-                    </div>
-                    <span class="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-[10px] font-bold border border-blue-800">${mt.teams.sports.name}</span>
-                </div>
-                ${manageBtn}
-            </div>
-        `;
-    });
-
-    // 2. Withdraw List
-    const regContainer = document.getElementById('my-regs-list');
-    regContainer.innerHTML = '';
-    myRegistrations.forEach(r => {
-        regContainer.innerHTML += `
-            <div class="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
-                <span class="text-sm text-gray-300">${r.sports.name}</span>
-                <button onclick="handleWithdraw(${r.sport_id})" class="text-xs text-red-500 hover:text-red-400 font-bold">Withdraw</button>
-            </div>
-        `;
-    });
-}
-
-// --- CAPTAIN MANAGEMENT ---
 window.openManageModal = async (teamId) => {
     currentManageTeamId = teamId;
     const modal = document.getElementById('modal-manage-team');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    
-    // Fetch Details
-    const { data: members } = await supabase
-        .from('team_members')
-        .select('id, status, user_id, users(name, class_name)')
-        .eq('team_id', teamId);
-    
+
     const team = myTeams.find(t => t.team_id === teamId).teams;
-    
     document.getElementById('manage-team-name').innerText = team.name;
     document.getElementById('manage-team-code').innerText = team.team_code;
 
-    // Render Lists
-    const pendingList = document.getElementById('manage-pending-list');
-    const rosterList = document.getElementById('manage-roster-list');
-    pendingList.innerHTML = '';
-    rosterList.innerHTML = '';
+    // Fetch Members
+    const { data: members } = await supabase.from('team_members')
+        .select('id, status, user_id, users(name, class_name)')
+        .eq('team_id', teamId);
+
+    const pendingDiv = document.getElementById('manage-pending-list');
+    const rosterDiv = document.getElementById('manage-roster-list');
+    pendingDiv.innerHTML = '';
+    rosterDiv.innerHTML = '';
 
     members.forEach(m => {
         if (m.status === 'Pending') {
-            pendingList.innerHTML += `
-                <div class="flex justify-between items-center bg-gray-800 p-2 rounded">
-                    <span class="text-xs text-white">${m.users.name} <span class="opacity-50">(${m.users.class_name})</span></span>
+            pendingDiv.innerHTML += `
+                <div class="glass-panel p-2 rounded flex justify-between items-center bg-white/5">
+                    <span class="text-xs text-gray-300">${m.users.name}</span>
                     <div class="flex gap-2">
-                        <button onclick="updateMemberStatus('${m.id}', 'Accepted')" class="text-green-500 hover:text-green-400"><i data-lucide="check" class="w-4 h-4"></i></button>
-                        <button onclick="deleteMember('${m.id}')" class="text-red-500 hover:text-red-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        <button onclick="manageMember('${m.id}', 'Accepted')" class="text-green-500"><i data-lucide="check" class="w-4 h-4"></i></button>
+                        <button onclick="manageMember('${m.id}', 'DELETE')" class="text-red-500"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
                 </div>
             `;
         } else {
-            const isMe = m.user_id === currentUser.id;
-            rosterList.innerHTML += `
-                <div class="flex justify-between items-center py-1">
-                    <span class="text-xs text-gray-300">${m.users.name} ${isMe ? '(C)' : ''}</span>
-                    ${!isMe && team.status === 'Open' ? `<button onclick="deleteMember('${m.id}')" class="text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+            const isCap = m.user_id === currentUser.id;
+            rosterDiv.innerHTML += `
+                <div class="flex justify-between items-center py-1 border-b border-white/5 last:border-0">
+                    <span class="text-xs text-gray-400">${m.users.name} ${isCap ? '(C)' : ''}</span>
+                    ${!isCap && team.status === 'Open' ? `<button onclick="manageMember('${m.id}', 'DELETE')" class="text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
                 </div>
             `;
         }
     });
-    
-    // Lock Button State
+
     const lockBtn = document.getElementById('btn-lock-team');
     if (team.status === 'Locked') {
         lockBtn.disabled = true;
-        lockBtn.innerHTML = '<i data-lucide="lock" class="w-4 h-4 inline mr-2"></i> Team is Locked';
-        lockBtn.className = "w-full py-3 bg-gray-800 text-gray-500 rounded-xl font-bold text-sm cursor-not-allowed";
+        lockBtn.innerHTML = '<i data-lucide="lock" class="w-4 h-4 inline mr-2"></i> Squad Finalized';
+        lockBtn.className = "w-full py-3 bg-white/5 text-gray-500 rounded-xl font-bold text-sm cursor-not-allowed";
     } else {
         lockBtn.disabled = false;
-        lockBtn.innerHTML = '<i data-lucide="lock" class="w-4 h-4 inline mr-2"></i> Lock Team (Finalize)';
-        lockBtn.className = "w-full py-3 bg-red-600/20 text-red-500 border border-red-600/50 rounded-xl font-bold text-sm hover:bg-red-600 hover:text-white transition-all";
+        lockBtn.innerHTML = '<i data-lucide="lock" class="w-4 h-4 inline mr-2"></i> Finalize Squad';
+        lockBtn.className = "w-full py-3 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all";
     }
-
     lucide.createIcons();
 };
 
-window.updateMemberStatus = async (memberId, status) => {
-    await supabase.from('team_members').update({ status }).eq('id', memberId);
-    openManageModal(currentManageTeamId); // Refresh modal
-};
-
-window.deleteMember = async (memberId) => {
-    if(!confirm("Remove this player?")) return;
-    await supabase.from('team_members').delete().eq('id', memberId);
-    openManageModal(currentManageTeamId);
+window.manageMember = async (id, action) => {
+    if (action === 'DELETE') {
+        if(!confirm('Remove player?')) return;
+        await supabase.from('team_members').delete().eq('id', id);
+    } else {
+        await supabase.from('team_members').update({ status: action }).eq('id', id);
+    }
+    openManageModal(currentManageTeamId); // Refresh
 };
 
 window.handleLockTeam = async () => {
-    if(!confirm("Are you sure? Once locked, you cannot add or remove players.")) return;
-    
-    // Validate Count (simplified, assumes min size logic handled mentally or added here)
+    if(!confirm('Finalize squad? This cannot be undone.')) return;
     await supabase.from('teams').update({ status: 'Locked' }).eq('id', currentManageTeamId);
-    showToast('Team Locked!');
+    showToast('Squad Locked!');
     closeModal('modal-manage-team');
-    refreshData();
+    await refreshData();
 };
 
-// --- WITHDRAWAL LOGIC ---
 window.handleWithdraw = async (sportId) => {
-    // 1. Check if in a Locked Team
-    const teamEntry = myTeams.find(t => t.teams.sport_id === sportId);
-    if (teamEntry && teamEntry.teams.status === 'Locked') {
-        return showToast('Cannot withdraw! Your team is LOCKED.', 'error');
-    }
+    // Check lock status
+    const teamInfo = myTeams.find(t => t.teams.sport_id === sportId);
+    if (teamInfo && teamInfo.teams.status === 'Locked') return showToast('Cannot withdraw: Team is Locked', 'error');
 
-    if (!confirm("Confirm Withdrawal? This will remove you from any open teams for this sport.")) return;
+    if(!confirm('Withdraw from this sport?')) return;
 
-    // 2. Remove from Team Members first (if exists)
-    if (teamEntry) {
-        await supabase.from('team_members').delete().eq('id', teamEntry.id); // Delete my membership row
-    }
-
-    // 3. Remove Registration
+    if (teamInfo) await supabase.from('team_members').delete().eq('id', teamInfo.id);
     await supabase.from('registrations').delete().eq('user_id', currentUser.id).eq('sport_id', sportId);
     
-    showToast('Withdrawn successfully.');
+    showToast('Withdrawn.');
     await refreshData();
 };
 
 // --- UTILS ---
-window.switchTab = (tabId) => {
-    document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.getElementById(`view-${tabId}`).classList.remove('hidden');
-    document.getElementById(`tab-${tabId}`).classList.add('active');
+window.switchTab = (id) => {
+    document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    document.getElementById(`view-${id}`).classList.remove('hidden');
+    document.getElementById(`tab-${id}`).classList.add('active');
 };
 
-window.closeModal = (id) => document.getElementById(id).classList.remove('flex'), document.getElementById(id).classList.add('hidden');
+window.closeModal = (id) => {
+    document.getElementById(id).classList.add('hidden');
+    document.getElementById(id).classList.remove('flex');
+};
 
-function showToast(msg, type = 'success') {
+function showError(title, msg) {
+    document.body.innerHTML = `<div class="h-screen flex flex-col items-center justify-center text-center bg-[#0f172a] text-white p-4"><h1 class="text-2xl font-bold text-red-500 mb-2">${title}</h1><p class="text-sm text-gray-400">${msg}</p></div>`;
+}
+
+function showToast(msg, type='success') {
     const t = document.getElementById('toast');
     document.getElementById('toast-msg').innerText = msg;
     document.getElementById('toast-icon').className = type === 'error' ? 'w-5 h-5 text-red-500' : 'w-5 h-5 text-green-500';
