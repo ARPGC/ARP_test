@@ -10,10 +10,18 @@ export const TICK_IMAGES = {
     green: 'https://i.ibb.co/SXGL4Nq0/green.png'
 };
 
+// --- OJAS 2.0 CONFIGURATION ---
+export const OJAS_CONFIG = {
+    // This is the poster image URL provided
+    posterUrl: 'https://i.ibb.co/hJVqgq2/ChatGPT-Image-Jan-21-2026-01-09-52-PM.jpg', 
+    fixNumber: 5489,
+    targetUrl: 'urja/index.html' 
+};
+
 export let state = {
     currentUser: {
         id: null,
-        is_volunteer: false // <--- NEW: Added this flag
+        is_volunteer: false 
     }, 
     userAuth: null,    
     checkInReward: 10,
