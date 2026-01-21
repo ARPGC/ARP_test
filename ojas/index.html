@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OJAS 2.0 | Sports Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="supabase.js"></script>
+    <script type="module" src="script.js"></script>
+</head>
+<body>
+
+    <div id="auth-screen">
+        <div class="animate-pulse flex flex-col items-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="trophy" class="w-8 h-8 text-black"></i>
+            </div>
+            <h1 class="text-2xl font-bold gold-text">OJAS 2.0</h1>
+            <p id="auth-status" class="text-sm opacity-60 mt-2">Verifying Student ID...</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-black gold-text">OJAS 2.0</h1>
+                <p class="text-xs opacity-60">Annual Sports Meet</p>
+            </div>
+            <div class="flex items-center gap-3 bg-white/5 p-2 pr-4 rounded-full border border-white/10">
+                <img id="user-avatar" src="https://via.placeholder.com/40" class="w-8 h-8 rounded-full">
+                <div>
+                    <p id="user-name" class="text-xs font-bold leading-none">Student</p>
+                    <p id="user-class" class="text-[10px] opacity-60 leading-none mt-1">...</p>
+                </div>
+            </div>
+        </header>
+
+        <section class="mb-8">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="medal" class="w-4 h-4 text-yellow-500"></i> Register for Sports
+            </h2>
+            <div id="sports-container" class="sports-grid">
+                <div class="text-center col-span-2 opacity-50 text-sm">Loading sports...</div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="ticket" class="w-4 h-4 text-green-400"></i> My Events
+            </h2>
+            <div id="my-regs-list">
+                </div>
+        </section>
+    </div>
+
+    <div id="reg-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="font-bold text-lg">Register</h3>
+                <button onclick="closeModal()"><i data-lucide="x" class="w-5 h-5 opacity-60"></i></button>
+            </div>
+            <div id="modal-body">
+                </div>
+        </div>
+    </div>
+
+</body>
+</html>
