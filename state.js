@@ -15,7 +15,7 @@ export const OJAS_CONFIG = {
     // This is the poster image URL provided
     posterUrl: 'https://i.ibb.co/hJVqgq2/ChatGPT-Image-Jan-21-2026-01-09-52-PM.jpg', 
     fixNumber: 5489,
-    targetUrl: 'urja/index.html' 
+    targetUrl: 'ojas/index.html' 
 };
 
 export let state = {
