@@ -4,16 +4,20 @@
 
 (function() { // Wrapped in IIFE for safety
 
-    // --- CONFIGURATION & CLIENTS ---
-    if (typeof CONFIG === 'undefined' || typeof CONFIG_REALTIME === 'undefined') {
-        console.error("CRITICAL: Config missing. Ensure config.js and config2.js are loaded.");
+    // --- CONFIGURATION ---
+    const FIX_NUMBER = 5489; // Obfuscation Key
+    
+    // Check for Config
+    if (typeof CONFIG === 'undefined') {
+        console.error("CRITICAL: Config missing. Ensure config.js is loaded.");
     }
 
-    // 1. MAIN PROJECT (Auth, Teams, Registrations - Write Access)
+    // Initialize Clients
     const supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
-
-    // 2. REALTIME PROJECT (Live Scores & Results - Read Only)
-    const realtimeClient = window.supabase.createClient(CONFIG_REALTIME.url, CONFIG_REALTIME.anonKey);
+    // Optional: Realtime Client if config exists
+    const realtimeClient = (typeof CONFIG_REALTIME !== 'undefined') 
+        ? window.supabase.createClient(CONFIG_REALTIME.url, CONFIG_REALTIME.anonKey) 
+        : null;
 
     // --- STATE MANAGEMENT ---
     let currentUser = null;
@@ -23,7 +27,6 @@
     let liveSubscription = null;
     let selectedSportForReg = null;
 
-    // Default Fallback
     const DEFAULT_AVATAR = "https://t4.ftcdn.net/jpg/05/89/93/27/360_F_589932782_vQAEAZhHnq1QCGu5ikwrYaQD0Mmurm0N.jpg";
 
     // --- INITIALIZATION ---
@@ -31,26 +34,95 @@
         if(window.lucide) lucide.createIcons();
         initTheme();
         injectToastContainer();
-        setupImageUpload(); 
         setupTabSystem();
         setupConfirmModal(); 
         
-        await checkAuth();
-        setupRealtimeSubscription();
-        
-        // Default Tab
-        window.switchTab('dashboard');
+        // 1. Run URL Authentication
+        await performUrlAuth();
     });
 
-    // --- 1. THEME LOGIC ---
+    // --- 1. AUTHENTICATION (URL BASED) ---
+    async function performUrlAuth() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId = urlParams.get('id');
+
+        if (!urlId) {
+            showError("Access Denied", "No Student ID provided in URL.");
+            return;
+        }
+
+        // De-obfuscate ID
+        const studentId = parseInt(urlId) - FIX_NUMBER;
+        
+        try {
+            // Fetch User
+            const { data: user, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('student_id', studentId.toString())
+                .single();
+
+            if (error || !user) {
+                console.error("Auth Error:", error);
+                showError("Unauthorized", "Student ID not found in database.");
+                return;
+            }
+
+            // Login Success
+            currentUser = user;
+            updateHeaderUI();
+            
+            // Load Data
+            await fetchMyRegistrations();
+            loadDashboard();
+            setupRealtimeSubscription();
+
+            // Show App
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+
+        } catch (err) {
+            console.error(err);
+            showError("System Error", "Connection failed.");
+        }
+    }
+
+    function showError(title, msg) {
+        document.body.innerHTML = `
+            <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:#111827; color:#f87171; font-family:sans-serif;">
+                <h1 style="font-size:24px; font-weight:800; margin:0;">${title}</h1>
+                <p style="opacity:0.8; margin-top:8px;">${msg}</p>
+            </div>
+        `;
+    }
+
+    function updateHeaderUI() {
+        if (!currentUser) return;
+        const avatarUrl = currentUser.avatar_url || DEFAULT_AVATAR;
+        
+        const headerImg = document.getElementById('header-avatar');
+        const headerName = document.getElementById('header-name');
+        const headerId = document.getElementById('header-id');
+
+        if(headerImg) headerImg.src = avatarUrl;
+        if(headerName) headerName.innerText = currentUser.first_name || currentUser.name;
+        if(headerId) headerId.innerText = `ID: ${currentUser.student_id}`;
+
+        // Dashboard Welcome Card
+        const dbName = document.getElementById('profile-name');
+        const dbDetails = document.getElementById('profile-details');
+        if(dbName) dbName.innerText = `${currentUser.first_name} ${currentUser.last_name || ''}`;
+        if(dbDetails) dbDetails.innerText = `${currentUser.class_name || ''} • ${currentUser.student_id}`;
+    }
+
+    // --- THEME ---
     function initTheme() {
         const savedTheme = localStorage.getItem('urja-theme');
         if (savedTheme === 'dark') {
             document.documentElement.classList.add('dark');
             updateThemeIcon(true);
         } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('urja-theme', 'light'); 
+            document.documentElement.classList.remove('dark'); // Default
             updateThemeIcon(false);
         }
     }
@@ -72,122 +144,30 @@
         }
     }
 
-    // --- 2. AUTHENTICATION & PROFILE ---
-    async function checkAuth() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        
-        if (!session) {
-            window.location.href = 'login.html';
-            return;
-        }
-        
-        const { data: profile, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-        if (error || !profile) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        currentUser = profile;
-        updateProfileUI();
-        await fetchMyRegistrations();
-        loadUserStats();
-    }
-
-    function updateProfileUI() {
-        if (!currentUser) return;
-        const avatarUrl = currentUser.avatar_url || DEFAULT_AVATAR;
-        
-        const headerImg = document.getElementById('header-avatar');
-        if(headerImg) headerImg.src = avatarUrl;
-
-        const imgEl = document.getElementById('profile-img');
-        const nameEl = document.getElementById('profile-name');
-        const nameDisplay = document.getElementById('profile-name-display');
-        const detailsEl = document.getElementById('profile-details');
-
-        if(imgEl) imgEl.src = avatarUrl;
-        if(nameEl) nameEl.innerText = `${currentUser.first_name} ${currentUser.last_name}`;
-        if(nameDisplay) nameDisplay.innerText = `${currentUser.first_name} ${currentUser.last_name}`;
-        if(detailsEl) detailsEl.innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
-    }
-
-    // --- PROFILE IMAGE UPLOAD ---
-    function setupImageUpload() {
-        const input = document.getElementById('file-upload-input');
-        const trigger = document.getElementById('profile-img-container'); 
-        
-        if(trigger && input) {
-            trigger.onclick = () => input.click();
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if(!file) return;
-                
-                showToast("Uploading...", "info");
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CONFIG.cloudinaryUploadPreset); 
-                
-                try {
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/image/upload`, {
-                        method: 'POST', body: formData
-                    });
-                    const data = await res.json();
-                    
-                    if(data.secure_url) {
-                        await supabaseClient.from('users').update({ avatar_url: data.secure_url }).eq('id', currentUser.id);
-                        currentUser.avatar_url = data.secure_url;
-                        updateProfileUI();
-                        showToast("Profile Photo Updated!", "success");
-                    }
-                } catch(err) {
-                    showToast("Upload Failed", "error");
-                    console.error(err);
-                }
-            };
-        }
-    }
-
-    // --- CORE LOGIC: FETCH INDIVIDUAL REGISTRATIONS ---
+    // --- DATA FETCHING ---
     async function fetchMyRegistrations() {
         const { data } = await supabaseClient.from('registrations').select('sport_id').eq('user_id', currentUser.id);
         if(data) {
-            // Store simple array of sport_ids for quick lookup
             myRegistrations = data.map(r => r.sport_id);
         }
     }
 
-    async function loadUserStats() {
-        const { count: matches } = await supabaseClient.from('registrations')
-            .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
-
-        const statEl = document.getElementById('stat-matches-played');
-        if(statEl) statEl.innerText = matches || 0;
-    }
-
-    window.logout = async function() {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'login.html';
-    }
-
-    // --- 3. NAVIGATION ---
+    // --- NAVIGATION ---
     function setupTabSystem() {
         window.switchTab = function(tabId) {
+            // Hide all views
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             
+            // Show target
             const targetView = document.getElementById('view-' + tabId);
             if(targetView) {
                 targetView.classList.remove('hidden');
                 targetView.classList.remove('animate-fade-in');
-                void targetView.offsetWidth; 
+                void targetView.offsetWidth; // Trigger reflow
                 targetView.classList.add('animate-fade-in');
             }
             
+            // Update Nav Icons
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active', 'text-brand-primary');
                 el.classList.add('text-gray-400', 'dark:text-gray-500');
@@ -199,15 +179,15 @@
                 activeNav.classList.remove('text-gray-400', 'dark:text-gray-500');
             }
 
+            // Logic Triggers
             if(tabId === 'dashboard') loadDashboard(); 
             if(tabId === 'register') window.toggleRegisterView('new');
             if(tabId === 'teams') window.toggleTeamView('marketplace');
             if(tabId === 'schedule') window.filterSchedule('upcoming');
-            if(tabId === 'profile') window.loadProfileGames();
         }
     }
 
-    // --- 4. DASHBOARD (RESULTS ONLY) ---
+    // --- DASHBOARD ---
     async function loadDashboard() {
         window.loadLiveMatches(); 
         loadLatestChampions();
@@ -218,7 +198,7 @@
         const container = document.getElementById('live-matches-container');
         const list = document.getElementById('live-matches-list');
         
-        if(!list) return;
+        if(!realtimeClient || !list) return;
 
         const { data: rawMatches } = await realtimeClient
             .from('live_matches')
@@ -234,16 +214,11 @@
                 return;
             }
             container.classList.remove('hidden');
-        } else if (!matches || matches.length === 0) {
-            list.innerHTML = '';
-            return;
         }
         
         list.innerHTML = matches.map(m => {
-            const isPerf = m.performance_data && Array.isArray(m.performance_data);
-            
-            let s1 = m.score1 || 0;
-            let s2 = m.score2 || 0;
+            const s1 = m.score1 || 0;
+            const s2 = m.score2 || 0;
 
             return `
             <div onclick="window.openMatchDetails('${m.id}')" class="cursor-pointer bg-white dark:bg-gray-800 p-5 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-lg shadow-red-50/50 relative overflow-hidden mb-4 animate-fade-in active:scale-[0.98] transition-transform">
@@ -251,8 +226,6 @@
                     <span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE
                 </div>
                 <div class="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">${m.sport_name}</div>
-                
-                ${isPerf ? `<div class="text-center font-bold text-gray-800 dark:text-gray-200">Live Event in Progress</div>` : `
                 <div class="flex items-center justify-between gap-2">
                     <div class="text-left w-5/12">
                         <h3 class="font-black text-base text-gray-900 dark:text-white leading-tight truncate">${m.team1_name}</h3>
@@ -264,7 +237,6 @@
                         <p class="text-3xl font-black text-gray-900 dark:text-white mt-1">${s2}</p>
                     </div>
                 </div>
-                `}
                 <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-xs text-gray-400 font-bold">
                     <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${m.location || 'Ground'}</span>
                     <span>Round ${m.round_number || 1}</span>
@@ -274,10 +246,10 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // C. CHAMPIONS
+    // B. CHAMPIONS
     async function loadLatestChampions() {
         let container = document.getElementById('home-champions-list'); 
-        if (!container) return;
+        if (!container || !realtimeClient) return;
 
         const { data: matches } = await realtimeClient
             .from('live_matches')
@@ -303,36 +275,27 @@
                 <div class="space-y-1">
                     ${w.gold ? `<div class="flex items-center gap-2 text-xs font-bold"><span class="text-lg">🥇</span> <span class="text-gray-800 dark:text-gray-200">${w.gold}</span></div>` : ''}
                     ${w.silver ? `<div class="flex items-center gap-2 text-xs font-bold"><span class="text-lg">🥈</span> <span class="text-gray-600 dark:text-gray-400">${w.silver}</span></div>` : ''}
-                    ${w.bronze ? `<div class="flex items-center gap-2 text-xs font-bold"><span class="text-lg">🥉</span> <span class="text-gray-500 dark:text-gray-500">${w.bronze}</span></div>` : ''}
                 </div>
             </div>
         `}).join('');
     }
 
-    // --- 5. REALTIME SUBSCRIPTION ---
+    // --- REALTIME ---
     function setupRealtimeSubscription() {
-        if (liveSubscription) return; 
+        if (liveSubscription || !realtimeClient) return; 
 
         liveSubscription = realtimeClient
             .channel('public:live_matches')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'live_matches' }, (payload) => {
                 const newData = payload.new;
                 if (!newData) return;
-
-                if (newData.status === 'Completed') {
-                    loadLatestChampions();
-                    showToast(`🏆 Result: ${newData.sport_name} finished!`);
-                }
-                
-                // Refresh Schedule
-                if (typeof window.loadSchedule === 'function') {
-                    window.loadSchedule();
-                }
+                if (newData.status === 'Completed') loadLatestChampions();
+                if (typeof window.loadSchedule === 'function') window.loadSchedule();
             })
             .subscribe();
     }
 
-    // --- 6. SCHEDULE MODULE ---
+    // --- SCHEDULE ---
     window.filterSchedule = function(view) {
         currentScheduleView = view;
         const btnUp = document.getElementById('btn-schedule-upcoming');
@@ -387,14 +350,14 @@
 
             const sName = m.sports?.name?.toLowerCase() || '';
             const t1 = m.team1_name?.toLowerCase() || '';
-            const t2 = m.team2_name?.toLowerCase() || '';
             
-            const searchMatch = !searchText || sName.includes(searchText) || t1.includes(searchText) || t2.includes(searchText);
+            const searchMatch = !searchText || sName.includes(searchText) || t1.includes(searchText);
             const sportMatch = !selectedSport || m.sports?.name === selectedSport;
 
             return searchMatch && sportMatch;
         });
 
+        // Sort: Live first, then Date
         if(currentScheduleView === 'upcoming') {
             filteredMatches.sort((a, b) => {
                 if (a.status === 'Live' && b.status !== 'Live') return -1;
@@ -412,8 +375,6 @@
 
         container.innerHTML = filteredMatches.map(m => {
             const isLive = m.status === 'Live';
-            const isPerf = m.sports?.is_performance;
-            
             const dateObj = new Date(m.start_time);
             const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const dateStr = dateObj.toLocaleDateString([], {month: 'short', day: 'numeric'});
@@ -426,20 +387,9 @@
                 ? "border-red-200 dark:border-red-900 shadow-md shadow-red-100 dark:shadow-none" 
                 : "border-gray-100 dark:border-gray-700 shadow-sm";
 
-            let footerText = '';
-            if(m.status === 'Completed') {
-                if(m.winners_data && m.winners_data.gold) {
-                    footerText = `<span class="text-yellow-600 flex items-center gap-1">🥇 ${m.winners_data.gold}</span>`;
-                } else {
-                    footerText = m.winner_text || `Winner: ${m.winner_id ? 'Determined' : 'TBA'}`;
-                }
-            } else {
-                if (isPerf) {
-                    footerText = 'Entries Open';
-                } else {
-                    footerText = `${m.score1 || 0} - ${m.score2 || 0}`;
-                }
-            }
+            let footerText = (m.status === 'Completed') 
+                ? (m.winner_text || `Winner: ${m.winner_id ? 'Determined' : 'TBA'}`)
+                : `${m.score1 || 0} - ${m.score2 || 0}`;
 
             return `
             <div onclick="window.openMatchDetails('${m.id}')" class="w-full bg-white dark:bg-gray-800 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${cardClass}">
@@ -447,22 +397,17 @@
                     ${badgeHtml}
                     <span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">${m.sports?.name}</span>
                 </div>
-                ${isPerf ? 
-                    `<div class="text-center py-2"><h4 class="font-black text-lg text-gray-900 dark:text-white">${m.team1_name}</h4><p class="text-xs text-gray-400 mt-1">Event Details</p></div>`
-                : 
-                    `<div class="flex items-center justify-between w-full mb-4">
-                        <div class="flex-1 text-left"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team1_name}</h4></div>
-                        <div class="shrink-0 px-3"><span class="text-[10px] font-bold text-gray-300">VS</span></div>
-                        <div class="flex-1 text-right"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team2_name}</h4></div>
-                    </div>`
-                }
+                <div class="flex items-center justify-between w-full mb-4">
+                    <div class="flex-1 text-left"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team1_name}</h4></div>
+                    <div class="shrink-0 px-3"><span class="text-[10px] font-bold text-gray-300">VS</span></div>
+                    <div class="flex-1 text-right"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team2_name}</h4></div>
+                </div>
                 <div class="border-t border-gray-50 dark:border-gray-700 pt-3 flex justify-between items-center">
                     <span class="font-mono text-sm font-bold text-brand-primary dark:text-indigo-400">${footerText}</span>
                     <span class="text-[10px] font-bold text-gray-400 flex items-center gap-1">Details <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
                 </div>
             </div>`;
         }).join('');
-        
         lucide.createIcons();
     }
 
@@ -472,60 +417,20 @@
         const { data: match } = await supabaseClient.from('matches').select('*, sports(name, is_performance, unit)').eq('id', matchId).single();
         if(!match) return;
 
-        const isPerf = match.sports?.is_performance;
-
         document.getElementById('md-sport-name').innerText = match.sports?.name;
         document.getElementById('md-match-status').innerText = match.status;
 
-        document.getElementById('md-layout-team').classList.add('hidden');
-        document.getElementById('md-layout-race').classList.add('hidden');
+        // Show Standard Team Layout
+        document.getElementById('md-layout-team').classList.remove('hidden');
+        document.getElementById('md-t1-name').innerText = match.team1_name;
+        document.getElementById('md-t2-name').innerText = match.team2_name;
+        document.getElementById('md-t1-score').innerText = match.score1 || '0';
+        document.getElementById('md-t2-score').innerText = match.score2 || '0';
 
-        if (!isPerf) {
-            document.getElementById('md-layout-team').classList.remove('hidden');
-            document.getElementById('md-t1-name').innerText = match.team1_name;
-            document.getElementById('md-t2-name').innerText = match.team2_name;
-            document.getElementById('md-t1-score').innerText = match.score1 || '0';
-            document.getElementById('md-t2-score').innerText = match.score2 || '0';
-
-            document.getElementById('md-list-t1-title').innerText = match.team1_name;
-            document.getElementById('md-list-t2-title').innerText = match.team2_name;
-            loadSquadList(match.team1_id, 'md-list-t1');
-            loadSquadList(match.team2_id, 'md-list-t2');
-        } else {
-            document.getElementById('md-layout-race').classList.remove('hidden');
-            document.getElementById('md-race-metric-header').innerText = match.sports?.unit || 'Result';
-
-            const tbody = document.getElementById('md-race-tbody');
-            tbody.innerHTML = '';
-            
-            let results = match.performance_data || [];
-
-            if (!results || results.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-gray-400 italic">No results available yet.</td></tr>';
-            } else {
-                results.sort((a, b) => {
-                    if (a.rank && b.rank) return a.rank - b.rank;
-                    const valA = parseFloat(a.result) || 999999;
-                    const valB = parseFloat(b.result) || 999999;
-                    return valA - valB;
-                });
-
-                tbody.innerHTML = results.map((r, index) => {
-                    let displayRank = r.rank || (index + 1);
-                    let rankIcon = displayRank === 1 ? '🥇' : displayRank === 2 ? '🥈' : displayRank === 3 ? '🥉' : displayRank;
-
-                    return `
-                    <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white text-center">${rankIcon}</td>
-                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
-                            ${r.name ? r.name.split('(')[0] : 'Unknown'}
-                            <div class="text-[10px] text-gray-400">${r.name ? r.name.split('(')[1]?.replace(')','') : ''}</div>
-                        </td>
-                        <td class="px-4 py-3 text-right font-mono font-bold text-brand-primary">${r.result || '-'}</td>
-                    </tr>
-                `}).join('');
-            }
-        }
+        document.getElementById('md-list-t1-title').innerText = match.team1_name;
+        document.getElementById('md-list-t2-title').innerText = match.team2_name;
+        loadSquadList(match.team1_id, 'md-list-t1');
+        loadSquadList(match.team2_id, 'md-list-t2');
 
         document.getElementById('modal-match-details').classList.remove('hidden');
     }
@@ -557,7 +462,7 @@
         `).join('');
     }
 
-    // --- 7. TEAMS MODULE ---
+    // --- TEAMS: MARKETPLACE (PLAYERS) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
@@ -615,22 +520,18 @@
              return;
         }
 
-        // STRICT FILTER: GENDER VISIBILITY
-        // Males see Male teams. Females see Female teams. 
-        // Mixed sports (e.g. Relay, if marked Mixed) can be an exception, but per instructions, we stick to gender segregation for core team sports.
+        // STRICT FILTER: GENDER VISIBILITY (Male can only see Male teams)
         const validTeams = teams.filter(t => {
             if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
-            
             // Gender Check: Captain's gender must match Current User's gender
             if (t.captain?.gender !== currentUser.gender) return false;
-
             return true;
         });
 
-        // Calculate Seats Left dynamically based on DB team_size
+        // Calculate Seats Left
         const teamPromises = validTeams.map(async (t) => {
             const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', t.id).eq('status', 'Accepted');
-            const max = t.sports.team_size || 5; // Use DB value
+            const max = t.sports.team_size || 5; 
             return { ...t, seatsLeft: Math.max(0, max - (count || 0)) };
         });
 
@@ -643,7 +544,6 @@
                 ? "w-full py-3 bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed text-xs font-bold rounded-xl"
                 : "w-full py-3 bg-black dark:bg-white dark:text-black text-white text-xs font-bold rounded-xl shadow-lg active:scale-95 transition-transform hover:opacity-90";
             
-            // Pass max team size and logic to join
             const action = isFull ? "" : `window.viewSquadAndJoin('${t.id}', '${t.sports.name}', ${t.seatsLeft}, '${t.sports.type}')`;
 
             return `
@@ -666,18 +566,18 @@
         `}).join('');
     }
 
-    // STRICT JOIN LOGIC
+    // STRICT JOIN LOGIC ("Individual First")
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft, sportType) {
         if(seatsLeft <= 0) return showToast("❌ This team is full!", "error");
 
         const sportId = await getSportIdByName(sportName);
         
-        // INDIVIDUAL FIRST RULE: Must be registered individually
+        // CHECK 1: Must be registered individually
         if(!myRegistrations.includes(sportId)) {
             return showToast(`⚠️ You must Register for ${sportName} individually first!`, "error");
         }
 
-        // Check if already in a team for this sport
+        // CHECK 2: Already in a team?
         const { data: existingTeam } = await supabaseClient.from('team_members')
             .select('team_id, teams!inner(sport_id)')
             .eq('user_id', currentUser.id)
@@ -711,7 +611,7 @@
         }
     }
 
-    // LOAD MY TEAMS (LOCKER)
+    // --- TEAMS: LOCKER (MY TEAMS) ---
     window.loadTeamLocker = async function() {
         const container = document.getElementById('locker-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading your teams...</p>';
@@ -749,12 +649,6 @@
                 </div>
             `).join('');
 
-            let disableLock = false;
-            // Lock only if squad matches sport's required team_size
-            if (!isLocked && isCaptain) {
-                 // Logic can be added here if needed to check if min_players met
-            }
-
             return `
             <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm mb-3 transition-colors">
                 <div class="flex justify-between items-start mb-3">
@@ -787,7 +681,7 @@
         lucide.createIcons();
     }
 
-    // --- WITHDRAW LOGIC ---
+    // --- WITHDRAW LOGIC (STRICT) ---
     window.leaveTeam = function(memberId, teamName) {
         showConfirmDialog("Leave Team?", `Are you sure you want to leave ${teamName}?`, async () => {
             const { error } = await supabaseClient.from('team_members').delete().eq('id', memberId);
@@ -800,14 +694,12 @@
         });
     }
 
-    // STRICT WITHDRAWAL
     window.withdrawRegistration = async function(regId, sportId, sportType, sportName) {
         showConfirmDialog("Withdraw?", `Withdraw from ${sportName}?`, async () => {
             
             // 1. IF TEAM SPORT: Handle Team Membership First
             if (sportType && sportType.toLowerCase() === 'team') {
-                
-                const { data: membership, error: memError } = await supabaseClient
+                const { data: membership } = await supabaseClient
                     .from('team_members')
                     .select('id, teams!inner(status, captain_id, name)')
                     .eq('user_id', currentUser.id)
@@ -819,36 +711,28 @@
                         window.closeModal('modal-confirm');
                         return showToast(`Cannot withdraw! Your team '${membership.teams.name}' is LOCKED.`, "error");
                     }
-                    
                     if (membership.teams.captain_id === currentUser.id) {
                         window.closeModal('modal-confirm');
                         return showToast(`⚠️ Captains cannot withdraw. Delete the team in 'Teams' tab first.`, "error");
                     }
-
-                    // Attempt to leave the team
                     const { error: leaveError } = await supabaseClient.from('team_members').delete().eq('id', membership.id);
                     if (leaveError) {
                         window.closeModal('modal-confirm');
-                        return showToast("Failed to leave team. " + leaveError.message, "error");
+                        return showToast("Failed to leave team.", "error");
                     }
                 }
             }
 
-            // 2. DELETE REGISTRATION (Individual First Rule inverse)
+            // 2. DELETE REGISTRATION
             const { error } = await supabaseClient.from('registrations').delete().eq('id', regId);
             
             if (error) {
-                showToast("Withdrawal Failed: " + error.message, "error");
+                showToast("Withdrawal Failed.", "error");
             } else {
                 showToast("Withdrawn Successfully", "success");
-                
-                // Update local state
                 myRegistrations = myRegistrations.filter(id => id != sportId);
                 
                 if(document.getElementById('history-list')) window.loadRegistrationHistory('history-list'); 
-                if(document.getElementById('my-registrations-list')) window.loadRegistrationHistory('my-registrations-list');
-                
-                // Refresh Sport Buttons (to re-enable Register button)
                 if(document.getElementById('sports-list') && document.getElementById('sports-list').children.length > 0) {
                     renderSportsList(allSportsList);
                 }
@@ -858,7 +742,7 @@
         });
     }
 
-    // --- REGISTRATION LOGIC ---
+    // --- REGISTRATION UI ---
     window.toggleRegisterView = function(view) {
         document.getElementById('reg-section-new').classList.add('hidden');
         document.getElementById('reg-section-history').classList.add('hidden');
@@ -881,25 +765,17 @@
 
    window.loadSportsDirectory = async function() {
         const container = document.getElementById('sports-list');
-        // Prevent reloading if already populated (optional, but good for UX)
         if(container.children.length > 0 && allSportsList.length > 0) return;
 
         container.innerHTML = '<div class="col-span-2 text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div></div>';
 
-        // Fetch sports sorted by name
-        const { data: sports } = await supabaseClient
-            .from('sports')
-            .select('*')
-            .eq('status', 'Open')
-            .order('name');
-            
+        const { data: sports } = await supabaseClient.from('sports').select('*').eq('status', 'Open').order('name');
         allSportsList = sports || [];
         renderSportsList(allSportsList);
     }
     
     function renderSportsList(list) {
         const container = document.getElementById('sports-list');
-        
         if(!list || list.length === 0) {
             container.innerHTML = '<p class="col-span-2 text-center text-gray-400">No sports found.</p>';
             return;
@@ -914,7 +790,6 @@
             return `
             <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                
                 <div class="relative z-10">
                     <div class="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-2 text-brand-primary dark:text-white">
                         <i data-lucide="${s.icon || 'trophy'}" class="w-4 h-4"></i>
@@ -922,7 +797,6 @@
                     <h4 class="font-bold text-md leading-tight text-gray-900 dark:text-white">${s.name}</h4>
                     <p class="text-[10px] uppercase font-bold text-gray-400 mt-1">${s.type} Sport</p>
                 </div>
-
                 <button onclick="${isReg ? '' : `window.openRegistrationModal('${s.id}')`}" class="relative z-10 w-full py-2 rounded-lg text-xs font-bold transition-all ${btnClass}" ${isReg ? 'disabled' : ''}>
                     ${isReg ? '<i data-lucide="check" class="w-3 h-3 inline mr-1"></i> Registered' : 'Register Now'}
                 </button>
@@ -952,8 +826,7 @@
             return;
         }
 
-        container.innerHTML = regs.map(r => {
-            return `
+        container.innerHTML = regs.map(r => `
             <div class="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mb-2 group relative">
                 <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-brand-primary dark:text-white shrink-0">
                     <i data-lucide="${r.sports.icon || 'trophy'}" class="w-5 h-5"></i>
@@ -966,15 +839,11 @@
                     Withdraw
                 </button>
             </div>
-        `}).join('');
+        `).join('');
         lucide.createIcons();
     }
 
-    window.loadProfileGames = function() {
-        window.loadRegistrationHistory('my-registrations-list');
-    }
-
-    // --- CREATE TEAM LOGIC ---
+    // --- TEAM CREATION ---
     window.openCreateTeamModal = async function() {
         // 1. Get Team Sports
         const { data: sports } = await supabaseClient.from('sports').select('*').eq('type', 'Team').eq('status', 'Open');
@@ -996,7 +865,6 @@
         
         if(!name) return showToast("Enter Team Name", "error");
         
-        // Final Double Check
         if(!myRegistrations.includes(parseInt(sportId)) && !myRegistrations.includes(sportId)) {
             return showToast("⚠️ Security Check: Register for this sport first!", "error");
         }
@@ -1008,7 +876,6 @@
             
         if(existing && existing.length > 0) return showToast("❌ You already have a team for this sport.", "error");
 
-        // Transaction: Create Team -> Add Captain as Member
         const { data: team, error } = await supabaseClient.from('teams')
             .insert({ name: name, sport_id: sportId, captain_id: currentUser.id, status: 'Open' })
             .select()
@@ -1043,45 +910,21 @@
             btn.innerText = "Registering...";
         }
 
-        if(!currentUser.mobile) {
-            showToast("⚠️ Mobile number required! Redirecting...", "error");
-            setTimeout(() => {
-                window.closeModal('modal-register');
-                window.openSettingsModal();
-            }, 1500);
-            
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-            return;
-        }
-
         const { error } = await supabaseClient.from('registrations').insert({
             user_id: currentUser.id,
             sport_id: selectedSportForReg.id
         });
 
         if(error) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
+            if (btn) { btn.disabled = false; btn.innerText = originalText; }
             showToast("Error: " + error.message, "error");
-        }
-        else {
+        } else {
             if (!myRegistrations.includes(selectedSportForReg.id)) {
                 myRegistrations.push(selectedSportForReg.id);
             }
-
             showToast("Registration Successful!", "success");
             window.closeModal('modal-register');
-            
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-
+            if (btn) { btn.disabled = false; btn.innerText = originalText; }
             renderSportsList(allSportsList);
         }
     }
@@ -1090,7 +933,7 @@
     window.openManageTeamModal = async function(teamId, teamName, isLocked, teamSize) {
         document.getElementById('manage-team-title').innerText = "Manage: " + teamName;
         
-        // Load Pending Requests
+        // Pending
         const { data: pending } = await supabaseClient.from('team_members').select('id, users(first_name, last_name)').eq('team_id', teamId).eq('status', 'Pending');
         const reqList = document.getElementById('manage-requests-list');
         reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
@@ -1102,7 +945,7 @@
                 </div>
             </div>`).join('');
 
-        // Load Active Members
+        // Members
         const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(first_name, last_name)').eq('team_id', teamId).eq('status', 'Accepted');
         const memList = document.getElementById('manage-members-list');
         memList.innerHTML = members.map(m => `
@@ -1113,19 +956,15 @@
                 ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
             </div>`).join('');
 
-        // Lock Button Logic
         const oldLock = document.getElementById('btn-lock-dynamic');
         if(oldLock) oldLock.remove();
         
         if (!isLocked) {
              const lockBtn = document.createElement('button');
              lockBtn.id = 'btn-lock-dynamic';
-             
              lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs border border-red-100 dark:border-red-900 flex items-center justify-center gap-2";
              lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
-             // Pass teamSize to validation
              lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
-             
              memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
         }
         
@@ -1142,8 +981,6 @@
 
     window.promptLockTeam = async function(teamId, requiredSize) {
         const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Accepted');
-        
-        // Validate against DB team_size
         const required = requiredSize || 2; 
         if(count < required) return showToast(`⚠️ Squad incomplete! Need ${required} players.`, "error");
         
@@ -1174,40 +1011,6 @@
         });
     }
 
-    window.openSettingsModal = function() {
-        document.getElementById('edit-fname').value = currentUser.first_name || '';
-        document.getElementById('edit-lname').value = currentUser.last_name || '';
-        document.getElementById('edit-email').value = currentUser.email || '';
-        document.getElementById('edit-mobile').value = currentUser.mobile || '';
-        document.getElementById('edit-class').value = currentUser.class_name || 'FY';
-        document.getElementById('edit-gender').value = currentUser.gender || 'Male';
-        document.getElementById('edit-sid').value = currentUser.student_id || '';
-        document.getElementById('modal-settings').classList.remove('hidden');
-    }
-
-    window.updateProfile = async function() {
-        const updates = {
-            first_name: document.getElementById('edit-fname').value,
-            last_name: document.getElementById('edit-lname').value,
-            mobile: document.getElementById('edit-mobile').value,
-            class_name: document.getElementById('edit-class').value,
-            student_id: document.getElementById('edit-sid').value,
-            gender: document.getElementById('edit-gender').value
-        };
-
-        if(!updates.first_name || !updates.last_name) return showToast("Name is required", "error");
-
-        const { error } = await supabaseClient.from('users').update(updates).eq('id', currentUser.id);
-
-        if(error) showToast("Error updating profile", "error");
-        else {
-            Object.assign(currentUser, updates);
-            updateProfileUI();
-            window.closeModal('modal-settings');
-            showToast("Profile Updated!", "success");
-        }
-    }
-
     async function getSportIdByName(name) {
         const { data } = await supabaseClient.from('sports').select('id').eq('name', name).single();
         return data?.id;
@@ -1223,30 +1026,21 @@
         const iconEl = document.getElementById('toast-icon');
         
         if (msgEl) msgEl.innerText = msg;
-        
         if (iconEl) {
-            if (type === 'error') {
-                iconEl.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>';
-            } else {
-                iconEl.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
-            }
+            iconEl.innerHTML = (type === 'error') 
+                ? '<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>' 
+                : '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
         }
         
         if (window.lucide) lucide.createIcons();
-        
         t.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-10');
-        
-        setTimeout(() => {
-            t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10');
-        }, 3000);
+        setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10'), 3000);
     }
 
     let confirmCallback = null;
     function setupConfirmModal() {
         if (!document.getElementById('btn-confirm-yes')) return;
-        document.getElementById('btn-confirm-yes').onclick = () => {
-            if(confirmCallback) confirmCallback();
-        };
+        document.getElementById('btn-confirm-yes').onclick = () => { if(confirmCallback) confirmCallback(); };
         document.getElementById('btn-confirm-cancel').onclick = () => window.closeModal('modal-confirm');
     }
 
