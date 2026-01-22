@@ -19,7 +19,7 @@
             background-color: #0f172a; 
             color: #f8fafc; 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            padding-bottom: 90px;
+            padding-bottom: 100px;
         }
 
         .gold-text { 
@@ -29,46 +29,54 @@
         }
 
         .glass-panel { 
-            background: rgba(30, 41, 59, 0.6); 
+            background: rgba(30, 41, 59, 0.4); 
             backdrop-filter: blur(12px); 
-            border: 1px solid rgba(255, 255, 255, 0.08); 
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05); 
         }
 
-        /* Nav & Tabs */
         .nav-item { opacity: 0.5; transition: all 0.3s ease; border-bottom: 2px solid transparent; }
         .nav-item.active { opacity: 1; color: #FCD34D; border-bottom-color: #FCD34D; }
 
-        .schedule-tab { opacity: 0.6; padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.05); }
-        .schedule-tab.active { opacity: 1; background: #FCD34D; color: black; }
-
-        /* Buttons */
         .btn-gold { 
             background: linear-gradient(135deg, #fbbf24, #d97706); 
             color: #111827; 
             font-weight: 800; 
             box-shadow: 0 4px 15px rgba(217, 119, 6, 0.2);
         }
-        .btn-gold:active { transform: scale(0.98); }
-
-        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        /* New Withdraw Button Style */
+        .btn-withdraw {
+            font-size: 10px;
+            font-weight: 700;
+            color: #ef4444; /* Red-500 */
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.05);
+            transition: all 0.2s;
+        }
+        .btn-withdraw:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: #ef4444;
+        }
     </style>
 </head>
 <body>
 
     <div id="loader" class="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center">
         <div class="relative">
-            <div class="w-20 h-20 border-4 border-gray-800 rounded-full"></div>
-            <div class="absolute top-0 left-0 w-20 h-20 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-            <i data-lucide="trophy" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-yellow-500"></i>
+            <div class="w-16 h-16 border-4 border-gray-800 rounded-full"></div>
+            <div class="absolute top-0 left-0 w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            <i data-lucide="trophy" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-yellow-500"></i>
         </div>
-        <h2 class="text-2xl font-black gold-text tracking-widest mt-6">OJAS 2.0</h2>
-        <p class="text-xs text-gray-500 mt-2 font-mono uppercase tracking-widest">Verifying Identity...</p>
+        <h2 class="text-xl font-black gold-text tracking-widest mt-4">OJAS 2.0</h2>
+        <p class="text-[10px] text-gray-500 mt-2 font-mono uppercase tracking-widest">Verifying Identity...</p>
     </div>
 
     <div id="app" class="max-w-md mx-auto min-h-screen relative hidden">
         
-        <header class="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center">
+        <header class="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-white/5 px-5 py-4 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-black font-bold shadow-lg shadow-yellow-500/20">O</div>
                 <h1 class="text-xl font-black text-white tracking-tight">OJAS</h1>
@@ -85,31 +93,43 @@
         </header>
 
         <nav class="flex border-b border-white/5 bg-[#0f172a] sticky top-[68px] z-30">
-            <button onclick="switchTab('register')" id="tab-register" class="nav-item active flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Sports</button>
-            <button onclick="switchTab('teams')" id="tab-teams" class="nav-item flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Teams</button>
-            <button onclick="switchTab('schedule')" id="tab-schedule" class="nav-item flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Schedule</button>
+            <button onclick="switchTab('my-zone')" id="tab-my-zone" class="nav-item active flex-1 py-3 text-[10px] font-bold uppercase tracking-wider">My Zone</button>
+            <button onclick="switchTab('register')" id="tab-register" class="nav-item flex-1 py-3 text-[10px] font-bold uppercase tracking-wider">Sports</button>
+            <button onclick="switchTab('teams')" id="tab-teams" class="nav-item flex-1 py-3 text-[10px] font-bold uppercase tracking-wider">Teams</button>
         </nav>
 
         <main class="p-5">
             
-            <div id="view-register" class="space-y-4 animate-slide-up">
-                
-                <div class="glass-panel p-4 rounded-xl mb-4 border-l-4 border-green-500">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">My Registrations</p>
-                            <h3 class="text-white font-bold text-sm" id="reg-count-display">0 Events Joined</h3>
-                        </div>
-                        <i data-lucide="ticket" class="w-5 h-5 text-green-500"></i>
+            <div id="view-my-zone" class="space-y-6 animate-slide-up">
+                <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl"></div>
+                    <p class="text-gray-400 text-[10px] uppercase tracking-widest font-bold mb-1">Status</p>
+                    <h2 class="text-2xl font-bold text-white mb-4">Ready to Play <span class="text-yellow-500">⚡</span></h2>
+                    <div class="flex gap-2">
+                        <span id="badge-class" class="px-2 py-1 bg-white/5 rounded text-[10px] font-bold text-gray-300 border border-white/10">...</span>
+                        <span id="badge-category" class="px-2 py-1 bg-white/5 rounded text-[10px] font-bold text-gray-300 border border-white/10">...</span>
                     </div>
                 </div>
 
-                <div id="sports-list" class="space-y-3 pb-20">
-                    </div>
+                <div>
+                    <h3 class="font-bold text-white mb-3 text-xs uppercase tracking-wide opacity-80">My Squads</h3>
+                    <div id="my-teams-list" class="space-y-3"></div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-white mb-3 text-xs uppercase tracking-wide opacity-80">Individual Events</h3>
+                    <div id="my-regs-list" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div id="view-register" class="hidden space-y-4 animate-slide-up">
+                <div class="glass-panel p-4 rounded-xl mb-4 border-l-2 border-yellow-500 bg-yellow-500/5">
+                    <p class="text-[11px] text-gray-300 leading-relaxed"><strong>Rule:</strong> You must register for a sport individually here <em>before</em> you can join or create a team for it.</p>
+                </div>
+                <div id="sports-list" class="space-y-3 pb-20"></div>
             </div>
 
             <div id="view-teams" class="hidden space-y-6 animate-slide-up">
-                
                 <div class="glass-panel p-5 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-white text-sm flex items-center gap-2"><i data-lucide="crown" class="w-4 h-4 text-yellow-500"></i> Captain's Corner</h3>
@@ -117,42 +137,16 @@
                     <button onclick="openCreateTeamModal()" class="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-white">
                         <i data-lucide="plus" class="w-4 h-4"></i> Create New Squad
                     </button>
-                    
-                    <div id="my-teams-container" class="mt-4 pt-4 border-t border-white/10 hidden">
-                        <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">My Squads</p>
-                        <div id="my-teams-list" class="space-y-2"></div>
-                    </div>
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-bold text-white text-sm">Find a Team</h3>
-                    </div>
-                    
                     <div class="flex gap-2 mb-4">
-                        <div class="relative flex-1">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
-                            <input type="text" id="team-search" placeholder="Search team name..." class="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:border-yellow-500 outline-none">
-                        </div>
-                        <select id="team-filter-sport" class="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-yellow-500 max-w-[120px]">
+                        <input type="text" id="team-search" placeholder="Search team..." class="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-xs text-white focus:border-yellow-500 outline-none">
+                        <select id="team-filter-sport" class="bg-black/40 border border-white/10 rounded-xl px-2 py-2 text-[10px] text-white outline-none focus:border-yellow-500">
                             <option value="all">All Sports</option>
-                            </select>
+                        </select>
                     </div>
-
-                    <div id="team-marketplace" class="space-y-3 pb-20">
-                        <p class="text-center text-gray-600 text-xs py-4">Loading squads...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-schedule" class="hidden space-y-4 animate-slide-up">
-                <div class="flex justify-center gap-2 mb-6">
-                    <button onclick="switchScheduleTab('upcoming')" id="btn-sched-upcoming" class="schedule-tab active">Upcoming</button>
-                    <button onclick="switchScheduleTab('completed')" id="btn-sched-completed" class="schedule-tab">Completed</button>
-                </div>
-                
-                <div id="schedule-list" class="space-y-3 pb-20">
-                    <p class="text-center text-gray-500 text-xs mt-10">No matches found.</p>
+                    <div id="team-marketplace" class="space-y-3 pb-20"></div>
                 </div>
             </div>
 
@@ -160,48 +154,24 @@
     </div>
 
     <div id="modal-reg-confirm" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-2xl p-0 overflow-hidden border-gray-700 bg-[#1e293b]">
-            <div class="bg-yellow-500/10 p-5 border-b border-yellow-500/20">
-                <h3 class="text-lg font-black text-white flex items-center gap-2">
-                    <i data-lucide="clipboard-check" class="w-5 h-5 text-yellow-500"></i> Confirm Entry
-                </h3>
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 bg-[#1e293b] border-gray-700">
+            <h3 class="text-lg font-bold text-white mb-2" id="conf-sport-name">Sport Name</h3>
+            <p class="text-xs text-gray-400 mb-4" id="conf-sport-desc">...</p>
+            <div class="bg-black/30 p-3 rounded-lg border border-white/5 mb-6">
+                <p class="text-[10px] text-yellow-500 font-bold uppercase mb-1">Rules:</p>
+                <p id="conf-sport-rules" class="text-[11px] text-gray-400 italic">Standard rules apply.</p>
             </div>
-            
-            <div class="p-6 space-y-6">
-                <div class="flex items-center gap-3">
-                    <img id="conf-avatar" src="" class="w-12 h-12 rounded-full border border-gray-600">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">Participant</p>
-                        <h4 id="conf-name" class="text-sm font-bold text-white">Student Name</h4>
-                        <p id="conf-id" class="text-xs text-gray-500 font-mono">ID: ...</p>
-                    </div>
-                </div>
-
-                <div class="bg-black/30 p-4 rounded-xl border border-white/5">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-xs font-bold text-white" id="conf-sport-name">Sport Name</span>
-                        <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-gray-300" id="conf-sport-type">Individual</span>
-                    </div>
-                    <p id="conf-sport-desc" class="text-[11px] text-gray-400 leading-relaxed mb-2">...</p>
-                    <div class="pt-2 border-t border-white/5">
-                        <p class="text-[10px] text-yellow-500 font-bold uppercase">Rules Snapshot:</p>
-                        <p id="conf-sport-rules" class="text-[10px] text-gray-500 italic">No specific rules loaded.</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-3">
-                    <button onclick="closeModal('modal-reg-confirm')" class="flex-1 py-3 bg-gray-800 rounded-xl text-xs font-bold text-gray-400">Cancel</button>
-                    <button id="btn-final-confirm" class="flex-1 py-3 btn-gold rounded-xl text-xs font-bold text-black">Confirm Registration</button>
-                </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-reg-confirm')" class="flex-1 py-3 bg-gray-800 rounded-xl text-xs font-bold text-gray-400">Cancel</button>
+                <button id="btn-final-confirm" class="flex-1 py-3 btn-gold rounded-xl text-xs font-bold text-black">Confirm Entry</button>
             </div>
         </div>
     </div>
-
+    
     <div id="modal-create-team" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-6">
         <div class="glass-panel w-full max-w-sm rounded-2xl p-6 relative border-gray-700 bg-[#1e293b]">
             <button onclick="closeModal('modal-create-team')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             <h3 class="text-lg font-bold text-white mb-6">Create Squad</h3>
-            
             <div class="space-y-4">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Sport</label>
@@ -216,7 +186,7 @@
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3.5 rounded-full shadow-2xl z-[60] flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none border border-gray-700 min-w-[300px] justify-center">
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3.5 rounded-full shadow-2xl z-[60] flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none border border-gray-700 min-w-[280px] justify-center">
         <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
         <span id="toast-msg" class="font-bold text-xs">Notification</span>
     </div>
