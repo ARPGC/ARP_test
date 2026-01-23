@@ -118,25 +118,20 @@
         const detailsEl = document.getElementById('profile-details');
         const headName = document.getElementById('header-name');
         const headId = document.getElementById('header-id');
-        const modalName = document.getElementById('reg-modal-user-name');
-        const modalDetail = document.getElementById('reg-modal-user-details');
 
-        // FIXED: Use 'name' instead of first/last
+        // FIXED: Use 'name' column
         const fullName = currentUser.name || "Unknown Student";
 
         if(nameEl) nameEl.innerText = fullName;
         if(detailsEl) detailsEl.innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
         if(headName) headName.innerText = fullName;
         if(headId) headId.innerText = `ID: ${currentUser.student_id}`;
-        
-        // Pre-fill modal
-        if(modalName) modalName.innerText = fullName;
-        if(modalDetail) modalDetail.innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
     }
 
     // --- PROFILE IMAGE UPLOAD ---
     function setupImageUpload() {
-       // Kept simple for brevity as logic was correct
+        const input = document.getElementById('file-upload-input');
+        // Logic reserved
     }
 
     // --- CORE LOGIC: FETCH DATA ---
@@ -420,7 +415,7 @@
         `).join('');
     }
 
-    // --- 7. TEAMS MODULE (FIXED: CRASH & NAME) ---
+    // --- 7. TEAMS MODULE (FIXED) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
@@ -454,8 +449,7 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // FIXED: Query fetch 'name', not first_name. Added safety check.
-        // Also removed alias 'captain:users!captain_id' which caused the crash.
+        // FIXED: Fetch 'name', remove alias
         let query = supabaseClient
             .from('teams')
             .select(`
@@ -471,7 +465,7 @@
         const { data: teams, error } = await query;
 
         if (error) {
-            console.error("Team Market Error:", error); // Debug to console
+            console.error("Team Market Error:", error);
             container.innerHTML = '<p class="text-center text-red-400 py-10">System Error: Check Console.</p>';
             return;
         }
@@ -495,7 +489,6 @@
 
         const validTeams = teamsWithCounts.filter(t => {
             if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
-            // FIXED: Using t.users (which is captain) and 'name'
             if (t.users?.gender !== currentUser.gender) return false;
             return true;
         });
@@ -552,7 +545,7 @@
             return showToast(`❌ You are already in a team for ${sportName}.`, "error");
         }
 
-        // FIXED: Fetch 'name' here too
+        // FIXED: Fetch Name + Class
         const { data: members, error } = await supabaseClient.from('team_members')
             .select('status, users(name, class_name)')
             .eq('team_id', teamId)
@@ -563,8 +556,10 @@
         const list = document.getElementById('view-squad-list');
         list.innerHTML = members.map(m => `
             <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <span class="text-sm font-bold text-gray-800 dark:text-white">${m.users.name}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">${m.users.class_name || 'N/A'}</span>
+                <div>
+                    <span class="text-sm font-bold text-gray-800 dark:text-white block">${m.users.name}</span>
+                    <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">${m.users.class_name || 'N/A'}</span>
+                </div>
             </div>
         `).join('');
 
@@ -611,7 +606,7 @@
             const isCaptain = t.captain_id === currentUser.id;
             const isLocked = t.status === 'Locked';
             
-            // FIXED: Fetch 'name'
+            // FIXED: Fetch Name + Class + Mobile
             const { data: squad } = await supabaseClient
                 .from('team_members')
                 .select('users(name, class_name, mobile)')
@@ -622,6 +617,7 @@
                 <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg mb-1.5 border border-gray-100 dark:border-gray-600 w-full">
                     <div class="flex flex-col">
                         <span class="text-xs font-bold text-gray-800 dark:text-gray-200">${s.users?.name}</span>
+                        <span class="text-[9px] text-gray-400 font-bold">${s.users?.class_name || 'N/A'}</span>
                     </div>
                     <span class="text-[10px] font-mono font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-600 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-500">
                         ${s.users?.mobile || 'No Mobile'}
@@ -876,26 +872,32 @@
     window.openManageTeamModal = async function(teamId, teamName, isLocked, teamSize) {
         document.getElementById('manage-team-title').innerText = "Manage: " + teamName;
         
-        // FIXED: fetch 'name'
-        const { data: pending } = await supabaseClient.from('team_members').select('id, users(name)').eq('team_id', teamId).eq('status', 'Pending');
+        // FIXED: fetch Name + Class
+        const { data: pending } = await supabaseClient.from('team_members').select('id, users(name, class_name)').eq('team_id', teamId).eq('status', 'Pending');
         const reqList = document.getElementById('manage-requests-list');
         reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
             <div class="flex justify-between items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-800 mb-1">
-                <span class="text-xs font-bold text-gray-800 dark:text-white">${p.users.name}</span>
+                <div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-white block">${p.users.name}</span>
+                    <span class="text-[10px] text-gray-500 font-mono">${p.users.class_name || 'N/A'}</span>
+                </div>
                 <div class="flex gap-1">
                     <button onclick="window.handleRequest('${p.id}', 'Accepted', '${teamId}')" class="p-1 bg-green-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
                     <button onclick="window.handleRequest('${p.id}', 'Rejected', '${teamId}')" class="p-1 bg-red-500 text-white rounded"><i data-lucide="x" class="w-3 h-3"></i></button>
                 </div>
             </div>`).join('');
 
-        // FIXED: fetch 'name'
-        const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name)').eq('team_id', teamId).eq('status', 'Accepted');
+        // FIXED: fetch Name + Class + Mobile
+        const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name, class_name, mobile)').eq('team_id', teamId).eq('status', 'Accepted');
         const memList = document.getElementById('manage-members-list');
         memList.innerHTML = members.map(m => `
             <div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mb-1">
-                <span class="text-xs font-bold text-gray-800 dark:text-white ${m.user_id === currentUser.id ? 'text-brand-primary' : ''}">
-                    ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
-                </span>
+                <div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-white block ${m.user_id === currentUser.id ? 'text-brand-primary' : ''}">
+                        ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
+                    </span>
+                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name} • ${m.users.mobile}</span>
+                </div>
                 ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
             </div>`).join('');
 
