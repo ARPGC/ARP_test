@@ -262,13 +262,10 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
+        // Query modified to use a simpler string format to avoid syntax errors
         let query = supabaseClient
             .from('teams')
-            .select(`
-                *, 
-                sports (name, team_size), 
-                users!captain_id (name, gender, class_name)
-            `)
+            .select('*, sports (name, team_size), users!captain_id (name, gender, class_name)')
             .eq('status', 'Open')
             .order('created_at', { ascending: false });
 
@@ -318,7 +315,7 @@
                 ? "w-full py-3 bg-gray-800 text-gray-500 cursor-not-allowed text-xs font-bold rounded-xl"
                 : "w-full py-3 bg-white text-black text-xs font-bold rounded-xl shadow-lg active:scale-95 transition-transform hover:opacity-90";
             
-            // Sanitize and prepare action
+            // Sanitize sport name just in case
             const safeSportName = t.sports.name.replace(/'/g, "\\'");
             const action = isFull ? "" : `window.viewSquadAndJoin('${t.id}', '${safeSportName}', ${t.seatsLeft})`;
 
@@ -373,7 +370,7 @@
             .eq('status', 'Accepted');
 
         if (memberError || !teamMembers) {
-            console.error(memberError);
+            console.error("Member Error:", memberError);
             list.innerHTML = '<p class="text-red-500 text-xs text-center">Error fetching list.</p>';
             return;
         }
@@ -389,7 +386,7 @@
                 .in('id', userIds);
 
             if (userError || !users) {
-                console.error(userError);
+                console.error("User Error:", userError);
                 list.innerHTML = '<p class="text-red-500 text-xs text-center">Error loading profiles.</p>';
                 return;
             }
@@ -409,7 +406,7 @@
 
         // Attach event listener properly
         const joinBtn = document.getElementById('btn-confirm-join');
-        // Remove old listener to prevent duplicates (clone node)
+        // Clone node to strip old event listeners
         const newBtn = joinBtn.cloneNode(true);
         joinBtn.parentNode.replaceChild(newBtn, joinBtn);
         
