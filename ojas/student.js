@@ -342,7 +342,7 @@
         `}).join('');
     }
 
-    // --- FIX: UPDATED SQUAD VIEW AND JOIN LOGIC ---
+    // --- REWRITTEN FUNCTION: ROBUST 2-STEP FETCH ---
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft) {
         if(seatsLeft <= 0) return showToast("❌ This team is full!", "error");
 
@@ -365,36 +365,55 @@
         list.innerHTML = '<p class="text-center text-gray-400 text-xs py-4">Loading roster...</p>';
         document.getElementById('modal-view-squad').classList.remove('hidden');
 
-        // FIXED: Compact select string to avoid Supabase parser whitespace issues
-        const { data: members, error } = await supabaseClient.from('team_members')
-            .select('status, users(name, class_name)')
+        // STEP 1: Get Member IDs (Status: Accepted)
+        const { data: teamMembers, error: memberError } = await supabaseClient
+            .from('team_members')
+            .select('user_id')
             .eq('team_id', teamId)
             .eq('status', 'Accepted');
 
-        if (error) {
-            console.error("View Squad Error:", error);
-            list.innerHTML = '<p class="text-red-500 text-xs">Error loading members.</p>';
+        if (memberError || !teamMembers) {
+            console.error(memberError);
+            list.innerHTML = '<p class="text-red-500 text-xs text-center">Error fetching list.</p>';
             return;
         }
 
-        if (!members || members.length === 0) {
-            list.innerHTML = '<p class="text-gray-500 text-xs italic">No members yet. Be the first!</p>';
+        if (teamMembers.length === 0) {
+            list.innerHTML = '<p class="text-gray-500 text-xs italic text-center">No members yet. Be the first!</p>';
         } else {
-            list.innerHTML = members.map(m => `
+            // STEP 2: Get Details for these IDs
+            const userIds = teamMembers.map(m => m.user_id);
+            const { data: users, error: userError } = await supabaseClient
+                .from('users')
+                .select('name, class_name')
+                .in('id', userIds);
+
+            if (userError || !users) {
+                console.error(userError);
+                list.innerHTML = '<p class="text-red-500 text-xs text-center">Error loading profiles.</p>';
+                return;
+            }
+
+            list.innerHTML = users.map(u => `
                 <div class="flex justify-between items-center p-3 bg-gray-800 rounded-xl border border-white/5">
                     <div>
-                        <span class="text-sm font-bold text-white block">${m.users?.name || 'Unknown'}</span>
-                        <span class="text-[10px] text-gray-400 font-mono">${m.users?.class_name || 'N/A'}</span>
+                        <span class="text-sm font-bold text-white block">${u.name || 'Unknown'}</span>
+                        <span class="text-[10px] text-gray-400 font-mono">${u.class_name || 'N/A'}</span>
                     </div>
                     <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
                 </div>
             `).join('');
+            
             if(window.lucide) lucide.createIcons();
         }
 
         // Attach event listener properly
         const joinBtn = document.getElementById('btn-confirm-join');
-        joinBtn.onclick = () => sendJoinRequest(teamId);
+        // Remove old listener to prevent duplicates (clone node)
+        const newBtn = joinBtn.cloneNode(true);
+        joinBtn.parentNode.replaceChild(newBtn, joinBtn);
+        
+        newBtn.onclick = () => sendJoinRequest(teamId);
     }
 
     async function sendJoinRequest(teamId) {
