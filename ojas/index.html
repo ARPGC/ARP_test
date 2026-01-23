@@ -10,9 +10,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-   <script src="student.js" defer></script>
-
-    <link rel="stylesheet" href="style.css"> 
+    <script src="student.js" defer></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -60,6 +58,10 @@
         .lucide { width: 1.25rem; height: 1.25rem; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* List Styling for Rules */
+        .rules-list { list-style-type: disc; padding-left: 1.2rem; }
+        .rules-list li { margin-bottom: 0.25rem; }
     </style>
 </head>
 <body>
@@ -218,34 +220,65 @@
     </div>
 
     <div id="modal-register" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-2xl p-0 overflow-hidden border-gray-700 bg-[#1e293b] shadow-2xl">
-            <div class="bg-gradient-to-r from-yellow-500/10 to-transparent p-5 border-b border-yellow-500/10">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-0 overflow-hidden border-gray-700 bg-[#1e293b] shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="bg-gradient-to-r from-yellow-500/10 to-transparent p-5 border-b border-yellow-500/10 shrink-0">
                 <h3 class="text-lg font-black text-white flex items-center gap-2">
                     <i data-lucide="clipboard-check" class="w-5 h-5 text-yellow-500"></i> Confirm Entry
                 </h3>
             </div>
-            <div class="p-6 space-y-5">
-                <div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg border border-white/5">
+            
+            <div class="p-6 overflow-y-auto no-scrollbar">
+                <div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg border border-white/5 mb-5">
+                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </div>
                     <div>
                         <p class="text-[10px] text-gray-400 uppercase font-bold">Participant</p>
                         <h4 id="reg-modal-user-name" class="text-sm font-bold text-white">Student Name</h4>
                         <p id="reg-modal-user-details" class="text-[10px] text-gray-500 font-mono">ID</p>
                     </div>
                 </div>
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <span class="text-xs font-bold text-white">Event</span>
-                        <span class="text-xs font-bold text-yellow-500" id="reg-modal-sport-name">Sport Name</span>
+
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 block mb-1">Event</span>
+                        <h2 class="text-xl font-black text-yellow-500 leading-none" id="reg-modal-sport-name">Sport Name</h2>
                     </div>
-                    <div class="flex justify-between items-center mt-3">
-                        <span class="text-[10px] text-gray-400 uppercase font-bold">Mobile</span>
-                        <input type="tel" id="reg-mobile" class="text-xs font-bold text-right bg-transparent outline-none text-yellow-500 w-28 placeholder-gray-600" placeholder="Required...">
+                    <div class="flex gap-2">
+                        <span id="reg-badge-type" class="px-2 py-1 bg-gray-700 rounded text-[10px] text-white font-bold">Type</span>
+                        <span id="reg-badge-gender" class="px-2 py-1 bg-gray-700 rounded text-[10px] text-white font-bold">Gender</span>
                     </div>
                 </div>
-                <div class="flex gap-3 pt-2">
-                    <button onclick="closeModal('modal-register')" class="flex-1 py-3 bg-gray-800 rounded-xl text-xs font-bold text-gray-400 hover:bg-gray-700 transition-colors">Cancel</button>
-                    <button onclick="confirmRegistration()" class="flex-1 py-3 btn-gold rounded-xl text-xs font-bold text-black hover:brightness-110 transition-all">Confirm</button>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-gray-800/50 p-3 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-gray-400 uppercase font-bold block mb-1">Team Size</span>
+                        <span id="reg-info-teamsize" class="text-sm font-bold text-white">N/A</span>
+                    </div>
+                     <div class="bg-gray-800/50 p-3 rounded-xl border border-white/5">
+                        <span class="text-[10px] text-gray-400 uppercase font-bold block mb-1">Mobile</span>
+                         <input type="tel" id="reg-mobile" class="w-full bg-transparent outline-none text-sm font-bold text-yellow-500 placeholder-gray-600" placeholder="Required...">
+                    </div>
                 </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <h5 class="text-xs font-bold text-white mb-2 uppercase tracking-wide border-b border-gray-700 pb-1">Description</h5>
+                        <p id="reg-desc" class="text-xs text-gray-400 leading-relaxed">No description available.</p>
+                    </div>
+                    
+                    <div>
+                        <h5 class="text-xs font-bold text-white mb-2 uppercase tracking-wide border-b border-gray-700 pb-1">Rules & Regulations</h5>
+                        <ul id="reg-rules" class="text-xs text-gray-400 leading-relaxed rules-list">
+                            <li>No specific rules.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-3">
+                <button onclick="closeModal('modal-register')" class="flex-1 py-3 bg-gray-800 rounded-xl text-xs font-bold text-gray-400 hover:bg-gray-700 transition-colors">Cancel</button>
+                <button onclick="confirmRegistration()" class="flex-1 py-3 btn-gold rounded-xl text-xs font-bold text-black hover:brightness-110 transition-all">Confirm & Register</button>
             </div>
         </div>
     </div>
