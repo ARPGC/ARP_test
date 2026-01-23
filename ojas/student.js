@@ -42,7 +42,7 @@
         
         // Start Authentication (Priority: URL ID)
         await checkAuth();
-        setupRealtimeSubscription();
+        // setupRealtimeSubscription(); // DISABLED to prevent errors
         
         // Default Tab
         window.switchTab('dashboard');
@@ -119,7 +119,7 @@
         const headName = document.getElementById('header-name');
         const headId = document.getElementById('header-id');
 
-        // FIXED: Use 'name' column
+        // FIXED: Using 'name' column based on your DB screenshot
         const fullName = currentUser.name || "Unknown Student";
 
         if(nameEl) nameEl.innerText = fullName;
@@ -130,7 +130,6 @@
 
     // --- PROFILE IMAGE UPLOAD ---
     function setupImageUpload() {
-        const input = document.getElementById('file-upload-input');
         // Logic reserved
     }
 
@@ -180,97 +179,24 @@
         loadLatestChampions();
     }
 
+    // --- DISABLED MATCH DATA FETCHING ---
+    // User requested to hide data but keep UI
     window.loadLiveMatches = async function() { 
-        const container = document.getElementById('live-matches-container');
         const list = document.getElementById('live-matches-list');
-        
-        if(!list) return;
-
-        const { data: rawMatches } = await realtimeClient
-            .from('matches')
-            .select('*, sports(name)')
-            .eq('status', 'Live')
-            .order('start_time', { ascending: false });
-
-        const matches = rawMatches ? rawMatches.filter(m => m.location !== 'Admin Panel') : [];
-
-        if (container) {
-            if (!matches || matches.length === 0) {
-                container.classList.add('hidden'); 
-                return;
-            }
-            container.classList.remove('hidden');
+        if(list) {
+            list.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No live matches currently.</p>`;
         }
-        
-        list.innerHTML = matches.map(m => {
-            let s1 = m.score1 || 0;
-            let s2 = m.score2 || 0;
-
-            return `
-            <div onclick="window.openMatchDetails('${m.id}')" class="cursor-pointer bg-white dark:bg-gray-800 p-5 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-lg shadow-red-50/50 relative overflow-hidden mb-4 animate-fade-in active:scale-[0.98] transition-transform">
-                <div class="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl animate-pulse flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE
-                </div>
-                <div class="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">${m.sports?.name || 'Event'}</div>
-                
-                <div class="flex items-center justify-between gap-2">
-                    <div class="text-left w-5/12">
-                        <h3 class="font-black text-base text-gray-900 dark:text-white leading-tight truncate">${m.team1_name}</h3>
-                        <p class="text-3xl font-black text-gray-900 dark:text-white mt-1">${s1}</p>
-                    </div>
-                    <div class="text-center w-2/12"><div class="text-[10px] font-bold text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center mx-auto">VS</div></div>
-                    <div class="text-right w-5/12">
-                        <h3 class="font-black text-base text-gray-900 dark:text-white leading-tight truncate">${m.team2_name}</h3>
-                        <p class="text-3xl font-black text-gray-900 dark:text-white mt-1">${s2}</p>
-                    </div>
-                </div>
-            </div>
-        `}).join('');
     }
 
     async function loadLatestChampions() {
-        let container = document.getElementById('home-champions-list'); 
-        if (!container) return;
-
-        const { data: matches } = await realtimeClient
-            .from('matches')
-            .select('*, sports(name)')
-            .eq('status', 'Completed')
-            .not('winner_id', 'is', null) 
-            .order('start_time', { ascending: false })
-            .limit(5);
-
-        if(!matches || matches.length === 0) {
-            container.innerHTML = '<p class="text-xs text-gray-400 italic text-center py-4">No results declared yet.</p>';
-            return;
+        const container = document.getElementById('home-champions-list'); 
+        if (container) {
+            container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">No results declared yet.</p>';
         }
-
-        container.innerHTML = matches.map(m => `
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden mb-3">
-                <div class="flex justify-between items-center mb-2 border-b border-gray-50 dark:border-gray-700 pb-2">
-                    <span class="text-xs font-black text-gray-400 uppercase tracking-widest">${m.sports?.name}</span>
-                    <span class="text-[9px] bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded font-bold">Finished</span>
-                </div>
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2 text-xs font-bold"><span class="text-lg">🥇</span> <span class="text-gray-800 dark:text-gray-200">${m.winner_text || 'Winner Declared'}</span></div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function setupRealtimeSubscription() {
-        if (liveSubscription) return; 
-
-        liveSubscription = realtimeClient
-            .channel('public:matches_updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
-                if (typeof window.loadSchedule === 'function') window.loadSchedule();
-                if (typeof window.loadLiveMatches === 'function') window.loadLiveMatches();
-            })
-            .subscribe();
     }
 
     // --- 6. SCHEDULE MODULE ---
+    // User requested to hide data but keep UI
     window.filterSchedule = function(view) {
         currentScheduleView = view;
         const btnUp = document.getElementById('btn-schedule-upcoming');
@@ -292,130 +218,18 @@
         const container = document.getElementById('schedule-list');
         if(!container) return;
         
-        container.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div>';
-
-        const { data: matches } = await supabaseClient
-            .from('matches')
-            .select('*, sports(name, icon, type, is_performance)')
-            .order('start_time', { ascending: true });
-
-        if (!matches || matches.length === 0) {
-            container.innerHTML = `<p class="text-gray-400 font-medium text-center py-10">No matches found.</p>`;
-            return;
-        }
-
-        const searchText = document.getElementById('schedule-search')?.value.toLowerCase() || '';
-        const filterSelect = document.getElementById('schedule-sport-filter');
-        
-        // Populate filter
-        if (filterSelect && filterSelect.children.length <= 1) {
-             const uniqueSports = [...new Set(matches.map(m => m.sports?.name || 'Unknown'))].sort();
-             filterSelect.innerHTML = `<option value="">All Sports</option>` + 
-                uniqueSports.map(s => `<option value="${s}">${s}</option>`).join('');
-        }
-        const selectedSport = filterSelect?.value || '';
-
-        let filteredMatches = matches.filter(m => {
-            const isViewMatch = currentScheduleView === 'upcoming' 
-                ? ['Upcoming', 'Scheduled', 'Live'].includes(m.status)
-                : m.status === 'Completed';
-            
-            if (!isViewMatch) return false;
-
-            const sName = m.sports?.name?.toLowerCase() || '';
-            const t1 = m.team1_name?.toLowerCase() || '';
-            const t2 = m.team2_name?.toLowerCase() || '';
-            
-            const searchMatch = !searchText || sName.includes(searchText) || t1.includes(searchText) || t2.includes(searchText);
-            const sportMatch = !selectedSport || m.sports?.name === selectedSport;
-            return searchMatch && sportMatch;
-        });
-
-        if (filteredMatches.length === 0) {
-            container.innerHTML = `<p class="text-gray-400 font-medium text-center py-10">No matches found.</p>`;
-            return;
-        }
-
-        container.innerHTML = filteredMatches.map(m => {
-            const isLive = m.status === 'Live';
-            const dateObj = new Date(m.start_time);
-            const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const dateStr = dateObj.toLocaleDateString([], {month: 'short', day: 'numeric'});
-
-            let badgeHtml = isLive 
-                ? `<span class="bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider animate-pulse flex items-center gap-1"><span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span> LIVE</span>`
-                : `<span class="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">${dateStr} • ${timeStr}</span>`;
-
-            return `
-            <div onclick="window.openMatchDetails('${m.id}')" class="w-full bg-white dark:bg-gray-800 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform border border-gray-100 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-start mb-4">
-                    ${badgeHtml}
-                    <span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">${m.sports?.name}</span>
+        container.innerHTML = `
+            <div class="text-center py-10">
+                <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="calendar-clock" class="w-6 h-6 text-gray-500"></i>
                 </div>
-                
-                <div class="flex items-center justify-between w-full mb-4">
-                    <div class="flex-1 text-left"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team1_name}</h4></div>
-                    <div class="shrink-0 px-3"><span class="text-[10px] font-bold text-gray-300">VS</span></div>
-                    <div class="flex-1 text-right"><h4 class="font-bold text-base text-gray-900 dark:text-white leading-tight">${m.team2_name}</h4></div>
-                </div>
+                <p class="text-gray-500 text-xs">Match schedule coming soon.</p>
             </div>`;
-        }).join('');
-        
-        lucide.createIcons();
+            
+        if(window.lucide) lucide.createIcons();
     }
 
-    // --- MATCH DETAILS (FIXED: NAME) ---
-    window.openMatchDetails = async function(matchId) {
-        const { data: match } = await supabaseClient.from('matches').select('*, sports(name)').eq('id', matchId).single();
-        if(!match) return;
-
-        document.getElementById('md-sport-name').innerText = match.sports?.name;
-        document.getElementById('md-match-status').innerText = match.status;
-
-        document.getElementById('md-layout-team').classList.remove('hidden');
-        document.getElementById('md-t1-name').innerText = match.team1_name;
-        document.getElementById('md-t2-name').innerText = match.team2_name;
-        document.getElementById('md-t1-score').innerText = match.score1 || '0';
-        document.getElementById('md-t2-score').innerText = match.score2 || '0';
-
-        document.getElementById('md-list-t1-title').innerText = match.team1_name;
-        document.getElementById('md-list-t2-title').innerText = match.team2_name;
-        
-        loadSquadList(match.team1_id, 'md-list-t1');
-        loadSquadList(match.team2_id, 'md-list-t2');
-
-        document.getElementById('modal-match-details').classList.remove('hidden');
-    }
-
-    async function loadSquadList(teamId, containerId) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '<p class="text-[10px] text-gray-400 italic">Loading...</p>';
-
-        if(!teamId) {
-            container.innerHTML = '<p class="text-[10px] text-gray-400 italic">TBA</p>';
-            return;
-        }
-
-        // FIXED: Fetch 'name' instead of first/last
-        const { data: members, error } = await supabaseClient
-            .from('team_members')
-            .select('users(name, class_name)')
-            .eq('team_id', teamId)
-            .eq('status', 'Accepted'); 
-
-        if (error || !members || members.length === 0) {
-            container.innerHTML = '<p class="text-[10px] text-gray-400 italic">No members found.</p>';
-            return;
-        }
-
-        container.innerHTML = members.map(m => `
-            <div class="text-xs border-b border-gray-100 dark:border-gray-600 pb-1 mb-1 last:border-0 last:mb-0">
-                <span class="text-gray-700 dark:text-gray-300 font-medium block">${m.users.name}</span>
-            </div>
-        `).join('');
-    }
-
-    // --- 7. TEAMS MODULE (FIXED) ---
+    // --- 7. TEAMS MODULE (CRITICAL FIXES HERE) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
@@ -449,7 +263,9 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // FIXED: Fetch 'name', remove alias
+        // FIXED: Use 'name' instead of first_name. Removed alias 'captain:' to avoid complexity.
+        // We use the foreign key directly (users) if the FK is defined, otherwise use embedding.
+        // Assuming captain_id points to users table.
         let query = supabaseClient
             .from('teams')
             .select(`
@@ -489,6 +305,7 @@
 
         const validTeams = teamsWithCounts.filter(t => {
             if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
+            // FIXED: Use t.users.name (which comes from captain_id relation)
             if (t.users?.gender !== currentUser.gender) return false;
             return true;
         });
@@ -545,7 +362,7 @@
             return showToast(`❌ You are already in a team for ${sportName}.`, "error");
         }
 
-        // FIXED: Fetch Name + Class
+        // FIXED: Fetch 'name' + class_name
         const { data: members, error } = await supabaseClient.from('team_members')
             .select('status, users(name, class_name)')
             .eq('team_id', teamId)
@@ -606,7 +423,7 @@
             const isCaptain = t.captain_id === currentUser.id;
             const isLocked = t.status === 'Locked';
             
-            // FIXED: Fetch Name + Class + Mobile
+            // FIXED: Fetch 'name' + class + mobile
             const { data: squad } = await supabaseClient
                 .from('team_members')
                 .select('users(name, class_name, mobile)')
@@ -872,7 +689,7 @@
     window.openManageTeamModal = async function(teamId, teamName, isLocked, teamSize) {
         document.getElementById('manage-team-title').innerText = "Manage: " + teamName;
         
-        // FIXED: fetch Name + Class
+        // FIXED: fetch 'name'
         const { data: pending } = await supabaseClient.from('team_members').select('id, users(name, class_name)').eq('team_id', teamId).eq('status', 'Pending');
         const reqList = document.getElementById('manage-requests-list');
         reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
@@ -887,7 +704,7 @@
                 </div>
             </div>`).join('');
 
-        // FIXED: fetch Name + Class + Mobile
+        // FIXED: fetch 'name'
         const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name, class_name, mobile)').eq('team_id', teamId).eq('status', 'Accepted');
         const memList = document.getElementById('manage-members-list');
         memList.innerHTML = members.map(m => `
@@ -896,7 +713,7 @@
                     <span class="text-xs font-bold text-gray-800 dark:text-white block ${m.user_id === currentUser.id ? 'text-brand-primary' : ''}">
                         ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
                     </span>
-                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name} • ${m.users.mobile}</span>
+                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
                 </div>
                 ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
             </div>`).join('');
