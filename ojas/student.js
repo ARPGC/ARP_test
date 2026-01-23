@@ -42,7 +42,6 @@
         
         // Start Authentication (Priority: URL ID)
         await checkAuth();
-        // setupRealtimeSubscription(); // DISABLED to prevent errors
         
         // Default Tab
         window.switchTab('dashboard');
@@ -180,7 +179,7 @@
     }
 
     // --- DISABLED MATCH DATA FETCHING ---
-    // User requested to hide data but keep UI
+    // User requested to hide data but keep UI to prevent 404s
     window.loadLiveMatches = async function() { 
         const list = document.getElementById('live-matches-list');
         if(list) {
