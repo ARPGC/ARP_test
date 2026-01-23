@@ -300,8 +300,8 @@
         </div>
     </div>
 
-    <div id="modal-manage-team" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 h-[70vh] flex flex-col relative border-gray-700 bg-[#1e293b]">
+    <div id="modal-manage-team" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="glass-panel w-full max-w-lg rounded-t-2xl rounded-b-none sm:rounded-2xl p-6 h-[85vh] flex flex-col relative border-gray-700 bg-[#1e293b] mb-0 sm:mb-auto animate-slide-up">
             <div class="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
                 <div>
                     <h3 class="text-lg font-bold text-white" id="manage-team-title">Manage Team</h3>
@@ -310,7 +310,7 @@
                 <button onclick="closeModal('modal-manage-team')"><i data-lucide="x" class="text-gray-400 w-5 h-5"></i></button>
             </div>
 
-            <div class="flex-1 overflow-y-auto pr-2 space-y-6 no-scrollbar">
+            <div class="flex-1 overflow-y-auto pr-2 space-y-6 no-scrollbar pb-10">
                 <div>
                     <h4 class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                         <i data-lucide="user-plus" class="w-3 h-3"></i> Pending Requests
