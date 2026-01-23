@@ -52,9 +52,28 @@
         const savedTheme = localStorage.getItem('urja-theme');
         if (savedTheme === 'dark') {
             document.documentElement.classList.add('dark');
+            updateThemeIcon(true);
         } else {
             document.documentElement.classList.remove('dark');
             localStorage.setItem('urja-theme', 'light'); 
+            updateThemeIcon(false);
+        }
+    }
+
+    window.toggleTheme = function() {
+        const html = document.documentElement;
+        const isDark = html.classList.toggle('dark');
+        localStorage.setItem('urja-theme', isDark ? 'dark' : 'light');
+        updateThemeIcon(isDark);
+    }
+
+    function updateThemeIcon(isDark) {
+        const btn = document.getElementById('btn-theme-toggle');
+        if(btn) {
+            btn.innerHTML = isDark 
+                ? '<i data-lucide="sun" class="w-5 h-5 text-yellow-400"></i>' 
+                : '<i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>';
+            if(window.lucide) lucide.createIcons();
         }
     }
 
@@ -98,6 +117,7 @@
         currentUser = user;
         updateProfileUI();
         await fetchMyRegistrations();
+        loadUserStats();
         
         // Hide Loader, Show App
         const loader = document.getElementById('loader');
@@ -113,15 +133,19 @@
         const headerImg = document.getElementById('header-avatar');
         if(headerImg) headerImg.src = avatarUrl;
 
-        const nameEl = document.getElementById('profile-name');
+        const imgEl = document.getElementById('profile-img');
+        const nameEl = document.getElementById('profile-name'); 
+        const nameDisplay = document.getElementById('profile-name-display'); 
         const detailsEl = document.getElementById('profile-details');
         const headName = document.getElementById('header-name');
         const headId = document.getElementById('header-id');
 
-        // FIXED: Using 'name' column based on your DB screenshot
-        const fullName = currentUser.name || "Unknown Student";
+        // FIXED: Use 'name' column directly
+        const fullName = currentUser.name || "Student";
 
+        if(imgEl) imgEl.src = avatarUrl;
         if(nameEl) nameEl.innerText = fullName;
+        if(nameDisplay) nameDisplay.innerText = fullName;
         if(detailsEl) detailsEl.innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
         if(headName) headName.innerText = fullName;
         if(headId) headId.innerText = `ID: ${currentUser.student_id}`;
@@ -129,7 +153,41 @@
 
     // --- PROFILE IMAGE UPLOAD ---
     function setupImageUpload() {
-        // Logic reserved
+        const input = document.getElementById('file-upload-input');
+        const trigger = document.getElementById('profile-img-container'); 
+        
+        if(trigger && input) {
+            trigger.onclick = () => input.click();
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                showToast("Uploading...", "info");
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_PRESET); 
+                
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`, {
+                        method: 'POST', body: formData
+                    });
+                    const data = await res.json();
+                    
+                    if(data.secure_url) {
+                        await supabaseClient.from('users').update({ avatar_url: data.secure_url }).eq('id', currentUser.id);
+                        currentUser.avatar_url = data.secure_url;
+                        updateProfileUI();
+                        showToast("Profile Photo Updated!", "success");
+                    } else {
+                        showToast("Upload failed: Check settings", "error");
+                    }
+                } catch(err) {
+                    showToast("Upload Failed", "error");
+                    console.error(err);
+                }
+            };
+        }
     }
 
     // --- CORE LOGIC: FETCH DATA ---
@@ -138,6 +196,19 @@
         if(data) {
             myRegistrations = data.map(r => r.sport_id);
         }
+    }
+
+    async function loadUserStats() {
+        const { count: matches } = await supabaseClient.from('registrations')
+            .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+
+        const statEl = document.getElementById('stat-matches-played');
+        if(statEl) statEl.innerText = matches || 0;
+    }
+
+    window.logout = async function() {
+        await supabaseClient.auth.signOut();
+        window.location.href = window.location.pathname; 
     }
 
     // --- 3. NAVIGATION ---
@@ -169,17 +240,16 @@
             if(tabId === 'register') window.toggleRegisterView('new');
             if(tabId === 'teams') window.toggleTeamView('marketplace');
             if(tabId === 'schedule') window.filterSchedule('upcoming');
+            if(tabId === 'profile') window.loadProfileGames();
         }
     }
 
-    // --- 4. DASHBOARD ---
+    // --- 4. DASHBOARD (DISABLED MATCH DATA) ---
     async function loadDashboard() {
         window.loadLiveMatches(); 
         loadLatestChampions();
     }
 
-    // --- DISABLED MATCH DATA FETCHING ---
-    // User requested to hide data but keep UI to prevent 404s
     window.loadLiveMatches = async function() { 
         const list = document.getElementById('live-matches-list');
         if(list) {
@@ -194,8 +264,12 @@
         }
     }
 
-    // --- 6. SCHEDULE MODULE ---
-    // User requested to hide data but keep UI
+    // --- 5. REALTIME SUBSCRIPTION (DISABLED MATCHES) ---
+    function setupRealtimeSubscription() {
+        // Disabled match updates to prevent errors
+    }
+
+    // --- 6. SCHEDULE MODULE (DISABLED MATCH DATA) ---
     window.filterSchedule = function(view) {
         currentScheduleView = view;
         const btnUp = document.getElementById('btn-schedule-upcoming');
@@ -228,16 +302,23 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. TEAMS MODULE (CRITICAL FIXES HERE) ---
+    // --- 7. TEAMS MODULE (CRITICAL FIXES) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
         
+        const btnMarket = document.getElementById('btn-team-market');
+        const btnLocker = document.getElementById('btn-team-locker');
+        
         if(view === 'marketplace') {
             document.getElementById('team-marketplace').classList.remove('hidden');
+            btnMarket.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
+            btnLocker.classList.remove('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
             loadTeamSportsFilter().then(() => window.loadTeamMarketplace());
         } else {
             document.getElementById('team-locker').classList.remove('hidden');
+            btnLocker.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
+            btnMarket.classList.remove('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
             window.loadTeamLocker();
         }
     }
@@ -262,9 +343,7 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // FIXED: Use 'name' instead of first_name. Removed alias 'captain:' to avoid complexity.
-        // We use the foreign key directly (users) if the FK is defined, otherwise use embedding.
-        // Assuming captain_id points to users table.
+        // FIXED: Fetch 'name' instead of first_name/last_name
         let query = supabaseClient
             .from('teams')
             .select(`
@@ -290,31 +369,23 @@
              return;
         }
 
-        const teamPromises = teams.map(async (t) => {
-            const { count } = await supabaseClient.from('team_members')
-                .select('*', { count: 'exact', head: true })
-                .eq('team_id', t.id)
-                .eq('status', 'Accepted');
-            
+        const validTeams = teams.filter(t => {
+            if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
+            // FIXED: Using t.users (captain) and 'name'
+            if (t.users?.gender !== currentUser.gender) return false;
+            return true;
+        });
+
+        // Calculate Seats Left
+        const teamPromises = validTeams.map(async (t) => {
+            const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', t.id).eq('status', 'Accepted');
             const max = t.sports?.team_size || 5; 
             return { ...t, seatsLeft: Math.max(0, max - (count || 0)) };
         });
 
         const teamsWithCounts = await Promise.all(teamPromises);
 
-        const validTeams = teamsWithCounts.filter(t => {
-            if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
-            // FIXED: Use t.users.name (which comes from captain_id relation)
-            if (t.users?.gender !== currentUser.gender) return false;
-            return true;
-        });
-
-        if (validTeams.length === 0) {
-             container.innerHTML = '<p class="text-center text-gray-400 py-10">No matching teams found.</p>';
-             return;
-        }
-
-        container.innerHTML = validTeams.map(t => {
+        container.innerHTML = teamsWithCounts.map(t => {
             const isFull = t.seatsLeft <= 0;
             const btnText = isFull ? "Team Full" : "View Squad & Join";
             const btnClass = isFull 
@@ -343,6 +414,7 @@
         `}).join('');
     }
 
+    // STRICT JOIN LOGIC
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft, sportType) {
         if(seatsLeft <= 0) return showToast("❌ This team is full!", "error");
 
@@ -392,6 +464,7 @@
         }
     }
 
+    // LOAD MY TEAMS (LOCKER)
     window.loadTeamLocker = async function() {
         const container = document.getElementById('locker-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading your teams...</p>';
@@ -473,6 +546,7 @@
         lucide.createIcons();
     }
 
+    // --- WITHDRAW LOGIC ---
     window.leaveTeam = function(memberId, teamName) {
         showConfirmDialog("Leave Team?", `Are you sure you want to leave ${teamName}?`, async () => {
             const { error } = await supabaseClient.from('team_members').delete().eq('id', memberId);
@@ -489,7 +563,6 @@
     window.withdrawRegistration = async function(regId, sportId, sportType, sportName) {
         showConfirmDialog("Withdraw?", `Withdraw from ${sportName}?`, async () => {
             
-            // 1. IF TEAM SPORT: Handle Team Membership First
             if (sportType && sportType.toLowerCase() === 'team') {
                 const { data: membership } = await supabaseClient
                     .from('team_members')
@@ -521,6 +594,7 @@
                 
                 if(document.getElementById('history-list')) window.loadRegistrationHistory('history-list'); 
                 if(document.getElementById('my-registrations-list')) window.loadRegistrationHistory('my-registrations-list');
+                
                 if(document.getElementById('sports-list') && document.getElementById('sports-list').children.length > 0) {
                     renderSportsList(allSportsList);
                 }
@@ -640,6 +714,11 @@
         lucide.createIcons();
     }
 
+    window.loadProfileGames = function() {
+        window.loadRegistrationHistory('my-registrations-list');
+    }
+
+    // --- CREATE TEAM LOGIC ---
     window.openCreateTeamModal = async function() {
         const { data: sports } = await supabaseClient.from('sports').select('*').eq('type', 'Team').eq('status', 'Open');
         const registeredSports = sports.filter(s => myRegistrations.includes(s.id));
@@ -684,115 +763,14 @@
         }
     }
 
-    // --- MANAGE TEAM (CAPTAIN) ---
-    window.openManageTeamModal = async function(teamId, teamName, isLocked, teamSize) {
-        document.getElementById('manage-team-title').innerText = "Manage: " + teamName;
-        
-        // FIXED: fetch 'name'
-        const { data: pending } = await supabaseClient.from('team_members').select('id, users(name, class_name)').eq('team_id', teamId).eq('status', 'Pending');
-        const reqList = document.getElementById('manage-requests-list');
-        reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
-            <div class="flex justify-between items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-800 mb-1">
-                <div>
-                    <span class="text-xs font-bold text-gray-800 dark:text-white block">${p.users.name}</span>
-                    <span class="text-[10px] text-gray-500 font-mono">${p.users.class_name || 'N/A'}</span>
-                </div>
-                <div class="flex gap-1">
-                    <button onclick="window.handleRequest('${p.id}', 'Accepted', '${teamId}')" class="p-1 bg-green-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
-                    <button onclick="window.handleRequest('${p.id}', 'Rejected', '${teamId}')" class="p-1 bg-red-500 text-white rounded"><i data-lucide="x" class="w-3 h-3"></i></button>
-                </div>
-            </div>`).join('');
-
-        // FIXED: fetch 'name'
-        const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name, class_name, mobile)').eq('team_id', teamId).eq('status', 'Accepted');
-        const memList = document.getElementById('manage-members-list');
-        memList.innerHTML = members.map(m => `
-            <div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mb-1">
-                <div>
-                    <span class="text-xs font-bold text-gray-800 dark:text-white block ${m.user_id === currentUser.id ? 'text-brand-primary' : ''}">
-                        ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
-                    </span>
-                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
-                </div>
-                ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
-            </div>`).join('');
-
-        const oldLock = document.getElementById('btn-lock-dynamic');
-        if(oldLock) oldLock.remove();
-        
-        if (!isLocked) {
-             const lockBtn = document.createElement('button');
-             lockBtn.id = 'btn-lock-dynamic';
-             lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs border border-red-100 dark:border-red-900 flex items-center justify-center gap-2";
-             lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
-             lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
-             memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
-        }
-        
-        lucide.createIcons();
-        document.getElementById('modal-manage-team').classList.remove('hidden');
-    }
-
-    window.handleRequest = async function(memberId, status, teamId) {
-        if(status === 'Rejected') await supabaseClient.from('team_members').delete().eq('id', memberId);
-        else await supabaseClient.from('team_members').update({ status: 'Accepted' }).eq('id', memberId);
-        window.closeModal('modal-manage-team');
-        window.loadTeamLocker();
-    }
-
-    window.promptLockTeam = async function(teamId, requiredSize) {
-        const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Accepted');
-        
-        const required = requiredSize || 2; 
-        if(count < required) return showToast(`⚠️ Squad incomplete! Need ${required} players.`, "error");
-        
-        showConfirmDialog("Lock Team?", "⚠️ This is FINAL. No members can be added/removed.", async () => {
-            await supabaseClient.from('teams').update({ status: 'Locked' }).eq('id', teamId);
-            showToast("Team Locked!", "success");
-            window.closeModal('modal-manage-team');
-            window.closeModal('modal-confirm');
-            window.loadTeamLocker();
-        });
-    }
-
-    window.promptDeleteTeam = function(teamId) {
-        showConfirmDialog("Delete Team?", "Are you sure? This cannot be undone.", async () => {
-            await supabaseClient.from('team_members').delete().eq('team_id', teamId);
-            await supabaseClient.from('teams').delete().eq('id', teamId);
-            showToast("Team Deleted", "success");
-            window.closeModal('modal-confirm');
-            window.loadTeamLocker();
-        });
-    }
-
-    window.removeMember = function(memberId, teamId) {
-        showConfirmDialog("Remove Player?", "Are you sure?", async () => {
-            await supabaseClient.from('team_members').delete().eq('id', memberId);
-            window.closeModal('modal-confirm');
-            window.loadTeamLocker();
-        });
-    }
-
     window.openRegistrationModal = async function(id) {
         const { data: sport } = await supabaseClient.from('sports').select('*').eq('id', id).single();
-        if(!sport) return;
-
         selectedSportForReg = sport; 
         
         document.getElementById('reg-modal-sport-name').innerText = sport.name;
-        
-        // FIXED: Use 'name' from currentUser
-        document.getElementById('reg-modal-user-name').innerText = currentUser.name || "Unknown";
+        // FIXED: Use 'name'
+        document.getElementById('reg-modal-user-name').innerText = currentUser.name || "Student";
         document.getElementById('reg-modal-user-details').innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
-        
-        document.getElementById('reg-desc').innerText = sport.description || 'No description available.';
-        const rulesHtml = sport.rules ? sport.rules.split('\n').map(r => `<li>${r}</li>`).join('') : '<li>No specific rules mentioned.</li>';
-        document.getElementById('reg-rules').innerHTML = rulesHtml;
-
-        document.getElementById('reg-info-teamsize').innerText = sport.team_size || 'N/A';
-        document.getElementById('reg-badge-gender').innerText = sport.gender_category || 'All';
-        document.getElementById('reg-badge-type').innerText = sport.type || 'Event';
-        
         document.getElementById('reg-mobile').value = currentUser.mobile || ''; 
         document.getElementById('modal-register').classList.remove('hidden');
     }
@@ -849,6 +827,132 @@
         }
     }
 
+    // --- MANAGE TEAM (CAPTAIN) ---
+    window.openManageTeamModal = async function(teamId, teamName, isLocked, teamSize) {
+        document.getElementById('manage-team-title').innerText = "Manage: " + teamName;
+        
+        // FIXED: fetch 'name'
+        const { data: pending } = await supabaseClient.from('team_members').select('id, users(name, class_name)').eq('team_id', teamId).eq('status', 'Pending');
+        const reqList = document.getElementById('manage-requests-list');
+        reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
+            <div class="flex justify-between items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-800 mb-1">
+                <div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-white block">${p.users.name}</span>
+                    <span class="text-[10px] text-gray-500 font-mono">${p.users.class_name || 'N/A'}</span>
+                </div>
+                <div class="flex gap-1">
+                    <button onclick="window.handleRequest('${p.id}', 'Accepted', '${teamId}')" class="p-1 bg-green-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
+                    <button onclick="window.handleRequest('${p.id}', 'Rejected', '${teamId}')" class="p-1 bg-red-500 text-white rounded"><i data-lucide="x" class="w-3 h-3"></i></button>
+                </div>
+            </div>`).join('');
+
+        // FIXED: fetch 'name' + class + mobile
+        const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name, class_name, mobile)').eq('team_id', teamId).eq('status', 'Accepted');
+        const memList = document.getElementById('manage-members-list');
+        memList.innerHTML = members.map(m => `
+            <div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mb-1">
+                <div>
+                    <span class="text-xs font-bold text-gray-800 dark:text-white block ${m.user_id === currentUser.id ? 'text-brand-primary' : ''}">
+                        ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
+                    </span>
+                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
+                </div>
+                ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
+            </div>`).join('');
+
+        const oldLock = document.getElementById('btn-lock-dynamic');
+        if(oldLock) oldLock.remove();
+        
+        if (!isLocked) {
+             const lockBtn = document.createElement('button');
+             lockBtn.id = 'btn-lock-dynamic';
+             
+             lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs border border-red-100 dark:border-red-900 flex items-center justify-center gap-2";
+             lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
+             lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
+             
+             memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
+        }
+        
+        lucide.createIcons();
+        document.getElementById('modal-manage-team').classList.remove('hidden');
+    }
+
+    window.handleRequest = async function(memberId, status, teamId) {
+        if(status === 'Rejected') await supabaseClient.from('team_members').delete().eq('id', memberId);
+        else await supabaseClient.from('team_members').update({ status: 'Accepted' }).eq('id', memberId);
+        window.closeModal('modal-manage-team');
+        window.loadTeamLocker();
+    }
+
+    window.promptLockTeam = async function(teamId, requiredSize) {
+        const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Accepted');
+        
+        const required = requiredSize || 2; 
+        if(count < required) return showToast(`⚠️ Squad incomplete! Need ${required} players.`, "error");
+        
+        showConfirmDialog("Lock Team?", "⚠️ This is FINAL. No members can be added/removed.", async () => {
+            await supabaseClient.from('teams').update({ status: 'Locked' }).eq('id', teamId);
+            showToast("Team Locked!", "success");
+            window.closeModal('modal-manage-team');
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.promptDeleteTeam = function(teamId) {
+        showConfirmDialog("Delete Team?", "Are you sure? This cannot be undone.", async () => {
+            await supabaseClient.from('team_members').delete().eq('team_id', teamId);
+            await supabaseClient.from('teams').delete().eq('id', teamId);
+            showToast("Team Deleted", "success");
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.removeMember = function(memberId, teamId) {
+        showConfirmDialog("Remove Player?", "Are you sure?", async () => {
+            await supabaseClient.from('team_members').delete().eq('id', memberId);
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.openSettingsModal = function() {
+        // FIXED: Populate Name into fname field
+        document.getElementById('edit-fname').value = currentUser.name || '';
+        document.getElementById('edit-lname').value = ''; // Ignored
+        document.getElementById('edit-email').value = currentUser.email || '';
+        document.getElementById('edit-mobile').value = currentUser.mobile || '';
+        document.getElementById('edit-class').value = currentUser.class_name || 'FY';
+        document.getElementById('edit-gender').value = currentUser.gender || 'Male';
+        document.getElementById('edit-sid').value = currentUser.student_id || '';
+        document.getElementById('modal-settings').classList.remove('hidden');
+    }
+
+    window.updateProfile = async function() {
+        const fullName = document.getElementById('edit-fname').value;
+        const updates = {
+            name: fullName,
+            mobile: document.getElementById('edit-mobile').value,
+            class_name: document.getElementById('edit-class').value,
+            student_id: document.getElementById('edit-sid').value,
+            gender: document.getElementById('edit-gender').value
+        };
+
+        if(!updates.name) return showToast("Name is required", "error");
+
+        const { error } = await supabaseClient.from('users').update(updates).eq('id', currentUser.id);
+
+        if(error) showToast("Error updating profile", "error");
+        else {
+            Object.assign(currentUser, updates);
+            updateProfileUI();
+            window.closeModal('modal-settings');
+            showToast("Profile Updated!", "success");
+        }
+    }
+
     async function getSportIdByName(name) {
         const { data } = await supabaseClient.from('sports').select('id').eq('name', name).single();
         return data?.id;
@@ -877,7 +981,9 @@
         }
         
         if (window.lucide) lucide.createIcons();
+        
         t.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-10');
+        
         setTimeout(() => {
             t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10');
         }, 3000);
