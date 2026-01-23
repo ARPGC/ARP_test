@@ -739,3 +739,201 @@
                     <span class="text-xs font-bold text-white block ${m.user_id === currentUser.id ? 'text-yellow-500' : ''}">
                         ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
                     </span>
+                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
+                </div>
+                ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
+            </div>`).join('');
+
+        const oldLock = document.getElementById('btn-lock-dynamic');
+        if(oldLock) oldLock.remove();
+        
+        if (!isLocked) {
+             const lockBtn = document.createElement('button');
+             lockBtn.id = 'btn-lock-dynamic';
+             lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-900/20 text-red-400 font-bold rounded-xl text-xs border border-red-900 flex items-center justify-center gap-2";
+             lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
+             lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
+             memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
+        }
+        
+        lucide.createIcons();
+        document.getElementById('modal-manage-team').classList.remove('hidden');
+    }
+
+    window.handleRequest = async function(memberId, status, teamId) {
+        if(status === 'Rejected') await supabaseClient.from('team_members').delete().eq('id', memberId);
+        else await supabaseClient.from('team_members').update({ status: 'Accepted' }).eq('id', memberId);
+        window.closeModal('modal-manage-team');
+        window.loadTeamLocker();
+    }
+
+    window.promptLockTeam = async function(teamId, requiredSize) {
+        const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Accepted');
+        
+        const required = requiredSize || 2; 
+        if(count < required) return showToast(`⚠️ Squad incomplete! Need ${required} players.`, "error");
+        
+        showConfirmDialog("Lock Team?", "⚠️ This is FINAL. No members can be added/removed.", async () => {
+            await supabaseClient.from('teams').update({ status: 'Locked' }).eq('id', teamId);
+            showToast("Team Locked!", "success");
+            window.closeModal('modal-manage-team');
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.promptDeleteTeam = function(teamId) {
+        showConfirmDialog("Delete Team?", "Are you sure? This cannot be undone.", async () => {
+            await supabaseClient.from('team_members').delete().eq('team_id', teamId);
+            await supabaseClient.from('teams').delete().eq('id', teamId);
+            showToast("Team Deleted", "success");
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.removeMember = function(memberId, teamId) {
+        showConfirmDialog("Remove Player?", "Are you sure?", async () => {
+            await supabaseClient.from('team_members').delete().eq('id', memberId);
+            window.closeModal('modal-confirm');
+            window.loadTeamLocker();
+        });
+    }
+
+    window.openRegistrationModal = async function(id) {
+        const { data: sport } = await supabaseClient.from('sports').select('*').eq('id', id).single();
+        if(!sport) return;
+
+        selectedSportForReg = sport; 
+        
+        document.getElementById('reg-modal-sport-name').innerText = sport.name;
+        
+        document.getElementById('reg-modal-user-name').innerText = currentUser.name || "Unknown";
+        document.getElementById('reg-modal-user-details').innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
+        
+        document.getElementById('reg-desc').innerText = sport.description || 'No description available.';
+        const rulesHtml = sport.rules ? sport.rules.split('\n').map(r => `<li>${r}</li>`).join('') : '<li>No specific rules mentioned.</li>';
+        document.getElementById('reg-rules').innerHTML = rulesHtml;
+
+        document.getElementById('reg-info-teamsize').innerText = sport.team_size || 'N/A';
+        document.getElementById('reg-badge-gender').innerText = sport.gender_category || 'All';
+        document.getElementById('reg-badge-type').innerText = sport.type || 'Event';
+        
+        document.getElementById('reg-mobile').value = currentUser.mobile || ''; 
+        document.getElementById('modal-register').classList.remove('hidden');
+    }
+
+    window.confirmRegistration = async function() {
+        const btn = document.querySelector('#modal-register button[onclick="confirmRegistration()"]');
+        const originalText = btn ? btn.innerText : 'Register';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Registering...";
+        }
+
+        const mobileInput = document.getElementById('reg-mobile').value;
+        if(!mobileInput) {
+            showToast("⚠️ Mobile number required!", "error");
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+            return;
+        }
+
+        if (mobileInput !== currentUser.mobile) {
+            await supabaseClient.from('users').update({ mobile: mobileInput }).eq('id', currentUser.id);
+            currentUser.mobile = mobileInput;
+        }
+
+        const { error } = await supabaseClient.from('registrations').insert({
+            user_id: currentUser.id,
+            sport_id: selectedSportForReg.id
+        });
+
+        if(error) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+            showToast("Error: " + error.message, "error");
+        }
+        else {
+            if (!myRegistrations.includes(selectedSportForReg.id)) {
+                myRegistrations.push(selectedSportForReg.id);
+            }
+
+            showToast("Registration Successful!", "success");
+            window.closeModal('modal-register');
+            
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+
+            renderSportsList(allSportsList);
+        }
+    }
+
+    async function getSportIdByName(name) {
+        const { data } = await supabaseClient.from('sports').select('id').eq('name', name).single();
+        return data?.id;
+    }
+
+    window.closeModal = id => document.getElementById(id).classList.add('hidden');
+
+    window.showToast = function(msg, type='info') {
+        const t = document.getElementById('toast-container');
+        if (!t) return; 
+        
+        const msgEl = document.getElementById('toast-msg');
+        
+        if (!msgEl) {
+             t.innerHTML = `<div id="toast-content" class="bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700/50"><div id="toast-icon"></div><p id="toast-msg" class="text-sm font-bold tracking-wide">${msg}</p></div>`;
+        } else {
+             document.getElementById('toast-msg').innerText = msg;
+             const icon = document.getElementById('toast-icon');
+             if (icon) {
+                if (type === 'error') {
+                    icon.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>';
+                } else {
+                    icon.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
+                }
+            }
+        }
+        
+        if (window.lucide) lucide.createIcons();
+        t.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-10');
+        setTimeout(() => {
+            t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10');
+        }, 3000);
+    }
+
+    let confirmCallback = null;
+    function setupConfirmModal() {
+        if (!document.getElementById('btn-confirm-yes')) return;
+        document.getElementById('btn-confirm-yes').onclick = () => {
+            if(confirmCallback) confirmCallback();
+        };
+        document.getElementById('btn-confirm-cancel').onclick = () => window.closeModal('modal-confirm');
+    }
+
+    function showConfirmDialog(title, msg, onConfirm) {
+        if (!document.getElementById('modal-confirm')) return;
+        document.getElementById('confirm-title').innerText = title;
+        document.getElementById('confirm-msg').innerText = msg;
+        confirmCallback = onConfirm;
+        document.getElementById('modal-confirm').classList.remove('hidden');
+    }
+
+    function injectToastContainer() {
+        if(!document.getElementById('toast-container')) {
+            const div = document.createElement('div');
+            div.id = 'toast-container';
+            div.className = 'fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[70] transition-all duration-300 opacity-0 pointer-events-none translate-y-10 w-11/12 max-w-sm';
+            div.innerHTML = `<div id="toast-content" class="bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700/50"><div id="toast-icon"></div><p id="toast-msg" class="text-sm font-bold tracking-wide"></p></div>`;
+            document.body.appendChild(div);
+        }
+    }
+
+})();
