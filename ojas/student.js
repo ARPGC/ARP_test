@@ -7,14 +7,13 @@
     // --- 1. CONFIGURATION & CREDENTIALS ---
     const SUPABASE_URL = 'https://sijmmlhltkksykhbuatn.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_9GjhwaWzz0McozvxVMINyQ_ZFU58z7F';
-    const FIX_NUMBER = 5489; // Obfuscation Key for URL Auth
+    const FIX_NUMBER = 5489; 
     
     const CLOUDINARY_NAME = 'dppw483p3'; 
     const CLOUDINARY_PRESET = 'ojas_student_preset'; 
 
-    // Initialize Clients
     if (!window.supabase) {
-        console.error("CRITICAL: Supabase SDK not loaded in HTML.");
+        console.error("CRITICAL: Supabase SDK not loaded.");
         return;
     }
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -28,11 +27,11 @@
     let liveSubscription = null;
     let selectedSportForReg = null;
 
-    // Default Fallback
     const DEFAULT_AVATAR = "https://t4.ftcdn.net/jpg/05/89/93/27/360_F_589932782_vQAEAZhHnq1QCGu5ikwrYaQD0Mmurm0N.jpg";
 
     // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
+        console.log("[DEBUG] App Initializing...");
         if(window.lucide) lucide.createIcons();
         initTheme();
         injectToastContainer();
@@ -40,10 +39,8 @@
         setupTabSystem();
         setupConfirmModal(); 
         
-        // Start Authentication (Priority: URL ID)
         await checkAuth();
         
-        // Default Tab
         window.switchTab('dashboard');
     });
 
@@ -52,28 +49,9 @@
         const savedTheme = localStorage.getItem('urja-theme');
         if (savedTheme === 'dark') {
             document.documentElement.classList.add('dark');
-            updateThemeIcon(true);
         } else {
             document.documentElement.classList.remove('dark');
             localStorage.setItem('urja-theme', 'light'); 
-            updateThemeIcon(false);
-        }
-    }
-
-    window.toggleTheme = function() {
-        const html = document.documentElement;
-        const isDark = html.classList.toggle('dark');
-        localStorage.setItem('urja-theme', isDark ? 'dark' : 'light');
-        updateThemeIcon(isDark);
-    }
-
-    function updateThemeIcon(isDark) {
-        const btn = document.getElementById('btn-theme-toggle');
-        if(btn) {
-            btn.innerHTML = isDark 
-                ? '<i data-lucide="sun" class="w-5 h-5 text-yellow-400"></i>' 
-                : '<i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>';
-            if(window.lucide) lucide.createIcons();
         }
     }
 
@@ -91,6 +69,7 @@
                 .single();
 
             if (!error && user) {
+                console.log("[DEBUG] Login via URL ID:", user.name);
                 initializeUserSession(user);
                 return;
             }
@@ -105,6 +84,7 @@
                 .single();
 
             if (profile) {
+                console.log("[DEBUG] Login via Session:", profile.name);
                 initializeUserSession(profile);
                 return;
             }
@@ -117,9 +97,7 @@
         currentUser = user;
         updateProfileUI();
         await fetchMyRegistrations();
-        loadUserStats();
         
-        // Hide Loader, Show App
         const loader = document.getElementById('loader');
         if(loader) loader.classList.add('hidden');
         const app = document.getElementById('app');
@@ -129,91 +107,37 @@
     function updateProfileUI() {
         if (!currentUser) return;
         const avatarUrl = currentUser.avatar_url || DEFAULT_AVATAR;
-        
         const headerImg = document.getElementById('header-avatar');
         if(headerImg) headerImg.src = avatarUrl;
 
-        const imgEl = document.getElementById('profile-img');
-        const nameEl = document.getElementById('profile-name'); 
-        const nameDisplay = document.getElementById('profile-name-display'); 
+        const nameEl = document.getElementById('profile-name');
         const detailsEl = document.getElementById('profile-details');
         const headName = document.getElementById('header-name');
         const headId = document.getElementById('header-id');
 
-        // FIXED: Use 'name' column directly
-        const fullName = currentUser.name || "Student";
+        // FIXED: Using 'name' directly
+        const fullName = currentUser.name || "Unknown Student";
 
-        if(imgEl) imgEl.src = avatarUrl;
         if(nameEl) nameEl.innerText = fullName;
-        if(nameDisplay) nameDisplay.innerText = fullName;
         if(detailsEl) detailsEl.innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
         if(headName) headName.innerText = fullName;
         if(headId) headId.innerText = `ID: ${currentUser.student_id}`;
     }
 
-    // --- PROFILE IMAGE UPLOAD ---
-    function setupImageUpload() {
-        const input = document.getElementById('file-upload-input');
-        const trigger = document.getElementById('profile-img-container'); 
-        
-        if(trigger && input) {
-            trigger.onclick = () => input.click();
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if(!file) return;
-                
-                showToast("Uploading...", "info");
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CLOUDINARY_PRESET); 
-                
-                try {
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`, {
-                        method: 'POST', body: formData
-                    });
-                    const data = await res.json();
-                    
-                    if(data.secure_url) {
-                        await supabaseClient.from('users').update({ avatar_url: data.secure_url }).eq('id', currentUser.id);
-                        currentUser.avatar_url = data.secure_url;
-                        updateProfileUI();
-                        showToast("Profile Photo Updated!", "success");
-                    } else {
-                        showToast("Upload failed: Check settings", "error");
-                    }
-                } catch(err) {
-                    showToast("Upload Failed", "error");
-                    console.error(err);
-                }
-            };
-        }
-    }
+    function setupImageUpload() { /* Reserved */ }
 
-    // --- CORE LOGIC: FETCH DATA ---
     async function fetchMyRegistrations() {
         const { data } = await supabaseClient.from('registrations').select('sport_id').eq('user_id', currentUser.id);
         if(data) {
             myRegistrations = data.map(r => r.sport_id);
+            console.log("[DEBUG] My Registrations:", myRegistrations);
         }
-    }
-
-    async function loadUserStats() {
-        const { count: matches } = await supabaseClient.from('registrations')
-            .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
-
-        const statEl = document.getElementById('stat-matches-played');
-        if(statEl) statEl.innerText = matches || 0;
-    }
-
-    window.logout = async function() {
-        await supabaseClient.auth.signOut();
-        window.location.href = window.location.pathname; 
     }
 
     // --- 3. NAVIGATION ---
     function setupTabSystem() {
         window.switchTab = function(tabId) {
+            console.log("[DEBUG] Switching tab to:", tabId);
             document.querySelectorAll('[id^="view-"]').forEach(el => {
                 el.classList.add('hidden');
                 el.classList.remove('animate-slide-up');
@@ -222,7 +146,7 @@
             const targetView = document.getElementById('view-' + tabId);
             if(targetView) {
                 targetView.classList.remove('hidden');
-                void targetView.offsetWidth; // Trigger reflow
+                void targetView.offsetWidth; 
                 targetView.classList.add('animate-slide-up');
             }
             
@@ -240,11 +164,10 @@
             if(tabId === 'register') window.toggleRegisterView('new');
             if(tabId === 'teams') window.toggleTeamView('marketplace');
             if(tabId === 'schedule') window.filterSchedule('upcoming');
-            if(tabId === 'profile') window.loadProfileGames();
         }
     }
 
-    // --- 4. DASHBOARD (DISABLED MATCH DATA) ---
+    // --- 4. DASHBOARD ---
     async function loadDashboard() {
         window.loadLiveMatches(); 
         loadLatestChampions();
@@ -252,24 +175,15 @@
 
     window.loadLiveMatches = async function() { 
         const list = document.getElementById('live-matches-list');
-        if(list) {
-            list.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No live matches currently.</p>`;
-        }
+        if(list) list.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No live matches currently.</p>`;
     }
 
     async function loadLatestChampions() {
         const container = document.getElementById('home-champions-list'); 
-        if (container) {
-            container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">No results declared yet.</p>';
-        }
+        if (container) container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">No results declared yet.</p>';
     }
 
-    // --- 5. REALTIME SUBSCRIPTION (DISABLED MATCHES) ---
-    function setupRealtimeSubscription() {
-        // Disabled match updates to prevent errors
-    }
-
-    // --- 6. SCHEDULE MODULE (DISABLED MATCH DATA) ---
+    // --- 6. SCHEDULE MODULE ---
     window.filterSchedule = function(view) {
         currentScheduleView = view;
         const btnUp = document.getElementById('btn-schedule-upcoming');
@@ -302,23 +216,16 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. TEAMS MODULE (CRITICAL FIXES) ---
+    // --- 7. TEAMS MODULE (DEBUGGING ADDED) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
         
-        const btnMarket = document.getElementById('btn-team-market');
-        const btnLocker = document.getElementById('btn-team-locker');
-        
         if(view === 'marketplace') {
             document.getElementById('team-marketplace').classList.remove('hidden');
-            btnMarket.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
-            btnLocker.classList.remove('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
             loadTeamSportsFilter().then(() => window.loadTeamMarketplace());
         } else {
             document.getElementById('team-locker').classList.remove('hidden');
-            btnLocker.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
-            btnMarket.classList.remove('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
             window.loadTeamLocker();
         }
     }
@@ -337,13 +244,14 @@
     }
 
     window.loadTeamMarketplace = async function() {
+        console.log("[DEBUG] Loading Team Marketplace...");
         const container = document.getElementById('marketplace-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Scanning available squads...</p>';
 
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // FIXED: Fetch 'name' instead of first_name/last_name
+        // FIXED: Using 'name'
         let query = supabaseClient
             .from('teams')
             .select(`
@@ -359,33 +267,43 @@
         const { data: teams, error } = await query;
 
         if (error) {
-            console.error("Team Market Error:", error);
-            container.innerHTML = '<p class="text-center text-red-400 py-10">System Error: Check Console.</p>';
+            console.error("[DEBUG] Team Market Error:", error);
+            container.innerHTML = `<p class="text-center text-red-400 py-10">Error: ${error.message}</p>`;
             return;
         }
+
+        console.log("[DEBUG] Raw Teams Data:", teams);
 
         if (!teams || teams.length === 0) {
              container.innerHTML = '<p class="text-center text-gray-400 py-10">No open teams available.</p>';
              return;
         }
 
-        const validTeams = teams.filter(t => {
-            if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
-            // FIXED: Using t.users (captain) and 'name'
-            if (t.users?.gender !== currentUser.gender) return false;
-            return true;
-        });
-
-        // Calculate Seats Left
-        const teamPromises = validTeams.map(async (t) => {
-            const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', t.id).eq('status', 'Accepted');
+        const teamPromises = teams.map(async (t) => {
+            const { count } = await supabaseClient.from('team_members')
+                .select('*', { count: 'exact', head: true })
+                .eq('team_id', t.id)
+                .eq('status', 'Accepted');
+            
             const max = t.sports?.team_size || 5; 
             return { ...t, seatsLeft: Math.max(0, max - (count || 0)) };
         });
 
         const teamsWithCounts = await Promise.all(teamPromises);
 
-        container.innerHTML = teamsWithCounts.map(t => {
+        const validTeams = teamsWithCounts.filter(t => {
+            if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
+            // FIXED: Using users (captain) name
+            if (t.users?.gender !== currentUser.gender) return false;
+            return true;
+        });
+
+        if (validTeams.length === 0) {
+             container.innerHTML = '<p class="text-center text-gray-400 py-10">No matching teams found.</p>';
+             return;
+        }
+
+        container.innerHTML = validTeams.map(t => {
             const isFull = t.seatsLeft <= 0;
             const btnText = isFull ? "Team Full" : "View Squad & Join";
             const btnClass = isFull 
@@ -414,8 +332,10 @@
         `}).join('');
     }
 
-    // STRICT JOIN LOGIC
+    // STRICT JOIN LOGIC (DEBUG ADDED)
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft, sportType) {
+        console.log(`[DEBUG] Viewing Squad: TeamID=${teamId}, Sport=${sportName}`);
+        
         if(seatsLeft <= 0) return showToast("❌ This team is full!", "error");
 
         const sportId = await getSportIdByName(sportName);
@@ -439,25 +359,38 @@
             .eq('team_id', teamId)
             .eq('status', 'Accepted');
 
-        if (error) return showToast("Error loading squad", "error");
+        if (error) {
+            console.error("[DEBUG] Error fetching members:", error);
+            return showToast("Error loading squad", "error");
+        }
+
+        console.log("[DEBUG] Squad Members:", members);
 
         const list = document.getElementById('view-squad-list');
-        list.innerHTML = members.map(m => `
-            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div>
-                    <span class="text-sm font-bold text-gray-800 dark:text-white block">${m.users.name}</span>
-                    <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">${m.users.class_name || 'N/A'}</span>
+        if(!members || members.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No members joined yet.</p>';
+        } else {
+            list.innerHTML = members.map(m => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <div>
+                        <span class="text-sm font-bold text-gray-800 dark:text-white block">${m.users.name}</span>
+                        <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">${m.users.class_name || 'N/A'}</span>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
 
         document.getElementById('btn-confirm-join').onclick = () => sendJoinRequest(teamId);
         document.getElementById('modal-view-squad').classList.remove('hidden');
     }
 
     async function sendJoinRequest(teamId) {
+        console.log("[DEBUG] Sending join request to team:", teamId);
         const { error } = await supabaseClient.from('team_members').insert({ team_id: teamId, user_id: currentUser.id, status: 'Pending' });
-        if(error) showToast("Error: " + error.message, "error");
+        if(error) {
+            console.error("[DEBUG] Join Error:", error);
+            showToast("Error: " + error.message, "error");
+        }
         else {
             showToast("Request Sent to Captain!", "success");
             window.closeModal('modal-view-squad');
@@ -466,6 +399,7 @@
 
     // LOAD MY TEAMS (LOCKER)
     window.loadTeamLocker = async function() {
+        console.log("[DEBUG] Loading Team Locker...");
         const container = document.getElementById('locker-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading your teams...</p>';
 
@@ -478,7 +412,7 @@
             .eq('user_id', currentUser.id);
 
         if (error) {
-            console.error("Locker Error:", error);
+            console.error("[DEBUG] Locker Error:", error);
             container.innerHTML = '<p class="text-center text-red-400">Error loading teams.</p>';
             return;
         }
@@ -501,6 +435,8 @@
                 .select('users(name, class_name, mobile)')
                 .eq('team_id', t.id)
                 .eq('status', 'Accepted');
+            
+            console.log(`[DEBUG] Squad for ${t.name}:`, squad);
                 
             const squadHtml = (squad || []).map(s => `
                 <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg mb-1.5 border border-gray-100 dark:border-gray-600 w-full">
@@ -546,7 +482,7 @@
         lucide.createIcons();
     }
 
-    // --- WITHDRAW LOGIC ---
+    // --- UTILS ---
     window.leaveTeam = function(memberId, teamName) {
         showConfirmDialog("Leave Team?", `Are you sure you want to leave ${teamName}?`, async () => {
             const { error } = await supabaseClient.from('team_members').delete().eq('id', memberId);
@@ -559,10 +495,8 @@
         });
     }
 
-    // STRICT WITHDRAWAL
     window.withdrawRegistration = async function(regId, sportId, sportType, sportName) {
         showConfirmDialog("Withdraw?", `Withdraw from ${sportName}?`, async () => {
-            
             if (sportType && sportType.toLowerCase() === 'team') {
                 const { data: membership } = await supabaseClient
                     .from('team_members')
@@ -591,27 +525,21 @@
             } else {
                 showToast("Withdrawn Successfully", "success");
                 myRegistrations = myRegistrations.filter(id => id != sportId);
-                
                 if(document.getElementById('history-list')) window.loadRegistrationHistory('history-list'); 
                 if(document.getElementById('my-registrations-list')) window.loadRegistrationHistory('my-registrations-list');
-                
                 if(document.getElementById('sports-list') && document.getElementById('sports-list').children.length > 0) {
                     renderSportsList(allSportsList);
                 }
-                
                 window.closeModal('modal-confirm');
             }
         });
     }
 
-    // --- REGISTRATION LOGIC ---
     window.toggleRegisterView = function(view) {
         document.getElementById('reg-section-new').classList.add('hidden');
         document.getElementById('reg-section-history').classList.add('hidden');
-        
         const btnNew = document.getElementById('btn-reg-new');
         const btnHist = document.getElementById('btn-reg-history');
-        
         if(view === 'new') {
             document.getElementById('reg-section-new').classList.remove('hidden');
             btnNew.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-brand-primary', 'dark:text-white');
@@ -628,37 +556,26 @@
    window.loadSportsDirectory = async function() {
         const container = document.getElementById('sports-list');
         if(container.children.length > 0 && allSportsList.length > 0) return;
-
         container.innerHTML = '<div class="col-span-2 text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div></div>';
-
-        const { data: sports } = await supabaseClient
-            .from('sports')
-            .select('*')
-            .eq('status', 'Open')
-            .order('name');
-            
+        const { data: sports } = await supabaseClient.from('sports').select('*').eq('status', 'Open').order('name');
         allSportsList = sports || [];
         renderSportsList(allSportsList);
     }
     
     function renderSportsList(list) {
         const container = document.getElementById('sports-list');
-        
         if(!list || list.length === 0) {
             container.innerHTML = '<p class="col-span-2 text-center text-gray-400">No sports found.</p>';
             return;
         }
-
         container.innerHTML = list.map(s => {
             const isReg = myRegistrations.includes(s.id);
             const btnClass = isReg 
                 ? "bg-green-100 dark:bg-green-900/30 text-green-600 border border-green-200 dark:border-green-800 cursor-not-allowed" 
                 : "bg-black dark:bg-white text-white dark:text-black shadow-lg hover:opacity-90";
-            
             return `
             <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                
                 <div class="relative z-10">
                     <div class="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-2 text-brand-primary dark:text-white">
                         <i data-lucide="${s.icon || 'trophy'}" class="w-4 h-4"></i>
@@ -666,7 +583,6 @@
                     <h4 class="font-bold text-md leading-tight text-gray-900 dark:text-white">${s.name}</h4>
                     <p class="text-[10px] uppercase font-bold text-gray-400 mt-1">${s.type} Sport</p>
                 </div>
-
                 <button onclick="${isReg ? '' : `window.openRegistrationModal('${s.id}')`}" class="relative z-10 w-full py-2 rounded-lg text-xs font-bold transition-all ${btnClass}" ${isReg ? 'disabled' : ''}>
                     ${isReg ? '<i data-lucide="check" class="w-3 h-3 inline mr-1"></i> Registered' : 'Register Now'}
                 </button>
@@ -684,18 +600,11 @@
     window.loadRegistrationHistory = async function(containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading history...</p>';
-
-        const { data: regs } = await supabaseClient
-            .from('registrations')
-            .select(`id, created_at, status, sports (id, name, icon, type)`)
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-
+        const { data: regs } = await supabaseClient.from('registrations').select(`id, created_at, status, sports (id, name, icon, type)`).eq('user_id', currentUser.id).order('created_at', { ascending: false });
         if(!regs || regs.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-400 py-6">You haven\'t registered for any events yet.</p>';
             return;
         }
-
         container.innerHTML = regs.map(r => {
             return `
             <div class="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mb-2 group relative">
@@ -714,45 +623,25 @@
         lucide.createIcons();
     }
 
-    window.loadProfileGames = function() {
-        window.loadRegistrationHistory('my-registrations-list');
-    }
-
-    // --- CREATE TEAM LOGIC ---
     window.openCreateTeamModal = async function() {
         const { data: sports } = await supabaseClient.from('sports').select('*').eq('type', 'Team').eq('status', 'Open');
         const registeredSports = sports.filter(s => myRegistrations.includes(s.id));
-        
         if(registeredSports.length === 0) return showToast("Register for a Team Sport individually first!", "error");
-
         const select = document.getElementById('new-team-sport');
         select.innerHTML = registeredSports.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        
         document.getElementById('modal-create-team').classList.remove('hidden');
     }
 
     window.createTeam = async function() {
         const name = document.getElementById('new-team-name').value;
         const sportId = document.getElementById('new-team-sport').value;
-        
         if(!name) return showToast("Enter Team Name", "error");
-        
         if(!myRegistrations.includes(parseInt(sportId)) && !myRegistrations.includes(sportId)) {
             return showToast("⚠️ Security Check: Register for this sport first!", "error");
         }
-
-        const { data: existing } = await supabaseClient.from('team_members')
-            .select('team_id, teams!inner(sport_id)')
-            .eq('user_id', currentUser.id)
-            .eq('teams.sport_id', sportId);
-            
+        const { data: existing } = await supabaseClient.from('team_members').select('team_id, teams!inner(sport_id)').eq('user_id', currentUser.id).eq('teams.sport_id', sportId);
         if(existing && existing.length > 0) return showToast("❌ You already have a team for this sport.", "error");
-
-        const { data: team, error } = await supabaseClient.from('teams')
-            .insert({ name: name, sport_id: sportId, captain_id: currentUser.id, status: 'Open' })
-            .select()
-            .single();
-
+        const { data: team, error } = await supabaseClient.from('teams').insert({ name: name, sport_id: sportId, captain_id: currentUser.id, status: 'Open' }).select().single();
         if(error) {
             showToast(error.message, "error");
         } else {
@@ -760,70 +649,6 @@
             showToast("Team Created!", "success");
             window.closeModal('modal-create-team');
             window.toggleTeamView('locker');
-        }
-    }
-
-    window.openRegistrationModal = async function(id) {
-        const { data: sport } = await supabaseClient.from('sports').select('*').eq('id', id).single();
-        selectedSportForReg = sport; 
-        
-        document.getElementById('reg-modal-sport-name').innerText = sport.name;
-        // FIXED: Use 'name'
-        document.getElementById('reg-modal-user-name').innerText = currentUser.name || "Student";
-        document.getElementById('reg-modal-user-details').innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
-        document.getElementById('reg-mobile').value = currentUser.mobile || ''; 
-        document.getElementById('modal-register').classList.remove('hidden');
-    }
-
-    window.confirmRegistration = async function() {
-        const btn = document.querySelector('#modal-register button[onclick="confirmRegistration()"]');
-        const originalText = btn ? btn.innerText : 'Register';
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = "Registering...";
-        }
-
-        const mobileInput = document.getElementById('reg-mobile').value;
-        if(!mobileInput) {
-            showToast("⚠️ Mobile number required!", "error");
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-            return;
-        }
-
-        if (mobileInput !== currentUser.mobile) {
-            await supabaseClient.from('users').update({ mobile: mobileInput }).eq('id', currentUser.id);
-            currentUser.mobile = mobileInput;
-        }
-
-        const { error } = await supabaseClient.from('registrations').insert({
-            user_id: currentUser.id,
-            sport_id: selectedSportForReg.id
-        });
-
-        if(error) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-            showToast("Error: " + error.message, "error");
-        }
-        else {
-            if (!myRegistrations.includes(selectedSportForReg.id)) {
-                myRegistrations.push(selectedSportForReg.id);
-            }
-
-            showToast("Registration Successful!", "success");
-            window.closeModal('modal-register');
-            
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-
-            renderSportsList(allSportsList);
         }
     }
 
@@ -862,18 +687,14 @@
 
         const oldLock = document.getElementById('btn-lock-dynamic');
         if(oldLock) oldLock.remove();
-        
         if (!isLocked) {
              const lockBtn = document.createElement('button');
              lockBtn.id = 'btn-lock-dynamic';
-             
              lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs border border-red-100 dark:border-red-900 flex items-center justify-center gap-2";
              lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
              lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
-             
              memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
         }
-        
         lucide.createIcons();
         document.getElementById('modal-manage-team').classList.remove('hidden');
     }
@@ -887,10 +708,8 @@
 
     window.promptLockTeam = async function(teamId, requiredSize) {
         const { count } = await supabaseClient.from('team_members').select('*', { count: 'exact', head: true }).eq('team_id', teamId).eq('status', 'Accepted');
-        
         const required = requiredSize || 2; 
         if(count < required) return showToast(`⚠️ Squad incomplete! Need ${required} players.`, "error");
-        
         showConfirmDialog("Lock Team?", "⚠️ This is FINAL. No members can be added/removed.", async () => {
             await supabaseClient.from('teams').update({ status: 'Locked' }).eq('id', teamId);
             showToast("Team Locked!", "success");
@@ -918,38 +737,66 @@
         });
     }
 
-    window.openSettingsModal = function() {
-        // FIXED: Populate Name into fname field
-        document.getElementById('edit-fname').value = currentUser.name || '';
-        document.getElementById('edit-lname').value = ''; // Ignored
-        document.getElementById('edit-email').value = currentUser.email || '';
-        document.getElementById('edit-mobile').value = currentUser.mobile || '';
-        document.getElementById('edit-class').value = currentUser.class_name || 'FY';
-        document.getElementById('edit-gender').value = currentUser.gender || 'Male';
-        document.getElementById('edit-sid').value = currentUser.student_id || '';
-        document.getElementById('modal-settings').classList.remove('hidden');
+    window.openRegistrationModal = async function(id) {
+        const { data: sport } = await supabaseClient.from('sports').select('*').eq('id', id).single();
+        if(!sport) return;
+        selectedSportForReg = sport; 
+        document.getElementById('reg-modal-sport-name').innerText = sport.name;
+        // FIXED: Use 'name' from currentUser
+        document.getElementById('reg-modal-user-name').innerText = currentUser.name || "Unknown";
+        document.getElementById('reg-modal-user-details').innerText = `${currentUser.class_name || 'N/A'} • ${currentUser.student_id || 'N/A'}`;
+        document.getElementById('reg-desc').innerText = sport.description || 'No description available.';
+        const rulesHtml = sport.rules ? sport.rules.split('\n').map(r => `<li>${r}</li>`).join('') : '<li>No specific rules mentioned.</li>';
+        document.getElementById('reg-rules').innerHTML = rulesHtml;
+        document.getElementById('reg-info-teamsize').innerText = sport.team_size || 'N/A';
+        document.getElementById('reg-badge-gender').innerText = sport.gender_category || 'All';
+        document.getElementById('reg-badge-type').innerText = sport.type || 'Event';
+        document.getElementById('reg-mobile').value = currentUser.mobile || ''; 
+        document.getElementById('modal-register').classList.remove('hidden');
     }
 
-    window.updateProfile = async function() {
-        const fullName = document.getElementById('edit-fname').value;
-        const updates = {
-            name: fullName,
-            mobile: document.getElementById('edit-mobile').value,
-            class_name: document.getElementById('edit-class').value,
-            student_id: document.getElementById('edit-sid').value,
-            gender: document.getElementById('edit-gender').value
-        };
-
-        if(!updates.name) return showToast("Name is required", "error");
-
-        const { error } = await supabaseClient.from('users').update(updates).eq('id', currentUser.id);
-
-        if(error) showToast("Error updating profile", "error");
+    window.confirmRegistration = async function() {
+        const btn = document.querySelector('#modal-register button[onclick="confirmRegistration()"]');
+        const originalText = btn ? btn.innerText : 'Register';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Registering...";
+        }
+        const mobileInput = document.getElementById('reg-mobile').value;
+        if(!mobileInput) {
+            showToast("⚠️ Mobile number required!", "error");
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+            return;
+        }
+        if (mobileInput !== currentUser.mobile) {
+            await supabaseClient.from('users').update({ mobile: mobileInput }).eq('id', currentUser.id);
+            currentUser.mobile = mobileInput;
+        }
+        const { error } = await supabaseClient.from('registrations').insert({
+            user_id: currentUser.id,
+            sport_id: selectedSportForReg.id
+        });
+        if(error) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+            showToast("Error: " + error.message, "error");
+        }
         else {
-            Object.assign(currentUser, updates);
-            updateProfileUI();
-            window.closeModal('modal-settings');
-            showToast("Profile Updated!", "success");
+            if (!myRegistrations.includes(selectedSportForReg.id)) {
+                myRegistrations.push(selectedSportForReg.id);
+            }
+            showToast("Registration Successful!", "success");
+            window.closeModal('modal-register');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+            renderSportsList(allSportsList);
         }
     }
 
@@ -963,9 +810,7 @@
     window.showToast = function(msg, type='info') {
         const t = document.getElementById('toast-container');
         if (!t) return; 
-        
         const msgEl = document.getElementById('toast-msg');
-        
         if (!msgEl) {
              t.innerHTML = `<div id="toast-content" class="bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700/50"><div id="toast-icon"></div><p id="toast-msg" class="text-sm font-bold tracking-wide">${msg}</p></div>`;
         } else {
@@ -979,11 +824,8 @@
                 }
             }
         }
-        
         if (window.lucide) lucide.createIcons();
-        
         t.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-10');
-        
         setTimeout(() => {
             t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10');
         }, 3000);
