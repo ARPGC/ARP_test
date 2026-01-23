@@ -1,396 +1,195 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Student Portal | OJAS 2.0</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/zWLqKLg4/Untitled-1.png">
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>URJA 2026 | Student Portal</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script src="student.js" defer></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-        body { 
-            background-color: #0f172a; 
-            color: #f8fafc; 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            padding-bottom: 50px;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .gold-text { 
-            background: linear-gradient(135deg, #FCD34D 0%, #d97706 100%); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-        }
-
-        .glass-panel { 
-            background: rgba(30, 41, 59, 0.4); 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05); 
-        }
-
-        .nav-item { opacity: 0.5; transition: all 0.3s ease; border-bottom: 2px solid transparent; }
-        .nav-item.active { opacity: 1; color: #FCD34D; border-bottom-color: #FCD34D; }
-
-        .btn-gold { 
-            background: linear-gradient(135deg, #fbbf24, #d97706); 
-            color: #111827; font-weight: 800; 
-            box-shadow: 0 4px 15px rgba(217, 119, 6, 0.2);
-            transition: transform 0.1s;
-        }
-        .btn-gold:active { transform: scale(0.98); }
-
-        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .lucide { width: 1.25rem; height: 1.25rem; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .rules-list { list-style-type: disc; padding-left: 1.2rem; }
-        .rules-list li { margin-bottom: 0.25rem; }
-    </style>
 </head>
 <body>
 
-    <div id="loader" class="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center">
-        <div class="relative mb-4">
-            <div class="w-16 h-16 border-4 border-gray-800 rounded-full"></div>
-            <div class="absolute top-0 left-0 w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <h2 class="text-xl font-black gold-text tracking-widest">OJAS 2.0</h2>
-        <p class="text-[10px] text-gray-500 mt-2 font-mono uppercase tracking-widest">Verifying ID...</p>
+    <div id="loader" class="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white">
+        <div class="w-12 h-12 border-4 border-yellow-600 border-t-yellow-400 rounded-full animate-spin mb-4"></div>
+        <p class="text-xs font-bold tracking-widest uppercase text-yellow-500">Loading Portal...</p>
     </div>
 
-    <div id="app" class="max-w-md mx-auto min-h-screen relative hidden">
+    <div id="app" class="app-container hidden">
         
-        <header class="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-white/5 px-5 py-4 flex justify-between items-center transition-all">
-            <div class="flex items-center gap-3">
-                <img src="https://i.ibb.co/JRMfw130/file-000000001d6072088e48f707ddaac50f-1.png" alt="OJAS Logo" class="w-10 h-10 object-contain drop-shadow-md">
-                <h1 class="text-xl font-black text-white tracking-tight italic">OJAS 2.0</h1>
+        <header class="flex justify-between items-center mb-6 pt-2">
+            <div>
+                <h1 class="text-2xl font-extrabold text-white tracking-tight">URJA <span class="text-gold">2026</span></h1>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Student Sports Portal</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl border border-white/10">
                 <div class="text-right">
-                    <p id="header-name" class="text-xs font-bold text-white leading-none">Student</p>
-                    <p id="header-id" class="text-[10px] text-gray-500 font-mono mt-1">...</p>
+                    <p id="profile-name" class="text-xs font-bold text-white leading-tight">Student</p>
+                    <p class="text-[9px] text-yellow-500 font-mono">Online</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 overflow-hidden">
-                    <img id="header-avatar" src="https://via.placeholder.com/100" class="w-full h-full object-cover">
-                </div>
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Profile" class="w-8 h-8 rounded-full bg-gray-700">
             </div>
         </header>
 
-        <nav class="flex border-b border-white/5 bg-[#0f172a] sticky top-[72px] z-30 shadow-2xl shadow-black/40">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Home</button>
-            <button onclick="switchTab('register')" id="nav-register" class="nav-item flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Sports</button>
-            <button onclick="switchTab('teams')" id="nav-teams" class="nav-item flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Teams</button>
-            <button onclick="switchTab('schedule')" id="nav-schedule" class="nav-item flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">Schedule</button>
-        </nav>
-
-        <main class="p-5">
+        <div id="view-dashboard" class="animate-slide-up">
+            <div class="glass-panel p-6 mb-4 text-center">
+                <div class="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-yellow-400">
+                    <i data-lucide="flame" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-1">Welcome to Urja</h2>
+                <p class="text-xs text-gray-400 mb-4">The biggest sports fest is here. Register for events, join teams, and make history.</p>
+                <button onclick="window.switchTab('register')" class="btn-primary">
+                    Start Registering
+                </button>
+            </div>
             
-            <div id="view-dashboard" class="space-y-6 animate-slide-up">
-                <div class="bg-gradient-to-r from-yellow-600 to-yellow-800 p-6 rounded-3xl text-white shadow-xl shadow-yellow-900/20 relative overflow-hidden">
-                    <div class="relative z-10">
-                        <p class="text-yellow-100 text-[10px] font-bold uppercase tracking-widest mb-1">Welcome Back</p>
-                        <h2 id="profile-name" class="text-2xl font-black truncate">Student</h2>
-                        <p id="profile-details" class="text-xs text-yellow-100 mt-1 opacity-90 font-medium">Class • ID</p>
-                    </div>
-                    <div class="absolute -right-4 -bottom-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass-panel p-4 text-center" onclick="window.switchTab('register')">
+                    <i data-lucide="trophy" class="w-6 h-6 text-purple-400 mx-auto mb-2"></i>
+                    <h3 class="text-sm font-bold text-white">Solo Events</h3>
+                    <p class="text-[10px] text-gray-500">Badminton, Chess...</p>
                 </div>
-
-                <div id="live-matches-container">
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="bg-red-500/20 p-1.5 rounded-lg text-red-500 animate-pulse border border-red-500/30">
-                            <i data-lucide="radio" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Live Action</h3>
-                    </div>
-                    <div id="live-matches-list"></div>
-                </div>
-
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="bg-yellow-500/20 p-1.5 rounded-lg text-yellow-500 border border-yellow-500/30">
-                            <i data-lucide="medal" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-white uppercase tracking-wider">Recent Champions</h3>
-                    </div>
-                    <div id="home-champions-list" class="space-y-3">
-                        <p class="text-xs text-gray-500 italic text-center py-4">No results yet.</p>
-                    </div>
+                <div class="glass-panel p-4 text-center" onclick="window.switchTab('teams')">
+                    <i data-lucide="users" class="w-6 h-6 text-blue-400 mx-auto mb-2"></i>
+                    <h3 class="text-sm font-bold text-white">Team Sports</h3>
+                    <p class="text-[10px] text-gray-500">Cricket, Football...</p>
                 </div>
             </div>
+        </div>
 
-            <div id="view-register" class="hidden space-y-6 animate-slide-up">
-                
-                <div class="flex p-1 bg-gray-800/50 rounded-xl mb-4 border border-white/5">
-                    <button id="btn-reg-new" onclick="toggleRegisterView('new')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all bg-white/10 text-white shadow-sm">All Sports</button>
-                    <button id="btn-reg-history" onclick="toggleRegisterView('history')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all text-gray-500 hover:text-gray-300">My Entries</button>
-                </div>
-
-                <div id="reg-section-new">
-                    <div class="relative mb-4">
-                        <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-gray-500"></i>
-                        <input type="text" id="search-input" onkeyup="filterSports()" placeholder="Search sports..." class="w-full pl-11 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-yellow-500 transition-colors">
-                    </div>
-                    <div id="sports-list" class="grid grid-cols-2 gap-3 pb-20">
-                        </div>
-                </div>
-
-                <div id="reg-section-history" class="hidden">
-                    <div id="history-list" class="pb-20"></div>
-                </div>
+        <div id="view-register" class="hidden">
+            <div class="toggle-container">
+                <button id="btn-reg-new" onclick="window.toggleRegisterView('new')" class="toggle-btn active">All Sports</button>
+                <button id="btn-reg-history" onclick="window.toggleRegisterView('history')" class="toggle-btn">My Entries</button>
             </div>
 
-            <div id="view-teams" class="hidden space-y-6 animate-slide-up">
-                
-                <div class="flex p-1 bg-gray-800/50 rounded-xl mb-4 border border-white/5">
-                    <button id="btn-team-market" onclick="toggleTeamView('marketplace')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all bg-white/10 text-white shadow-sm">Join Team</button>
-                    <button id="btn-team-locker" onclick="toggleTeamView('locker')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all text-gray-500 hover:text-gray-300">My Teams</button>
+            <div id="reg-section-new" class="animate-slide-up">
+                <div class="relative mb-4">
+                    <i data-lucide="search" class="absolute left-3 top-3.5 w-4 h-4 text-gray-500"></i>
+                    <input type="text" id="search-input" placeholder="Search sports..." class="input-field pl-10" onkeyup="window.filterSports()">
                 </div>
-
-                <div id="team-marketplace">
-                    <div class="glass-panel p-4 rounded-xl border-l-4 border-l-yellow-500 mb-4">
-                        <p class="text-[10px] text-gray-400 leading-relaxed">
-                            <span class="text-yellow-500 font-bold">Tip:</span> You must register for a sport individually before you can create or join a squad for it.
-                        </p>
+                <div id="sports-list" class="grid grid-cols-2 gap-3 pb-24">
                     </div>
-
-                    <div class="flex gap-2 mb-4">
-                        <div class="relative flex-1">
-                            <i data-lucide="search" class="absolute left-3 top-2.5 w-3 h-3 text-gray-500"></i>
-                            <input type="text" id="team-marketplace-search" onkeyup="loadTeamMarketplace()" placeholder="Find squad..." class="w-full pl-8 pr-3 py-2 bg-black/30 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-yellow-500 transition-colors">
-                        </div>
-                        <select id="team-sport-filter" onchange="loadTeamMarketplace()" class="bg-black/30 border border-white/10 rounded-xl px-2 py-2 text-[10px] text-white outline-none focus:border-yellow-500 w-24">
-                            <option value="all">All</option>
-                        </select>
-                        <button onclick="openCreateTeamModal()" class="bg-yellow-600 text-white px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap shadow-lg active:scale-95 transition-transform flex items-center gap-1">
-                            <i data-lucide="plus" class="w-3 h-3"></i> Create
-                        </button>
-                    </div>
-                    <div id="marketplace-list" class="space-y-3 pb-20"></div>
-                </div>
-
-                <div id="team-locker" class="hidden">
-                    <div id="locker-list" class="space-y-3 pb-20"></div>
-                </div>
             </div>
 
-            <div id="view-schedule" class="hidden space-y-4 animate-slide-up">
-                <div class="flex p-1 bg-gray-800/50 rounded-xl mb-4 border border-white/5">
-                    <button id="btn-schedule-upcoming" onclick="filterSchedule('upcoming')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all bg-white/10 text-white shadow-sm">Upcoming</button>
-                    <button id="btn-schedule-results" onclick="filterSchedule('results')" class="flex-1 py-2 rounded-lg text-[10px] font-bold transition-all text-gray-500 hover:text-gray-300">Results</button>
-                </div>
+            <div id="reg-section-history" class="hidden animate-slide-up pb-24">
+                <div id="history-list">
+                    </div>
+            </div>
+        </div>
 
+        <div id="view-teams" class="hidden">
+            <div class="toggle-container">
+                <button id="btn-team-market" onclick="window.toggleTeamView('marketplace')" class="toggle-btn active">Join Teams</button>
+                <button id="btn-team-my" onclick="window.toggleTeamView('locker')" class="toggle-btn">My Teams</button>
+            </div>
+
+            <div id="team-marketplace" class="animate-slide-up pb-24">
                 <div class="flex gap-2 mb-4">
-                    <div class="relative flex-1">
-                        <i data-lucide="search" class="absolute left-3 top-2.5 w-3 h-3 text-gray-500"></i>
-                        <input type="text" id="schedule-search" onkeyup="loadSchedule()" placeholder="Search matches..." class="w-full pl-8 pr-3 py-2 bg-black/30 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-yellow-500 transition-colors">
-                    </div>
-                    <select id="schedule-sport-filter" onchange="loadSchedule()" class="bg-black/30 border border-white/10 rounded-xl px-2 py-2 text-[10px] text-white outline-none focus:border-yellow-500 w-28">
-                        <option value="">All Sports</option>
+                    <select id="team-sport-filter" onchange="window.loadTeamMarketplace()" class="input-field flex-1">
+                        <option value="all">Loading...</option>
                     </select>
                 </div>
-
-                <div id="schedule-list" class="space-y-3 pb-20">
-                    <div class="text-center py-10">
-                        <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i data-lucide="calendar-clock" class="w-6 h-6 text-gray-500"></i>
-                        </div>
-                        <p class="text-gray-500 text-xs">Match schedule coming soon.</p>
+                <div id="marketplace-list">
                     </div>
-                </div>
             </div>
 
-        </main>
-    </div>
-
-    <div id="modal-register" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="glass-panel w-full max-w-lg rounded-t-2xl rounded-b-none sm:rounded-2xl overflow-hidden border-t border-gray-700 bg-[#1e293b] shadow-2xl flex flex-col max-h-[85vh] mb-0 sm:mb-auto animate-slide-up">
-            <div class="bg-gradient-to-r from-yellow-500/10 to-transparent p-5 border-b border-yellow-500/10 shrink-0">
-                <h3 class="text-lg font-black text-white flex items-center gap-2">
-                    <i data-lucide="clipboard-check" class="w-5 h-5 text-yellow-500"></i> Confirm Entry
-                </h3>
-            </div>
-            
-            <div class="p-6 overflow-y-auto no-scrollbar">
-                <div class="flex items-center gap-3 bg-black/20 p-3 rounded-lg border border-white/5 mb-5">
-                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
-                        <i data-lucide="user" class="w-5 h-5"></i>
+            <div id="team-locker" class="hidden animate-slide-up pb-24">
+                <button onclick="window.openCreateTeamModal()" class="btn-primary mb-4">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Create New Team
+                </button>
+                <div id="locker-list">
                     </div>
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">Participant</p>
-                        <h4 id="reg-modal-user-name" class="text-sm font-bold text-white">Student Name</h4>
-                        <p id="reg-modal-user-details" class="text-[10px] text-gray-500 font-mono">ID</p>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <span class="text-xs font-bold text-gray-400 block mb-1">Event</span>
-                        <h2 class="text-xl font-black text-yellow-500 leading-none" id="reg-modal-sport-name">Sport Name</h2>
-                    </div>
-                    <div class="flex gap-2">
-                        <span id="reg-badge-type" class="px-2 py-1 bg-gray-700 rounded text-[10px] text-white font-bold">Type</span>
-                        <span id="reg-badge-gender" class="px-2 py-1 bg-gray-700 rounded text-[10px] text-white font-bold">Gender</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-gray-800/50 p-3 rounded-xl border border-white/5">
-                        <span class="text-[10px] text-gray-400 uppercase font-bold block mb-1">Team Size</span>
-                        <span id="reg-info-teamsize" class="text-sm font-bold text-white">N/A</span>
-                    </div>
-                     <div class="bg-gray-800/50 p-3 rounded-xl border border-white/5">
-                        <span class="text-[10px] text-gray-400 uppercase font-bold block mb-1">Mobile</span>
-                         <input type="tel" id="reg-mobile" class="w-full bg-transparent outline-none text-sm font-bold text-yellow-500 placeholder-gray-600" placeholder="Required...">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <h5 class="text-xs font-bold text-white mb-2 uppercase tracking-wide border-b border-gray-700 pb-1">Description</h5>
-                        <p id="reg-desc" class="text-xs text-gray-400 leading-relaxed">No description available.</p>
-                    </div>
-                    
-                    <div>
-                        <h5 class="text-xs font-bold text-white mb-2 uppercase tracking-wide border-b border-gray-700 pb-1">Rules & Regulations</h5>
-                        <ul id="reg-rules" class="text-xs text-gray-400 leading-relaxed rules-list">
-                            <li>No specific rules.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-3 pb-8 sm:pb-4">
-                <button onclick="closeModal('modal-register')" class="flex-1 py-3 bg-gray-800 rounded-xl text-xs font-bold text-gray-400 hover:bg-gray-700 transition-colors">Cancel</button>
-                <button onclick="confirmRegistration()" class="flex-1 py-3 btn-gold rounded-xl text-xs font-bold text-black hover:brightness-110 transition-all">Confirm & Register</button>
             </div>
         </div>
-    </div>
 
-    <div id="modal-create-team" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-6">
-        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 relative border-gray-700 bg-[#1e293b] shadow-2xl">
-            <button onclick="closeModal('modal-create-team')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <h3 class="text-lg font-bold text-white mb-2">Create Squad</h3>
-            <p class="text-[11px] text-gray-400 mb-6 italic">Only sports you have registered for individually will appear here.</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Sport Category</label>
-                    <div class="relative">
-                        <select id="new-team-sport" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded-xl text-xs focus:border-yellow-500 outline-none appearance-none"></select>
-                        <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"></i>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Squad Name</label>
-                    <input type="text" id="new-team-name" class="w-full bg-black/50 border border-gray-700 text-white p-3 rounded-xl text-xs focus:border-yellow-500 outline-none" placeholder="Ex. Thunder Strikers">
-                </div>
-                <button onclick="createTeam()" class="w-full py-3 btn-gold rounded-xl text-xs font-bold mt-2 hover:brightness-110 transition-all">Create & Join</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-manage-team" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="glass-panel w-full max-w-lg rounded-t-2xl rounded-b-none sm:rounded-2xl p-6 h-[85vh] flex flex-col relative border-gray-700 bg-[#1e293b] mb-0 sm:mb-auto animate-slide-up">
-            <div class="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
-                <div>
-                    <h3 class="text-lg font-bold text-white" id="manage-team-title">Manage Team</h3>
-                    <p class="text-[10px] text-gray-400">Captain's Control Panel</p>
-                </div>
-                <button onclick="closeModal('modal-manage-team')"><i data-lucide="x" class="text-gray-400 w-5 h-5"></i></button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto pr-2 space-y-6 no-scrollbar pb-10">
-                <div>
-                    <h4 class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-3 h-3"></i> Pending Requests
-                    </h4>
-                    <div id="manage-requests-list" class="space-y-2 min-h-[1rem]"></div>
-                </div>
-
-                <div>
-                    <h4 class="text-[10px] font-bold text-green-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i data-lucide="users" class="w-3 h-3"></i> Active Roster
-                    </h4>
-                    <div id="manage-members-list" class="space-y-2"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-view-squad" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 border-gray-700 bg-[#1e293b] shadow-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-white">Team Roster</h3>
-                <button onclick="closeModal('modal-view-squad')"><i data-lucide="x" class="text-gray-400 w-5 h-5"></i></button>
-            </div>
-            <div id="view-squad-list" class="space-y-2 mb-6 max-h-48 overflow-y-auto no-scrollbar"></div>
-            <button id="btn-confirm-join" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 shadow-lg transition-transform">
-                Send Request
+    </div> <nav class="fixed bottom-0 inset-x-0 bg-[#111827]/95 backdrop-blur-lg border-t border-white/10 pb-safe pt-2 z-40">
+        <div class="flex justify-around items-center max-w-md mx-auto">
+            <button onclick="window.switchTab('dashboard')" class="nav-item flex flex-col items-center p-2 text-gold" id="nav-dashboard">
+                <i data-lucide="home" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-bold">Home</span>
+            </button>
+            <button onclick="window.switchTab('register')" class="nav-item flex flex-col items-center p-2 text-gray-500" id="nav-register">
+                <i data-lucide="trophy" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-bold">Sports</span>
+            </button>
+            <button onclick="window.switchTab('teams')" class="nav-item flex flex-col items-center p-2 text-gray-500" id="nav-teams">
+                <i data-lucide="users" class="w-5 h-5 mb-1"></i>
+                <span class="text-[10px] font-bold">Teams</span>
             </button>
         </div>
-    </div>
+    </nav>
 
-    <div id="modal-match-details" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-md rounded-2xl p-6 border-gray-700 bg-[#1e293b] shadow-2xl max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div class="text-center mb-6 pt-2 relative">
-                <button onclick="closeModal('modal-match-details')" class="absolute top-0 right-0 text-gray-400"><i data-lucide="x" class="w-5 h-5"></i></button>
-                <span id="md-match-status" class="px-2 py-0.5 bg-green-900/50 text-green-400 text-[10px] font-bold uppercase rounded-full tracking-wide border border-green-500/30">Live</span>
-                <h3 id="md-sport-name" class="text-xl font-black text-white mt-2">Sport Name</h3>
+
+    <div id="modal-register" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-handle"></div> <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-yellow-400">
+                    <i data-lucide="ticket" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Confirm Entry</h3>
+                <p id="reg-modal-sport-name" class="text-gold font-bold text-lg mt-1">Sport Name</p>
             </div>
 
-            <div id="md-layout-team" class="hidden">
-                <div class="flex justify-between items-center bg-black/30 p-4 rounded-2xl mb-6 border border-white/5">
-                    <div class="text-center flex-1">
-                        <div id="md-t1-score" class="text-3xl font-black text-white">0</div>
-                        <div id="md-t1-name" class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wide truncate px-1">Team A</div>
-                    </div>
-                    <div class="text-gray-600 font-black text-lg px-2">VS</div>
-                    <div class="text-center flex-1">
-                        <div id="md-t2-score" class="text-3xl font-black text-white">0</div>
-                        <div id="md-t2-name" class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wide truncate px-1">Team B</div>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <h4 id="md-list-t1-title" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-gray-700 pb-1">Squad A</h4>
-                        <div id="md-list-t1" class="space-y-1.5"></div>
-                    </div>
-                    <div>
-                        <h4 id="md-list-t2-title" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-gray-700 pb-1 text-right">Squad B</h4>
-                        <div id="md-list-t2" class="space-y-1.5 text-right"></div>
-                    </div>
-                </div>
+            <div class="bg-gray-800/50 p-4 rounded-xl mb-4 border border-white/5">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Description</h4>
+                <p id="reg-desc" class="text-sm text-gray-300 leading-relaxed">...</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="text-xs font-bold text-gray-400 uppercase block mb-2">Verify Mobile Number</label>
+                <input type="tel" id="reg-mobile" class="input-field" placeholder="Enter your WhatsApp number">
+            </div>
+
+            <div class="flex gap-3 mt-auto">
+                <button onclick="window.closeModal('modal-register')" class="flex-1 py-3 bg-gray-700 text-white rounded-xl font-bold">Cancel</button>
+                <button id="btn-confirm-reg" onclick="window.confirmRegistration()" class="flex-1 py-3 bg-gold text-black rounded-xl font-bold shadow-lg shadow-yellow-500/20">Confirm</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-confirm" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="glass-panel w-full max-w-xs rounded-2xl p-6 text-center border-gray-700 bg-[#1e293b]">
-            <div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
-                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+    <div id="modal-view-squad" class="modal-overlay">
+        <div class="modal-content" style="height: 70vh;">
+            <div class="modal-handle"></div>
+            
+            <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                <h3 id="squad-modal-title" class="text-xl font-bold text-white">Team Roster</h3>
+                <button onclick="window.closeModal('modal-view-squad')" class="p-2 bg-gray-800 rounded-full text-gray-400">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
             </div>
-            <h3 id="confirm-title" class="text-lg font-bold text-white mb-2">Confirm?</h3>
-            <p id="confirm-msg" class="text-xs text-gray-400 mb-5 leading-relaxed">This action cannot be undone.</p>
-            <div class="flex gap-2">
-                <button id="btn-confirm-cancel" class="flex-1 py-2 bg-gray-700 text-gray-300 font-bold rounded-lg text-xs hover:bg-gray-600">Cancel</button>
-                <button id="btn-confirm-yes" class="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg text-xs hover:bg-red-500">Confirm</button>
+
+            <div id="view-squad-list" class="squad-list-container">
+                </div>
+
+            <div class="mt-auto pt-4 border-t border-white/10">
+                <button id="btn-confirm-join" class="btn-primary">
+                    Send Join Request
+                </button>
             </div>
         </div>
     </div>
 
-    <div id="toast-container" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[70] transition-all duration-300 opacity-0 pointer-events-none translate-y-10 w-11/12 max-w-sm"></div>
+    <div id="modal-create-team" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-handle"></div>
+            <h3 class="text-xl font-bold text-white mb-6">Create New Team</h3>
+            
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Select Sport</label>
+            <select id="new-team-sport" class="input-field mb-4"></select>
 
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Team Name</label>
+            <input type="text" id="new-team-name" class="input-field mb-6" placeholder="Ex: Titans XI">
+
+            <div class="flex gap-3">
+                <button onclick="window.closeModal('modal-create-team')" class="flex-1 py-3 bg-gray-700 text-white rounded-xl font-bold">Cancel</button>
+                <button onclick="window.createTeam()" class="flex-1 btn-primary">Create Team</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="student.js"></script>
 </body>
 </html>
