@@ -13,7 +13,7 @@
     const CLOUDINARY_PRESET = 'ojas_student_preset'; 
 
     if (!window.supabase) {
-        console.error("CRITICAL: Supabase SDK not loaded.");
+        console.error("CRITICAL: Supabase SDK not loaded in HTML.");
         return;
     }
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -115,7 +115,6 @@
         const headName = document.getElementById('header-name');
         const headId = document.getElementById('header-id');
 
-        // FIXED: Using 'name' directly
         const fullName = currentUser.name || "Unknown Student";
 
         if(nameEl) nameEl.innerText = fullName;
@@ -216,7 +215,7 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. TEAMS MODULE (DEBUGGING ADDED) ---
+    // --- 7. TEAMS MODULE (CSS COLOR FIX APPLIED) ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
@@ -251,7 +250,6 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // FIXED: Using 'name'
         let query = supabaseClient
             .from('teams')
             .select(`
@@ -272,8 +270,6 @@
             return;
         }
 
-        console.log("[DEBUG] Raw Teams Data:", teams);
-
         if (!teams || teams.length === 0) {
              container.innerHTML = '<p class="text-center text-gray-400 py-10">No open teams available.</p>';
              return;
@@ -293,7 +289,6 @@
 
         const validTeams = teamsWithCounts.filter(t => {
             if (searchText && !t.name.toLowerCase().includes(searchText)) return false;
-            // FIXED: Using users (captain) name
             if (t.users?.gender !== currentUser.gender) return false;
             return true;
         });
@@ -332,7 +327,7 @@
         `}).join('');
     }
 
-    // STRICT JOIN LOGIC (DEBUG ADDED)
+    // VIEW SQUAD (FIXED COLOR & VISIBILITY)
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft, sportType) {
         console.log(`[DEBUG] Viewing Squad: TeamID=${teamId}, Sport=${sportName}`);
         
@@ -353,7 +348,7 @@
             return showToast(`❌ You are already in a team for ${sportName}.`, "error");
         }
 
-        // FIXED: Fetch 'name' + class_name
+        // FETCH NAME + CLASS
         const { data: members, error } = await supabaseClient.from('team_members')
             .select('status, users(name, class_name)')
             .eq('team_id', teamId)
@@ -370,11 +365,12 @@
         if(!members || members.length === 0) {
             list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No members joined yet.</p>';
         } else {
+            // FIX: Forced 'bg-gray-700' and 'text-white' so it shows up on dark modal
             list.innerHTML = members.map(m => `
-                <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div class="flex justify-between items-center p-3 bg-gray-700 rounded-xl mb-2">
                     <div>
-                        <span class="text-sm font-bold text-gray-800 dark:text-white block">${m.users.name}</span>
-                        <span class="text-[10px] text-gray-500 dark:text-gray-400 font-mono">${m.users.class_name || 'N/A'}</span>
+                        <span class="text-sm font-bold text-white block">${m.users.name}</span>
+                        <span class="text-[10px] text-gray-300 font-mono">${m.users.class_name || 'N/A'}</span>
                     </div>
                 </div>
             `).join('');
@@ -399,7 +395,6 @@
 
     // LOAD MY TEAMS (LOCKER)
     window.loadTeamLocker = async function() {
-        console.log("[DEBUG] Loading Team Locker...");
         const container = document.getElementById('locker-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading your teams...</p>';
 
@@ -429,14 +424,11 @@
             const isCaptain = t.captain_id === currentUser.id;
             const isLocked = t.status === 'Locked';
             
-            // FIXED: Fetch 'name' + class + mobile
             const { data: squad } = await supabaseClient
                 .from('team_members')
                 .select('users(name, class_name, mobile)')
                 .eq('team_id', t.id)
                 .eq('status', 'Accepted');
-            
-            console.log(`[DEBUG] Squad for ${t.name}:`, squad);
                 
             const squadHtml = (squad || []).map(s => `
                 <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg mb-1.5 border border-gray-100 dark:border-gray-600 w-full">
