@@ -1,133 +1,265 @@
-/*style.css */
+/* =========================================
+   URJA 2026 - GOLD STANDARD STYLESHEET
+   ========================================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+    /* Core Palette */
     --gold: #D4AF37;
-    --gold-glow: rgba(212, 175, 55, 0.3);
-    --dark-bg: #111827;
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --gold-dim: #B8860B;
+    --gold-glow: rgba(212, 175, 55, 0.2);
+    
+    --dark-bg: #111827;      /* Deep Blue-Grey */
+    --card-bg: #1F2937;      /* Lighter Grey for cards */
+    --glass-bg: rgba(31, 41, 55, 0.7);
+    
+    --text-main: #FFFFFF;
+    --text-muted: #9CA3AF;
+    
+    --border-light: rgba(255, 255, 255, 0.1);
+    --success: #10B981;
+    --danger: #EF4444;
+
+    /* Spacing & Radius */
+    --radius-lg: 1rem;       /* 16px */
+    --radius-xl: 1.5rem;     /* 24px */
+}
+
+/* --- RESET & BASE --- */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: var(--dark-bg);
-    color: white;
+    color: var(--text-main);
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    padding-bottom: 90px; /* Space for bottom nav */
 }
 
-/* Auth Screen */
-#auth-screen {
-    position: fixed;
-    inset: 0;
-    background: black;
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
+/* --- UTILITIES --- */
+.hidden { display: none !important; }
 
-/* Dashboard Layout */
-.app-container {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 20px;
-    padding-bottom: 100px;
+/* Text Gradients */
+.text-gold {
+    color: var(--gold);
 }
-
-/* Glass Cards */
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.gold-text {
-    background: linear-gradient(135deg, #FFF 0%, #D4AF37 100%);
+.text-gradient-gold {
+    background: linear-gradient(135deg, #FFF 10%, var(--gold) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* Buttons */
+/* --- LAYOUT CONTAINERS --- */
+.app-container {
+    max-width: 480px; /* Mobile First Constraint */
+    margin: 0 auto;
+    padding: 16px;
+    width: 100%;
+}
+
+/* --- GLASS COMPONENTS --- */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+}
+
+/* --- TOGGLE SWITCHES (Segmented Control) --- */
+/* This replaces the separate buttons for "All Sports/My Entries" */
+.toggle-container {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 4px;
+    position: relative;
+    border: 1px solid var(--border-light);
+    margin-bottom: 1rem;
+}
+
+.toggle-btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    border: none;
+}
+
+.toggle-btn.active {
+    background: var(--gold);
+    color: #000; /* Black text on Gold for contrast */
+    box-shadow: 0 4px 12px var(--gold-glow);
+}
+
+/* --- CARDS (Sports & Teams) --- */
+.card-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.card-item:active {
+    transform: scale(0.98);
+}
+
+/* --- BUTTONS --- */
 .btn-primary {
     width: 100%;
-    background: linear-gradient(135deg, #D4AF37, #B8860B);
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
     color: black;
     font-weight: 800;
     padding: 14px;
-    border-radius: 1rem;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    transition: transform 0.2s;
+    box-shadow: 0 4px 15px var(--gold-glow);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
-.btn-primary:active { transform: scale(0.98); }
 
-.btn-secondary {
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* --- INPUTS --- */
+.input-field {
     width: 100%;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-light);
     color: white;
-    font-weight: 600;
     padding: 14px;
-    border-radius: 1rem;
-    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    font-family: inherit;
+    outline: none;
 }
-
-/* Sports Grid */
-.sports-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-.sport-card {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--glass-border);
-    border-radius: 1rem;
-    padding: 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.sport-card.selected {
+.input-field:focus {
     border-color: var(--gold);
-    background: rgba(212, 175, 55, 0.1);
 }
 
-/* Modal */
+/* --- BOTTOM SHEET MODALS (Mobile Friendly) --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(5px);
-    z-index: 50;
-    display: none;
-    align-items: center;
+    background: rgba(0, 0, 0, 0.85); /* Darker backdrop */
+    z-index: 100;
+    display: flex;
     justify-content: center;
-    padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-.modal-content {
-    background: #1F2937;
-    border: 1px solid var(--glass-border);
-    width: 100%;
-    max-width: 350px;
-    border-radius: 1.5rem;
-    padding: 1.5rem;
+    align-items: flex-end; /* Bottom alignment for mobile */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(4px);
 }
 
-input {
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* The Modal Content Card */
+.modal-content {
+    background: #1a1f2e; /* Slightly lighter than pure black */
     width: 100%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--glass-border);
-    color: white;
+    max-width: 480px;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 24px;
+    padding-bottom: 40px; /* Safe area for swipe bar */
+    border-top: 1px solid var(--gold);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh; /* Don't cover full screen */
+}
+
+.modal-overlay.open .modal-content {
+    transform: translateY(0);
+}
+
+/* Drag Handle for Bottom Sheet */
+.modal-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin: 0 auto 20px auto;
+}
+
+/* Squad List specific scrolling */
+.squad-list-container {
+    overflow-y: auto;
+    flex: 1;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.2);
+}
+
+.squad-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 12px;
-    border-radius: 0.75rem;
-    margin-bottom: 1rem;
-    font-family: inherit;
+    border-bottom: 1px solid var(--border-light);
+}
+.squad-item:last-child { border-bottom: none; }
+
+/* Desktop Adjustment */
+@media (min-width: 640px) {
+    .modal-overlay {
+        align-items: center; /* Center on desktop */
+    }
+    .modal-content {
+        border-radius: 24px; /* Full radius on desktop */
+        transform: scale(0.95);
+        opacity: 0;
+        border: 1px solid var(--gold);
+    }
+    .modal-overlay.open .modal-content {
+        transform: scale(1);
+        opacity: 1;
+    }
+    .modal-handle { display: none; }
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+#toast-container {
+    z-index: 200 !important;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s ease forwards;
 }
