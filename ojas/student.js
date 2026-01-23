@@ -215,7 +215,7 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. TEAMS MODULE (CSS COLOR FIX APPLIED) ---
+    // --- 7. TEAMS MODULE ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
@@ -243,7 +243,6 @@
     }
 
     window.loadTeamMarketplace = async function() {
-        console.log("[DEBUG] Loading Team Marketplace...");
         const container = document.getElementById('marketplace-list');
         container.innerHTML = '<p class="text-center text-gray-400 py-10">Scanning available squads...</p>';
 
@@ -327,7 +326,7 @@
         `}).join('');
     }
 
-    // VIEW SQUAD (FIXED COLOR & VISIBILITY)
+    // VIEW SQUAD (VISIBILITY FIX APPLIED)
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft, sportType) {
         console.log(`[DEBUG] Viewing Squad: TeamID=${teamId}, Sport=${sportName}`);
         
@@ -348,7 +347,6 @@
             return showToast(`❌ You are already in a team for ${sportName}.`, "error");
         }
 
-        // FETCH NAME + CLASS
         const { data: members, error } = await supabaseClient.from('team_members')
             .select('status, users(name, class_name)')
             .eq('team_id', teamId)
@@ -359,21 +357,25 @@
             return showToast("Error loading squad", "error");
         }
 
-        console.log("[DEBUG] Squad Members:", members);
+        console.log("[DEBUG] Squad Members Data:", members);
 
         const list = document.getElementById('view-squad-list');
+        
         if(!members || members.length === 0) {
             list.innerHTML = '<p class="text-center text-gray-400 text-xs py-2">No members joined yet.</p>';
         } else {
-            // FIX: Forced 'bg-gray-700' and 'text-white' so it shows up on dark modal
-            list.innerHTML = members.map(m => `
-                <div class="flex justify-between items-center p-3 bg-gray-700 rounded-xl mb-2">
+            // FIX: Using INLINE STYLES to force visibility regardless of CSS issues
+            const html = members.map(m => `
+                <div style="background-color: #374151; color: #ffffff; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span class="text-sm font-bold text-white block">${m.users.name}</span>
-                        <span class="text-[10px] text-gray-300 font-mono">${m.users.class_name || 'N/A'}</span>
+                        <span style="display: block; font-weight: bold; font-size: 14px;">${m.users?.name || 'Unknown'}</span>
+                        <span style="font-size: 10px; color: #d1d5db; font-family: monospace;">${m.users?.class_name || 'N/A'}</span>
                     </div>
                 </div>
             `).join('');
+            
+            console.log("[DEBUG] Generated HTML:", html);
+            list.innerHTML = html;
         }
 
         document.getElementById('btn-confirm-join').onclick = () => sendJoinRequest(teamId);
