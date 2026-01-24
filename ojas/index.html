@@ -42,17 +42,19 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-        /* Base Styles */
+        /* APP-LIKE STRUCTURE (Prevents Body Scroll) */
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             -webkit-tap-highlight-color: transparent;
+            height: 100vh; /* Force full height */
+            width: 100vw;
+            overflow: hidden; /* Disable browser scroll, scroll internal div instead */
         }
 
         /* Hide Scrollbar but keep functionality */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* List Styles */
         .rules-list { list-style-type: disc; padding-left: 1.2rem; }
         .rules-list li { margin-bottom: 0.25rem; }
     </style>
@@ -64,18 +66,17 @@
             <div class="w-16 h-16 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
             <div class="absolute top-0 left-0 w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">URJA <span class="text-indigo-600">2026</span></h2>
+        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">OJAS <span class="text-indigo-600">2.0</span></h2>
         <p class="text-xs text-slate-500 font-medium mt-2 uppercase tracking-widest">Student Portal</p>
     </div>
 
-    <div id="app" class="hidden w-full max-w-lg mx-auto min-h-screen bg-white dark:bg-slate-900 shadow-2xl relative flex flex-col border-x border-slate-200 dark:border-slate-800">
+    <div id="app" class="hidden h-full w-full max-w-lg mx-auto bg-white dark:bg-slate-900 shadow-2xl relative flex flex-col border-x border-slate-200 dark:border-slate-800">
         
-        <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex justify-between items-center">
+        <header class="shrink-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-between items-center">
+            
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                    <span class="text-white font-bold italic text-lg">U</span>
-                </div>
-                <h1 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">URJA</h1>
+                <img src="https://i.ibb.co/JRMfw130/file-000000001d6072088e48f707ddaac50f-1.png" alt="OJAS Logo" class="h-8 w-auto object-contain">
+                <h1 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight italic">OJAS</h1>
             </div>
             
             <div class="flex items-center gap-3">
@@ -89,9 +90,9 @@
             </div>
         </header>
 
-        <main class="flex-1 p-5 pb-24 overflow-y-auto">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 relative scroll-smooth">
             
-            <div id="view-dashboard" class="space-y-8 animate-fade-in">
+            <div id="view-dashboard" class="space-y-6 animate-fade-in pb-20">
                 <div class="bg-indigo-600 p-6 rounded-2xl text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
                     <div class="relative z-10">
                         <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-widest mb-1">Welcome Back</p>
@@ -105,7 +106,7 @@
                 </div>
 
                 <div id="live-matches-container">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-3">
                         <h3 class="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Live Action
                         </h3>
@@ -114,7 +115,7 @@
                 </div>
 
                 <div>
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="flex items-center gap-2 mb-3">
                         <h3 class="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                             <i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i> Recent Champions
                         </h3>
@@ -125,9 +126,9 @@
                 </div>
             </div>
 
-            <div id="view-register" class="hidden space-y-6 animate-fade-in">
+            <div id="view-register" class="hidden space-y-5 animate-fade-in pb-20">
                 
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 border border-slate-200 dark:border-slate-700">
+                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
                     <button id="btn-reg-new" onclick="toggleRegisterView('new')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">All Sports</button>
                     <button id="btn-reg-history" onclick="toggleRegisterView('history')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">My Entries</button>
                 </div>
@@ -137,17 +138,17 @@
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors"></i>
                         <input type="text" id="search-input" onkeyup="filterSports()" placeholder="Search sports (e.g. Cricket)..." class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400">
                     </div>
-                    <div id="sports-list" class="grid grid-cols-2 gap-3 pb-20"></div>
+                    <div id="sports-list" class="grid grid-cols-2 gap-3"></div>
                 </div>
 
                 <div id="reg-section-history" class="hidden">
-                    <div id="history-list" class="pb-20"></div>
+                    <div id="history-list"></div>
                 </div>
             </div>
 
-            <div id="view-teams" class="hidden space-y-6 animate-fade-in">
+            <div id="view-teams" class="hidden space-y-5 animate-fade-in pb-20">
                 
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 border border-slate-200 dark:border-slate-700">
+                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
                     <button id="btn-team-market" onclick="toggleTeamView('marketplace')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">Join Team</button>
                     <button id="btn-team-locker" onclick="toggleTeamView('locker')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">My Teams</button>
                 </div>
@@ -172,16 +173,16 @@
                             <i data-lucide="plus" class="w-3 h-3"></i> Create
                         </button>
                     </div>
-                    <div id="marketplace-list" class="space-y-3 pb-20"></div>
+                    <div id="marketplace-list" class="space-y-3"></div>
                 </div>
 
                 <div id="team-locker" class="hidden">
-                    <div id="locker-list" class="space-y-3 pb-20"></div>
+                    <div id="locker-list" class="space-y-3"></div>
                 </div>
             </div>
 
-            <div id="view-schedule" class="hidden space-y-4 animate-fade-in">
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 border border-slate-200 dark:border-slate-700">
+            <div id="view-schedule" class="hidden space-y-4 animate-fade-in pb-20">
+                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
                     <button id="btn-schedule-upcoming" onclick="filterSchedule('upcoming')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">Upcoming</button>
                     <button id="btn-schedule-results" onclick="filterSchedule('results')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">Results</button>
                 </div>
@@ -196,13 +197,17 @@
                     </select>
                 </div>
 
-                <div id="schedule-list" class="space-y-3 pb-20">
+                <div id="schedule-list" class="space-y-3">
                     </div>
             </div>
 
         </main>
 
-        <nav class="border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md absolute bottom-0 left-0 right-0 z-30 flex justify-around pb-safe pt-2">
+        <a id="btn-whatsapp-fab" href="YOUR_WHATSAPP_GROUP_URL_HERE" target="_blank" class="hidden absolute bottom-24 right-5 z-40 w-14 h-14 bg-[#25D366] rounded-full shadow-xl shadow-green-500/30 flex items-center justify-center hover:scale-105 transition-transform active:scale-95">
+            <svg class="w-7 h-7 text-white fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        </a>
+
+        <nav class="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex justify-around pb-safe pt-2">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active flex-1 py-3 flex flex-col items-center justify-center gap-1 group">
                 <i data-lucide="home" class="w-5 h-5 transition-transform group-active:scale-90"></i>
                 <span class="text-[10px] font-bold">Home</span>
