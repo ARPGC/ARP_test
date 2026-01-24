@@ -1,5 +1,5 @@
 // ==========================================
-// URJA 2026 - ADMIN PORTAL CONTROLLER
+// OJAS 2026 - ADMIN PORTAL CONTROLLER
 // ==========================================
 
 (function() { 
@@ -19,16 +19,21 @@
     let isDataLoaded = { regs: false, teams: false };
 
     // --- 2. AUTHENTICATION ---
+    // NO sessionStorage logic - Forces login on every refresh
+    
+    // Clear password field on load to prevent cached values
+    document.addEventListener('DOMContentLoaded', () => {
+        const passField = document.getElementById('admin-pass');
+        if(passField) passField.value = '';
+    });
+
     window.checkAdminAuth = function() {
         const input = document.getElementById('admin-pass').value;
         const err = document.getElementById('login-error');
         
         if (input === ADMIN_PASS) {
-            // Success
-            sessionStorage.setItem('urja_admin_session', 'true');
             unlockApp();
         } else {
-            // Fail
             err.classList.remove('hidden');
             setTimeout(() => err.classList.add('hidden'), 2000);
         }
@@ -37,20 +42,16 @@
     function unlockApp() {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('admin-app').classList.remove('hidden');
+        
+        // Reset Inputs
+        document.getElementById('reg-search').value = '';
+        document.getElementById('team-search').value = '';
+
         if(window.lucide) lucide.createIcons();
         
-        // Initial Load
         loadDashboardStats();
-        // Pre-fetch sports for dropdowns
         fetchSportsList();
     }
-
-    // Auto-login if session exists (optional, mostly for refresh convenience)
-    document.addEventListener('DOMContentLoaded', () => {
-        if (sessionStorage.getItem('urja_admin_session') === 'true') {
-            unlockApp();
-        }
-    });
 
     // --- 3. NAVIGATION ---
     window.switchView = function(viewId) {
@@ -83,15 +84,12 @@
 
     // --- 4. DASHBOARD STATS ---
     async function loadDashboardStats() {
-        // Count Users
         const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
         document.getElementById('stat-users').innerText = userCount || 0;
 
-        // Count Registrations
         const { count: regCount } = await supabase.from('registrations').select('*', { count: 'exact', head: true });
         document.getElementById('stat-regs').innerText = regCount || 0;
 
-        // Count Teams
         const { count: teamCount } = await supabase.from('teams').select('*', { count: 'exact', head: true });
         document.getElementById('stat-teams').innerText = teamCount || 0;
     }
@@ -107,7 +105,6 @@
 
     function populateSportDropdown(elementId) {
         const select = document.getElementById(elementId);
-        // Keep first "All" option
         select.innerHTML = '<option value="All">All Sports</option>';
         rawSports.forEach(s => {
             select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
@@ -118,10 +115,11 @@
     async function loadRegistrations() {
         const loader = document.getElementById('regs-loader');
         const tbody = document.getElementById('regs-tbody');
+        
         loader.classList.remove('hidden');
-        tbody.innerHTML = '';
+        tbody.innerHTML = ''; // Clear table
+        document.getElementById('reg-search').value = ''; // Ensure search is empty
 
-        // Fetch Data: Join Registrations -> Users & Sports
         const { data, error } = await supabase
             .from('registrations')
             .select(`
@@ -141,15 +139,17 @@
         isDataLoaded.regs = true;
         loader.classList.add('hidden');
         
-        renderRegistrationsTable();
+        renderRegistrationsTable(); // Call immediately
     }
 
     window.renderRegistrationsTable = function() {
         const tbody = document.getElementById('regs-tbody');
-        const search = document.getElementById('reg-search').value.toLowerCase();
+        const searchInput = document.getElementById('reg-search');
+        
+        // Safety check to ensure we get a clean string
+        const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const sportFilter = document.getElementById('reg-filter-sport').value;
 
-        // Filter Logic
         const filtered = rawRegistrations.filter(r => {
             const sName = (r.users?.name || '').toLowerCase();
             const sId = (r.users?.student_id || '').toString();
@@ -161,7 +161,6 @@
             return matchesSearch && matchesSport;
         });
 
-        // Render Rows
         tbody.innerHTML = filtered.map(r => `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
                 <td class="p-4">
@@ -197,6 +196,7 @@
         const grid = document.getElementById('teams-grid');
         loader.classList.remove('hidden');
         grid.innerHTML = '';
+        document.getElementById('team-search').value = '';
 
         const { data, error } = await supabase
             .from('teams')
@@ -213,12 +213,8 @@
             return;
         }
 
-        // Fetch Member Counts manually (since simple count join is tricky in JS SDK v2 simple query)
-        // We will do a separate query to get all accepted members count per team
-        // Optimization: Fetch all team members where status=Accepted
         const { data: members } = await supabase.from('team_members').select('team_id').eq('status', 'Accepted');
         
-        // Map counts
         const counts = {};
         if (members) {
             members.forEach(m => {
@@ -226,7 +222,6 @@
             });
         }
 
-        // Merge Data
         rawTeams = data.map(t => ({
             ...t,
             memberCount: counts[t.id] || 0
@@ -239,7 +234,8 @@
 
     window.renderTeamsGrid = function() {
         const grid = document.getElementById('teams-grid');
-        const search = document.getElementById('team-search').value.toLowerCase();
+        const searchInput = document.getElementById('team-search');
+        const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const sportFilter = document.getElementById('team-filter-sport').value;
 
         const filtered = rawTeams.filter(t => {
@@ -295,27 +291,51 @@
 
     // --- 7. EXPORT FUNCTIONS ---
 
-    // Excel Export (SheetJS)
     window.exportTableToExcel = function(tableId, filename) {
         const table = document.getElementById(tableId);
         const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet 1"});
         XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // PDF Export (html2pdf)
-    window.exportTableToPDF = function(elementId, filename) {
-        const element = document.getElementById(elementId);
-        const opt = {
-            margin:       0.5,
-            filename:     `${filename}_${new Date().toISOString().slice(0,10)}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-        };
-        html2pdf().set(opt).from(element).save();
+    // NEW: High Quality Data PDF Generator (Fetched Data)
+    window.generateHighQualityPDF = function() {
+        if (!window.jspdf) return alert("PDF Library loading...");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // 1. Header
+        doc.setFontSize(18);
+        doc.text("OJAS 2026 - Registrations Report", 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 26);
+
+        // 2. Prepare Data from Memory (not DOM)
+        // This ensures the PDF is clean regardless of what is showing on screen
+        const tableBody = rawRegistrations.map(r => [
+            r.users?.name || 'Unknown',
+            r.sports?.name || 'Unknown',
+            r.users?.class_name || '-',
+            r.users?.student_id || '-',
+            r.users?.mobile || '-',
+            new Date(r.created_at).toLocaleDateString()
+        ]);
+
+        // 3. Generate Table
+        doc.autoTable({
+            head: [['Student Name', 'Sport', 'Class', 'ID', 'Contact', 'Date']],
+            body: tableBody,
+            startY: 32,
+            theme: 'grid',
+            headStyles: { fillColor: [79, 70, 229] }, // Indigo-600
+            styles: { fontSize: 8 },
+        });
+
+        // 4. Save
+        doc.save(`OJAS_Registrations_${new Date().toISOString().slice(0,10)}.pdf`);
     }
 
-    // CSV Export (Manual for Teams Grid)
     window.exportTeamsToCSV = function() {
         if (!rawTeams || rawTeams.length === 0) return alert("No data to export");
         
@@ -339,7 +359,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `URJA_Teams_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `OJAS_Teams_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
