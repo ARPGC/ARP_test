@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -59,38 +58,38 @@
         .rules-list li { margin-bottom: 0.25rem; }
     </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<body class="bg-slate-50 text-slate-900">
 
-    <div id="loader" class="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex flex-col items-center justify-center transition-all duration-500">
+    <div id="loader" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-all duration-500">
         <div class="relative mb-6">
-            <div class="w-16 h-16 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
+            <div class="w-16 h-16 border-4 border-slate-100 rounded-full"></div>
             <div class="absolute top-0 left-0 w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">OJAS <span class="text-indigo-600">2.0</span></h2>
+        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">OJAS <span class="text-indigo-600">2.0</span></h2>
         <p class="text-xs text-slate-500 font-medium mt-2 uppercase tracking-widest">Student Portal</p>
     </div>
 
-    <div id="app" class="hidden h-full w-full max-w-lg mx-auto bg-white dark:bg-slate-900 shadow-2xl relative flex flex-col border-x border-slate-200 dark:border-slate-800">
+    <div id="app" class="hidden h-full w-full max-w-lg mx-auto bg-slate-50 shadow-2xl relative flex flex-col border-x border-slate-200">
         
-        <header class="shrink-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-5 py-3 flex justify-between items-center">
+        <header class="shrink-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 px-5 py-3 flex justify-between items-center">
             
             <div class="flex items-center gap-3">
                 <img src="https://i.ibb.co/JRMfw130/file-000000001d6072088e48f707ddaac50f-1.png" alt="OJAS Logo" class="h-8 w-auto object-contain">
-                <h1 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight italic">OJAS</h1>
+                <h1 class="text-lg font-extrabold text-slate-900 tracking-tight italic">OJAS</h1>
             </div>
             
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p id="header-name" class="text-xs font-bold text-slate-900 dark:text-white leading-none">Student</p>
+                    <p id="header-name" class="text-xs font-bold text-slate-900 leading-none">Student</p>
                     <p id="header-id" class="text-[10px] text-slate-500 font-mono mt-1">...</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 overflow-hidden">
                     <img id="header-avatar" src="https://via.placeholder.com/100" class="w-full h-full object-cover">
                 </div>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 relative scroll-smooth">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 relative scroll-smooth bg-slate-50">
             
             <div id="view-dashboard" class="space-y-6 animate-fade-in pb-20">
                 <div class="bg-indigo-600 p-6 rounded-2xl text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
@@ -107,7 +106,7 @@
 
                 <div id="live-matches-container">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                        <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Live Action
                         </h3>
                     </div>
@@ -116,7 +115,7 @@
 
                 <div>
                     <div class="flex items-center gap-2 mb-3">
-                        <h3 class="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                        <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
                             <i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i> Recent Champions
                         </h3>
                     </div>
@@ -128,15 +127,15 @@
 
             <div id="view-register" class="hidden space-y-5 animate-fade-in pb-20">
                 
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
-                    <button id="btn-reg-new" onclick="toggleRegisterView('new')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">All Sports</button>
-                    <button id="btn-reg-history" onclick="toggleRegisterView('history')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">My Entries</button>
+                <div class="flex p-1 bg-white rounded-xl border border-slate-200 sticky top-0 z-20 shadow-sm">
+                    <button id="btn-reg-new" onclick="toggleRegisterView('new')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100">All Sports</button>
+                    <button id="btn-reg-history" onclick="toggleRegisterView('history')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 hover:bg-slate-50">My Entries</button>
                 </div>
 
                 <div id="reg-section-new">
                     <div class="relative mb-4 group">
                         <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors"></i>
-                        <input type="text" id="search-input" onkeyup="filterSports()" placeholder="Search sports (e.g. Cricket)..." class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400">
+                        <input type="text" id="search-input" onkeyup="filterSports()" placeholder="Search sports (e.g. Cricket)..." class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 shadow-sm">
                     </div>
                     <div id="sports-list" class="grid grid-cols-2 gap-3"></div>
                 </div>
@@ -148,15 +147,15 @@
 
             <div id="view-teams" class="hidden space-y-5 animate-fade-in pb-20">
                 
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
-                    <button id="btn-team-market" onclick="toggleTeamView('marketplace')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">Join Team</button>
-                    <button id="btn-team-locker" onclick="toggleTeamView('locker')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">My Teams</button>
+                <div class="flex p-1 bg-white rounded-xl border border-slate-200 sticky top-0 z-20 shadow-sm">
+                    <button id="btn-team-market" onclick="toggleTeamView('marketplace')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100">Join Team</button>
+                    <button id="btn-team-locker" onclick="toggleTeamView('locker')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 hover:bg-slate-50">My Teams</button>
                 </div>
 
                 <div id="team-marketplace">
-                    <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800 mb-4 flex gap-3 items-start">
-                        <i data-lucide="info" class="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0"></i>
-                        <p class="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-4 flex gap-3 items-start">
+                        <i data-lucide="info" class="w-4 h-4 text-indigo-600 mt-0.5 shrink-0"></i>
+                        <p class="text-xs text-indigo-900 leading-relaxed">
                             <span class="font-bold">Note:</span> Register for a sport individually first, then you can create or join a squad for it.
                         </p>
                     </div>
@@ -164,9 +163,9 @@
                     <div class="flex gap-2 mb-4">
                         <div class="relative flex-1 group">
                             <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors"></i>
-                            <input type="text" id="team-marketplace-search" onkeyup="loadTeamMarketplace()" placeholder="Find squad..." class="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all">
+                            <input type="text" id="team-marketplace-search" onkeyup="loadTeamMarketplace()" placeholder="Find squad..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-indigo-500 transition-all shadow-sm">
                         </div>
-                        <select id="team-sport-filter" onchange="loadTeamMarketplace()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-indigo-500 w-24">
+                        <select id="team-sport-filter" onchange="loadTeamMarketplace()" class="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900 outline-none focus:border-indigo-500 w-24 shadow-sm">
                             <option value="all">All</option>
                         </select>
                         <button onclick="openCreateTeamModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-md shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-1">
@@ -182,17 +181,17 @@
             </div>
 
             <div id="view-schedule" class="hidden space-y-4 animate-fade-in pb-20">
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 sticky top-0 z-20 backdrop-blur-md">
-                    <button id="btn-schedule-upcoming" onclick="filterSchedule('upcoming')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600">Upcoming</button>
-                    <button id="btn-schedule-results" onclick="filterSchedule('results')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">Results</button>
+                <div class="flex p-1 bg-white rounded-xl border border-slate-200 sticky top-0 z-20 shadow-sm">
+                    <button id="btn-schedule-upcoming" onclick="filterSchedule('upcoming')" class="flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100">Upcoming</button>
+                    <button id="btn-schedule-results" onclick="filterSchedule('results')" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 hover:bg-slate-50">Results</button>
                 </div>
 
                 <div class="flex gap-2 mb-4">
                     <div class="relative flex-1 group">
                         <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors"></i>
-                        <input type="text" id="schedule-search" onkeyup="loadSchedule()" placeholder="Search matches..." class="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all">
+                        <input type="text" id="schedule-search" onkeyup="loadSchedule()" placeholder="Search matches..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-indigo-500 transition-all shadow-sm">
                     </div>
-                    <select id="schedule-sport-filter" onchange="loadSchedule()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-indigo-500 w-28">
+                    <select id="schedule-sport-filter" onchange="loadSchedule()" class="bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs text-slate-900 outline-none focus:border-indigo-500 w-28 shadow-sm">
                         <option value="">All Sports</option>
                     </select>
                 </div>
@@ -207,7 +206,7 @@
             <svg class="w-7 h-7 text-white fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
         </a>
 
-        <nav class="shrink-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex justify-around pb-safe pt-2">
+        <nav class="shrink-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around pb-safe pt-2">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active flex-1 py-3 flex flex-col items-center justify-center gap-1 group">
                 <i data-lucide="home" class="w-5 h-5 transition-transform group-active:scale-90"></i>
                 <span class="text-[10px] font-bold">Home</span>
@@ -227,23 +226,23 @@
         </nav>
     </div>
 
-    <div id="modal-register" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end justify-center sm:items-center p-0 sm:p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90vh] animate-slide-up overflow-hidden">
-            <div class="bg-slate-50 dark:bg-slate-800 p-5 border-b border-slate-100 dark:border-slate-700 shrink-0 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+    <div id="modal-register" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-end justify-center sm:items-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90vh] animate-slide-up overflow-hidden">
+            <div class="bg-slate-50 p-5 border-b border-slate-200 shrink-0 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <i data-lucide="clipboard-check" class="w-5 h-5 text-indigo-600"></i> Confirm Registration
                 </h3>
                 <button onclick="closeModal('modal-register')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
             <div class="p-6 overflow-y-auto no-scrollbar">
-                <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700 mb-6">
-                    <div class="w-10 h-10 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-slate-400 shadow-sm">
+                <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
                         <i data-lucide="user" class="w-5 h-5"></i>
                     </div>
                     <div>
                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Participant</p>
-                        <h4 id="reg-modal-user-name" class="text-sm font-bold text-slate-900 dark:text-white">Student Name</h4>
+                        <h4 id="reg-modal-user-name" class="text-sm font-bold text-slate-900">Student Name</h4>
                         <p id="reg-modal-user-details" class="text-[10px] text-slate-500 font-mono">ID</p>
                     </div>
                 </div>
@@ -251,56 +250,56 @@
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <span class="text-xs font-semibold text-slate-400 block mb-1">Event</span>
-                        <h2 class="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 leading-none" id="reg-modal-sport-name">Sport Name</h2>
+                        <h2 class="text-2xl font-extrabold text-indigo-600 leading-none" id="reg-modal-sport-name">Sport Name</h2>
                     </div>
                     <div class="flex flex-col items-end gap-1">
-                        <span id="reg-badge-type" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">Type</span>
-                        <span id="reg-badge-gender" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">Gender</span>
+                        <span id="reg-badge-type" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-600 uppercase">Type</span>
+                        <span id="reg-badge-gender" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-600 uppercase">Gender</span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                         <span class="text-[10px] text-slate-400 uppercase font-bold block mb-1">Team Size</span>
-                        <span id="reg-info-teamsize" class="text-sm font-bold text-slate-900 dark:text-white">N/A</span>
+                        <span id="reg-info-teamsize" class="text-sm font-bold text-slate-900">N/A</span>
                     </div>
-                     <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm focus-within:ring-2 ring-indigo-500 transition-all">
+                     <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm focus-within:ring-2 ring-indigo-500 transition-all">
                         <span class="text-[10px] text-slate-400 uppercase font-bold block mb-1">Mobile No.</span>
-                         <input type="tel" id="reg-mobile" class="w-full bg-transparent outline-none text-sm font-bold text-slate-900 dark:text-white placeholder-slate-300" placeholder="Required...">
+                         <input type="tel" id="reg-mobile" class="w-full bg-transparent outline-none text-sm font-bold text-slate-900 placeholder-slate-300" placeholder="Required...">
                     </div>
                 </div>
 
                 <div class="space-y-5">
                     <div>
-                        <h5 class="text-xs font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-1">Description</h5>
-                        <p id="reg-desc" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">No description available.</p>
+                        <h5 class="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wide border-b border-slate-200 pb-1">Description</h5>
+                        <p id="reg-desc" class="text-xs text-slate-500 leading-relaxed">No description available.</p>
                     </div>
                     
                     <div>
-                        <h5 class="text-xs font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-wide border-b border-slate-100 dark:border-slate-700 pb-1">Rules & Regulations</h5>
-                        <ul id="reg-rules" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed rules-list">
+                        <h5 class="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wide border-b border-slate-200 pb-1">Rules & Regulations</h5>
+                        <ul id="reg-rules" class="text-xs text-slate-500 leading-relaxed rules-list">
                             <li>No specific rules.</li>
                         </ul>
                     </div>
                 </div>
             </div>
 
-            <div class="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0 flex gap-3">
-                <button onclick="closeModal('modal-register')" class="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors">Cancel</button>
+            <div class="p-5 border-t border-slate-200 bg-slate-50 shrink-0 flex gap-3">
+                <button onclick="closeModal('modal-register')" class="flex-1 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
                 <button onclick="confirmRegistration()" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all">Confirm & Register</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-create-team" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
+    <div id="modal-create-team" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 relative shadow-2xl border border-slate-200 animate-fade-in">
             <button onclick="closeModal('modal-create-team')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             
             <div class="mb-6">
-                <div class="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3">
+                <div class="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-3">
                     <i data-lucide="users" class="w-5 h-5"></i>
                 </div>
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Create Squad</h3>
+                <h3 class="text-lg font-bold text-slate-900">Create Squad</h3>
                 <p class="text-xs text-slate-500 mt-1">Start a new team and invite others.</p>
             </div>
 
@@ -308,13 +307,13 @@
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Sport Category</label>
                     <div class="relative">
-                        <select id="new-team-sport" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white p-3 rounded-xl text-xs focus:border-indigo-500 outline-none appearance-none font-medium"></select>
+                        <select id="new-team-sport" class="w-full bg-slate-50 border border-slate-200 text-slate-900 p-3 rounded-xl text-xs focus:border-indigo-500 outline-none appearance-none font-medium"></select>
                         <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                     </div>
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Squad Name</label>
-                    <input type="text" id="new-team-name" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white p-3 rounded-xl text-xs focus:border-indigo-500 outline-none font-medium" placeholder="Ex. Thunder Strikers">
+                    <input type="text" id="new-team-name" class="w-full bg-slate-50 border border-slate-200 text-slate-900 p-3 rounded-xl text-xs focus:border-indigo-500 outline-none font-medium" placeholder="Ex. Thunder Strikers">
                 </div>
                 
                 <div class="pt-2">
@@ -324,11 +323,11 @@
         </div>
     </div>
 
-    <div id="modal-manage-team" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl h-[85vh] sm:h-[80vh] flex flex-col animate-slide-up overflow-hidden">
-            <div class="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 p-6 pb-4 bg-slate-50 dark:bg-slate-800/50">
+    <div id="modal-manage-team" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl h-[85vh] sm:h-[80vh] flex flex-col animate-slide-up overflow-hidden">
+            <div class="flex justify-between items-start border-b border-slate-200 p-6 pb-4 bg-slate-50">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="manage-team-title">Manage Team</h3>
+                    <h3 class="text-lg font-bold text-slate-900" id="manage-team-title">Manage Team</h3>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-1">Captain's Control Panel</p>
                 </div>
                 <button onclick="closeModal('modal-manage-team')"><i data-lucide="x" class="text-slate-400 w-5 h-5 hover:text-slate-600"></i></button>
@@ -336,14 +335,14 @@
 
             <div class="flex-1 overflow-y-auto px-6 space-y-8 no-scrollbar pb-10 pt-6">
                 <div>
-                    <h4 class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <h4 class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2 pb-2 border-b border-slate-200">
                         <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Pending Requests
                     </h4>
                     <div id="manage-requests-list" class="space-y-2 min-h-[1rem]"></div>
                 </div>
 
                 <div>
-                    <h4 class="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-3 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <h4 class="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-3 flex items-center gap-2 pb-2 border-b border-slate-200">
                         <i data-lucide="users" class="w-3.5 h-3.5"></i> Active Roster
                     </h4>
                     <div id="manage-members-list" class="space-y-2"></div>
@@ -352,10 +351,10 @@
         </div>
     </div>
 
-    <div id="modal-view-squad" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end justify-center sm:items-center p-0 sm:p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl animate-slide-up flex flex-col max-h-[80vh]">
-            <div class="flex justify-between items-center p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Team Roster</h3>
+    <div id="modal-view-squad" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-end justify-center sm:items-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl animate-slide-up flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center p-6 pb-4 border-b border-slate-200">
+                <h3 class="text-lg font-bold text-slate-900">Team Roster</h3>
                 <button onclick="closeModal('modal-view-squad')"><i data-lucide="x" class="text-slate-400 w-5 h-5 hover:text-slate-600"></i></button>
             </div>
             
@@ -369,19 +368,19 @@
         </div>
     </div>
 
-    <div id="modal-confirm" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
-            <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-400">
+    <div id="modal-confirm" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl border border-slate-200 animate-fade-in">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
                 <i data-lucide="alert-triangle" class="w-6 h-6"></i>
             </div>
-            <h3 id="confirm-title" class="text-lg font-bold text-slate-900 dark:text-white mb-2">Confirm?</h3>
-            <p id="confirm-msg" class="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">This action cannot be undone.</p>
+            <h3 id="confirm-title" class="text-lg font-bold text-slate-900 mb-2">Confirm?</h3>
+            <p id="confirm-msg" class="text-sm text-slate-500 mb-6 leading-relaxed">This action cannot be undone.</p>
             <div class="flex gap-3">
-                <button id="btn-confirm-cancel" class="flex-1 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-50 transition-colors">Cancel</button>
+                <button id="btn-confirm-cancel" class="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-lg text-xs hover:bg-slate-50 transition-colors">Cancel</button>
                 <button id="btn-confirm-yes" class="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-lg text-xs hover:bg-red-700 shadow-md transition-colors">Confirm</button>
             </div>
         </div>
     </div>
 
-    </body>
+</body>
 </html>
