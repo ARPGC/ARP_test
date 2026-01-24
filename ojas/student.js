@@ -43,12 +43,11 @@
 
     // --- 1. THEME LOGIC ---
     function initTheme() {
-        const savedTheme = localStorage.getItem('urja-theme');
-        if (savedTheme === 'dark') {
+        // Check system preference or localStorage
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
-            localStorage.setItem('urja-theme', 'light'); 
         }
     }
 
@@ -128,14 +127,16 @@
         }
     }
 
-    // --- 3. NAVIGATION ---
+    // --- 3. NAVIGATION (UPDATED FOR FAB) ---
     function setupTabSystem() {
         window.switchTab = function(tabId) {
+            // 1. Hide all Views
             document.querySelectorAll('[id^="view-"]').forEach(el => {
                 el.classList.add('hidden');
                 el.classList.remove('animate-fade-in');
             });
             
+            // 2. Show Target View
             const targetView = document.getElementById('view-' + tabId);
             if(targetView) {
                 targetView.classList.remove('hidden');
@@ -143,6 +144,7 @@
                 targetView.classList.add('animate-fade-in');
             }
             
+            // 3. Update Nav Styling
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active', 'text-indigo-600', 'dark:text-indigo-400');
                 el.classList.add('text-slate-400', 'dark:text-slate-500');
@@ -154,6 +156,17 @@
                 activeNav.classList.add('active', 'text-indigo-600', 'dark:text-indigo-400');
             }
 
+            // 4. WHATSAPP FAB LOGIC (Only show on Dashboard)
+            const fab = document.getElementById('btn-whatsapp-fab');
+            if (fab) {
+                if (tabId === 'dashboard') {
+                    fab.classList.remove('hidden');
+                } else {
+                    fab.classList.add('hidden');
+                }
+            }
+
+            // 5. Load Tab Data
             if(tabId === 'dashboard') loadDashboard(); 
             if(tabId === 'register') window.toggleRegisterView('new');
             if(tabId === 'teams') window.toggleTeamView('marketplace');
@@ -263,7 +276,7 @@
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
 
-        // Query modified to use a simpler string format to avoid syntax errors
+        // Query
         let query = supabaseClient
             .from('teams')
             .select('*, sports (name, team_size), users!captain_id (name, gender, class_name)')
@@ -349,7 +362,7 @@
         `}).join('');
     }
 
-    // --- REWRITTEN FUNCTION: ROBUST 2-STEP FETCH ---
+    // --- VIEW SQUAD LOGIC ---
     window.viewSquadAndJoin = async function(teamId, sportName, seatsLeft) {
         if(seatsLeft <= 0) return showToast("❌ This team is full!", "error");
 
