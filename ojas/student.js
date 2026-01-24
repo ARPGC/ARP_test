@@ -85,7 +85,7 @@
             }
         }
 
-        document.getElementById('loader').innerHTML = `<p class="text-red-500 font-bold text-center">Access Denied: No valid ID.</p>`;
+        document.getElementById('loader').innerHTML = `<p class="text-red-600 dark:text-red-400 font-bold text-center">Access Denied: No valid ID.</p>`;
     }
 
     async function initializeUserSession(user) {
@@ -133,24 +133,25 @@
         window.switchTab = function(tabId) {
             document.querySelectorAll('[id^="view-"]').forEach(el => {
                 el.classList.add('hidden');
-                el.classList.remove('animate-slide-up');
+                el.classList.remove('animate-fade-in');
             });
             
             const targetView = document.getElementById('view-' + tabId);
             if(targetView) {
                 targetView.classList.remove('hidden');
                 void targetView.offsetWidth; // Trigger reflow
-                targetView.classList.add('animate-slide-up');
+                targetView.classList.add('animate-fade-in');
             }
             
             document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active', 'text-brand-primary');
-                el.classList.add('text-gray-400');
+                el.classList.remove('active', 'text-indigo-600', 'dark:text-indigo-400');
+                el.classList.add('text-slate-400', 'dark:text-slate-500');
             });
             
             const activeNav = document.getElementById('nav-' + tabId);
             if(activeNav) {
-                activeNav.classList.add('active', 'text-brand-primary');
+                activeNav.classList.remove('text-slate-400', 'dark:text-slate-500');
+                activeNav.classList.add('active', 'text-indigo-600', 'dark:text-indigo-400');
             }
 
             if(tabId === 'dashboard') loadDashboard(); 
@@ -169,14 +170,14 @@
     window.loadLiveMatches = async function() { 
         const list = document.getElementById('live-matches-list');
         if(list) {
-            list.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No live matches currently.</p>`;
+            list.innerHTML = `<p class="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">No live matches currently.</p>`;
         }
     }
 
     async function loadLatestChampions() {
         const container = document.getElementById('home-champions-list'); 
         if (container) {
-            container.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-4">No results declared yet.</p>';
+            container.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">No results declared yet.</p>';
         }
     }
 
@@ -186,9 +187,9 @@
         const btnUp = document.getElementById('btn-schedule-upcoming');
         const btnRes = document.getElementById('btn-schedule-results');
         
-        // CSS Classes for Toggle
-        const activeClass = "flex-1 py-2.5 rounded-lg text-xs font-bold transition-all bg-white text-gray-900 shadow-md";
-        const inactiveClass = "flex-1 py-2.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white";
+        // Revised CSS Classes for clean toggle
+        const activeClass = "flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600";
+        const inactiveClass = "flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800";
         
         if(btnUp && btnRes) {
             if(view === 'upcoming') {
@@ -207,11 +208,12 @@
         if(!container) return;
         
         container.innerHTML = `
-            <div class="text-center py-10">
-                <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i data-lucide="calendar-clock" class="w-6 h-6 text-gray-500"></i>
+            <div class="text-center py-16 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="calendar-clock" class="w-6 h-6 text-indigo-500 dark:text-indigo-400"></i>
                 </div>
-                <p class="text-gray-500 text-xs">Match schedule coming soon.</p>
+                <h4 class="text-slate-900 dark:text-white font-medium text-sm">No Matches Scheduled</h4>
+                <p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Check back later for updates.</p>
             </div>`;
             
         if(window.lucide) lucide.createIcons();
@@ -225,9 +227,8 @@
         const btnMarket = document.getElementById('btn-team-market');
         const btnLocker = document.getElementById('btn-team-locker');
 
-        // FIXED: New CSS Classes matching index.html
-        const activeClass = "flex-1 py-2.5 rounded-lg text-[10px] font-bold transition-all bg-white text-gray-900 shadow-md";
-        const inactiveClass = "flex-1 py-2.5 rounded-lg text-[10px] font-bold transition-all text-gray-400 hover:text-white";
+        const activeClass = "flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600";
+        const inactiveClass = "flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800";
 
         if(view === 'marketplace') {
             document.getElementById('team-marketplace').classList.remove('hidden');
@@ -257,7 +258,7 @@
 
     window.loadTeamMarketplace = async function() {
         const container = document.getElementById('marketplace-list');
-        container.innerHTML = '<p class="text-center text-gray-400 py-10">Scanning available squads...</p>';
+        container.innerHTML = '<div class="py-12 flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
 
         const filterVal = document.getElementById('team-sport-filter').value;
         const searchText = document.getElementById('team-marketplace-search')?.value?.toLowerCase() || '';
@@ -275,12 +276,12 @@
 
         if (error) {
             console.error("Team Market Error:", error);
-            container.innerHTML = '<p class="text-center text-red-400 py-10">System Error: Check Console.</p>';
+            container.innerHTML = '<div class="p-6 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800 text-center"><p class="text-red-600 dark:text-red-400 text-sm">System Error. Please try again.</p></div>';
             return;
         }
 
         if (!teams || teams.length === 0) {
-             container.innerHTML = '<p class="text-center text-gray-400 py-10">No open teams available.</p>';
+             container.innerHTML = '<div class="p-8 text-center"><p class="text-slate-500 dark:text-slate-400 text-sm">No open teams available right now.</p></div>';
              return;
         }
 
@@ -304,37 +305,46 @@
         });
 
         if (validTeams.length === 0) {
-             container.innerHTML = '<p class="text-center text-gray-400 py-10">No matching teams found.</p>';
+             container.innerHTML = '<div class="p-8 text-center"><p class="text-slate-500 dark:text-slate-400 text-sm">No matching teams found.</p></div>';
              return;
         }
 
         container.innerHTML = validTeams.map(t => {
             const isFull = t.seatsLeft <= 0;
-            const btnText = isFull ? "Team Full" : "View Squad & Join";
-            const btnClass = isFull 
-                ? "w-full py-3 bg-gray-800 text-gray-500 cursor-not-allowed text-xs font-bold rounded-xl"
-                : "w-full py-3 bg-white text-black text-xs font-bold rounded-xl shadow-lg active:scale-95 transition-transform hover:opacity-90";
+            const btnText = isFull ? "Full" : "Join";
             
-            // Sanitize sport name just in case
+            // Professional button styles
+            const btnClass = isFull 
+                ? "px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed text-xs font-semibold rounded-lg"
+                : "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors";
+            
             const safeSportName = t.sports.name.replace(/'/g, "\\'");
             const action = isFull ? "" : `window.viewSquadAndJoin('${t.id}', '${safeSportName}', ${t.seatsLeft})`;
 
             return `
-            <div class="bg-gray-800/50 p-5 rounded-xl border border-white/5 shadow-sm mb-3">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-3 hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-3">
-                    <div>
-                        <span class="text-[10px] font-bold bg-gray-700 px-2 py-0.5 rounded text-gray-300 uppercase">${t.sports.name}</span>
-                        <h4 class="font-bold text-lg text-white mt-1">${t.name}</h4>
-                        <p class="text-xs text-gray-400">Capt: ${t.users?.name || 'Unknown'}</p>
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                             <span class="font-bold text-xs">${t.name.substring(0,2).toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-white text-sm leading-tight">${t.name}</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Capt: ${t.users?.name || 'Unknown'}</p>
+                        </div>
                     </div>
-                    <div class="text-center">
-                        <span class="block text-xl font-black ${isFull ? 'text-gray-400' : 'text-yellow-500'}">${t.seatsLeft}</span>
-                        <span class="text-[9px] text-gray-400 uppercase font-bold">Seats Left</span>
-                    </div>
+                    <span class="text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 uppercase tracking-wide">${t.sports.name}</span>
                 </div>
-                <button onclick="${action}" class="${btnClass}" ${isFull ? 'disabled' : ''}>
-                    ${btnText}
-                </button>
+                
+                <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-lg font-bold ${isFull ? 'text-slate-400' : 'text-indigo-600 dark:text-indigo-400'}">${t.seatsLeft}</span>
+                        <span class="text-[10px] text-slate-400 uppercase font-semibold">Seats Left</span>
+                    </div>
+                    <button onclick="${action}" class="${btnClass}" ${isFull ? 'disabled' : ''}>
+                        ${btnText}
+                    </button>
+                </div>
             </div>
         `}).join('');
     }
@@ -359,7 +369,7 @@
         }
 
         const list = document.getElementById('view-squad-list');
-        list.innerHTML = '<p class="text-center text-gray-400 text-xs py-4">Loading roster...</p>';
+        list.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">Loading roster...</p>';
         document.getElementById('modal-view-squad').classList.remove('hidden');
 
         // STEP 1: Get Member IDs (Status: Accepted)
@@ -376,7 +386,7 @@
         }
 
         if (teamMembers.length === 0) {
-            list.innerHTML = '<p class="text-gray-500 text-xs italic text-center">No members yet. Be the first!</p>';
+            list.innerHTML = '<p class="text-slate-500 text-xs italic text-center py-2">No members yet. Be the first!</p>';
         } else {
             // STEP 2: Get Details for these IDs
             const userIds = teamMembers.map(m => m.user_id);
@@ -392,12 +402,14 @@
             }
 
             list.innerHTML = users.map(u => `
-                <div class="flex justify-between items-center p-3 bg-gray-800 rounded-xl border border-white/5">
+                <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-100 dark:border-slate-700">
                     <div>
-                        <span class="text-sm font-bold text-white block">${u.name || 'Unknown'}</span>
-                        <span class="text-[10px] text-gray-400 font-mono">${u.class_name || 'N/A'}</span>
+                        <span class="text-sm font-semibold text-slate-800 dark:text-white block">${u.name || 'Unknown'}</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">${u.class_name || 'N/A'}</span>
                     </div>
-                    <i data-lucide="user" class="w-4 h-4 text-gray-600"></i>
+                    <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-600 flex items-center justify-center text-slate-400">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
                 </div>
             `).join('');
             
@@ -435,7 +447,7 @@
 
     window.loadTeamLocker = async function() {
         const container = document.getElementById('locker-list');
-        container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading your teams...</p>';
+        container.innerHTML = '<div class="py-12 flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
 
         const { data: memberships, error } = await supabaseClient
             .from('team_members')
@@ -447,12 +459,15 @@
 
         if (error) {
             console.error("Locker Error:", error);
-            container.innerHTML = '<p class="text-center text-red-400">Error loading teams.</p>';
+            container.innerHTML = '<div class="text-center p-6"><p class="text-red-500 text-sm">Error loading teams.</p></div>';
             return;
         }
 
         if(!memberships || memberships.length === 0) {
-            container.innerHTML = '<p class="text-center text-gray-400 py-10">You are not in any teams.</p>';
+            container.innerHTML = `
+                <div class="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">You are not in any teams.</p>
+                </div>`;
             return;
         }
 
@@ -470,39 +485,43 @@
                 .eq('status', 'Accepted');
                 
             const squadHtml = (squad || []).map(s => `
-                <div class="flex justify-between items-center bg-gray-700/30 p-2 rounded-lg mb-1.5 border border-white/5 w-full">
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-lg mb-2 border border-slate-100 dark:border-slate-700 w-full">
                     <div class="flex flex-col">
-                        <span class="text-xs font-bold text-gray-200">${s.users?.name}</span>
-                        <span class="text-[9px] text-gray-400 font-bold">${s.users?.class_name || 'N/A'}</span>
+                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">${s.users?.name}</span>
+                        <span class="text-[10px] text-slate-500 font-medium">${s.users?.class_name || 'N/A'}</span>
                     </div>
-                    <span class="text-[10px] font-mono font-medium text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded border border-gray-600">
+                    <span class="text-[10px] font-mono text-slate-400">
                         ${s.users?.mobile || 'No #'}
                     </span>
                 </div>
             `).join('');
 
             return `
-            <div class="bg-gray-800/50 p-5 rounded-xl border border-white/5 shadow-sm mb-3">
-                <div class="flex justify-between items-start mb-3">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+                <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h4 class="font-bold text-lg text-white">${t.name}</h4>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase">${t.sports?.name} • ${t.status}</p>
+                        <h4 class="font-bold text-lg text-slate-900 dark:text-white">${t.name}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                             <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400 tracking-wide">${t.sports?.name}</span>
+                             <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                             <span class="text-[10px] font-bold uppercase text-slate-500">${t.status}</span>
+                        </div>
                     </div>
-                    ${isCaptain ? '<span class="text-[10px] bg-indigo-900 text-indigo-300 px-2 py-1 rounded border border-indigo-700 font-bold">CAPTAIN</span>' : ''}
+                    ${isCaptain ? '<span class="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded font-bold border border-indigo-200 dark:border-indigo-800">CAPTAIN</span>' : ''}
                 </div>
                 
                 <div class="mb-4">
-                    <p class="text-[9px] text-gray-400 uppercase font-bold mb-2">Squad Members</p>
+                    <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-wide">Roster</p>
                     <div class="flex flex-col w-full">${squadHtml}</div>
                 </div>
                 
-                <div class="flex gap-2">
+                <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
                     ${isCaptain ? 
-                        `<button onclick="window.openManageTeamModal('${t.id}', '${t.name}', ${isLocked}, ${t.sports?.team_size})" class="flex-1 py-2 bg-yellow-600 text-white text-xs font-bold rounded-lg shadow-md hover:bg-yellow-500">Manage Team</button>
-                         ${!isLocked ? `<button onclick="window.promptDeleteTeam('${t.id}')" class="px-3 py-2 bg-gray-700 text-red-500 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}`
+                        `<button onclick="window.openManageTeamModal('${t.id}', '${t.name}', ${isLocked}, ${t.sports?.team_size})" class="flex-1 py-2 bg-indigo-50 dark:bg-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-600 text-indigo-700 dark:text-white text-xs font-bold rounded-lg border border-indigo-100 dark:border-slate-600 transition-colors">Manage Team</button>
+                         ${!isLocked ? `<button onclick="window.promptDeleteTeam('${t.id}')" class="px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800 hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}`
                     : 
-                        !isLocked ? `<button onclick="window.leaveTeam('${m.id}', '${t.name}')" class="flex-1 py-2 bg-gray-700 border border-red-900 text-red-400 text-xs font-bold rounded-lg hover:bg-gray-600">Leave Team</button>` 
-                        : `<div class="w-full py-2 bg-gray-700 text-center rounded-lg text-xs font-bold text-gray-400 flex items-center justify-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Locked</div>`
+                        !isLocked ? `<button onclick="window.leaveTeam('${m.id}', '${t.name}')" class="flex-1 py-2 bg-white dark:bg-slate-700 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">Leave Team</button>` 
+                        : `<div class="w-full py-2 bg-slate-50 dark:bg-slate-700 text-center rounded-lg text-xs font-bold text-slate-400 flex items-center justify-center gap-2 border border-slate-100 dark:border-slate-600"><i data-lucide="lock" class="w-3 h-3"></i> Locked</div>`
                     }
                 </div>
             </div>`;
@@ -578,9 +597,8 @@
         const btnNew = document.getElementById('btn-reg-new');
         const btnHist = document.getElementById('btn-reg-history');
         
-        // FIXED: New CSS Classes matching index.html
-        const activeClass = "flex-1 py-2.5 rounded-lg text-[10px] font-bold transition-all bg-white text-gray-900 shadow-md";
-        const inactiveClass = "flex-1 py-2.5 rounded-lg text-[10px] font-bold transition-all text-gray-400 hover:text-white";
+        const activeClass = "flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600";
+        const inactiveClass = "flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800";
 
         if(view === 'new') {
             document.getElementById('reg-section-new').classList.remove('hidden');
@@ -599,7 +617,7 @@
         const container = document.getElementById('sports-list');
         if(container.children.length > 0 && allSportsList.length > 0) return;
 
-        container.innerHTML = '<div class="col-span-2 text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div></div>';
+        container.innerHTML = '<div class="col-span-2 flex justify-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
 
         const { data: sports } = await supabaseClient
             .from('sports')
@@ -615,29 +633,31 @@
         const container = document.getElementById('sports-list');
         
         if(!list || list.length === 0) {
-            container.innerHTML = '<p class="col-span-2 text-center text-gray-400">No sports found.</p>';
+            container.innerHTML = '<p class="col-span-2 text-center text-slate-500 py-8">No sports found.</p>';
             return;
         }
 
         container.innerHTML = list.map(s => {
             const isReg = myRegistrations.includes(s.id);
+            // Cleaner, more professional cards
             const btnClass = isReg 
-                ? "bg-green-900/30 text-green-600 border border-green-800 cursor-not-allowed" 
-                : "bg-white text-black shadow-lg hover:opacity-90";
+                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-not-allowed" 
+                : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 shadow-md";
             
             return `
-            <div class="bg-gray-800/50 p-4 rounded-2xl border border-white/5 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group">
-                <div class="absolute -right-4 -top-4 w-20 h-20 bg-gray-700 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between h-40 hover:shadow-md transition-all group">
                 
-                <div class="relative z-10">
-                    <div class="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center mb-2 text-yellow-500">
-                        <i data-lucide="${s.icon || 'trophy'}" class="w-4 h-4"></i>
+                <div>
+                    <div class="flex justify-between items-start mb-3">
+                         <div class="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <i data-lucide="${s.icon || 'trophy'}" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${s.type}</span>
                     </div>
-                    <h4 class="font-bold text-md leading-tight text-white">${s.name}</h4>
-                    <p class="text-[10px] uppercase font-bold text-gray-400 mt-1">${s.type} Sport</p>
+                    <h4 class="font-bold text-sm leading-tight text-slate-900 dark:text-white mb-1 line-clamp-2">${s.name}</h4>
                 </div>
 
-                <button onclick="${isReg ? '' : `window.openRegistrationModal('${s.id}')`}" class="relative z-10 w-full py-2 rounded-lg text-xs font-bold transition-all ${btnClass}" ${isReg ? 'disabled' : ''}>
+                <button onclick="${isReg ? '' : `window.openRegistrationModal('${s.id}')`}" class="w-full py-2.5 rounded-lg text-xs font-bold transition-all ${btnClass}" ${isReg ? 'disabled' : ''}>
                     ${isReg ? '<i data-lucide="check" class="w-3 h-3 inline mr-1"></i> Registered' : 'Register Now'}
                 </button>
             </div>`;
@@ -653,7 +673,7 @@
 
     window.loadRegistrationHistory = async function(containerId) {
         const container = document.getElementById(containerId);
-        container.innerHTML = '<p class="text-center text-gray-400 py-10">Loading history...</p>';
+        container.innerHTML = '<div class="py-12 flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
 
         const { data: regs } = await supabaseClient
             .from('registrations')
@@ -662,21 +682,24 @@
             .order('created_at', { ascending: false });
 
         if(!regs || regs.length === 0) {
-            container.innerHTML = '<p class="text-center text-gray-400 py-6">You haven\'t registered for any events yet.</p>';
+            container.innerHTML = `
+                <div class="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">You haven't registered for any events yet.</p>
+                </div>`;
             return;
         }
 
         container.innerHTML = regs.map(r => {
             return `
-            <div class="flex items-center gap-4 bg-gray-800/50 p-4 rounded-2xl border border-white/5 shadow-sm mb-2 group relative">
-                <div class="w-10 h-10 rounded-full bg-indigo-900/30 flex items-center justify-center text-white shrink-0">
+            <div class="flex items-center gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-2.5">
+                <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                     <i data-lucide="${r.sports.icon || 'trophy'}" class="w-5 h-5"></i>
                 </div>
-                <div class="flex-1">
-                    <h4 class="font-bold text-sm text-white">${r.sports.name}</h4>
-                    <p class="text-xs text-gray-400 font-medium">${r.sports.type} • ${new Date(r.created_at).toLocaleDateString()}</p>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate">${r.sports.name}</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">${r.sports.type} • ${new Date(r.created_at).toLocaleDateString()}</p>
                 </div>
-                <button onclick="window.withdrawRegistration('${r.id}', '${r.sports.id}', '${r.sports.type}', '${r.sports.name}')" class="text-[10px] text-red-500 font-bold border border-red-900 px-3 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 transition-colors">
+                <button onclick="window.withdrawRegistration('${r.id}', '${r.sports.id}', '${r.sports.type}', '${r.sports.name}')" class="text-[10px] text-red-600 dark:text-red-400 font-semibold border border-red-200 dark:border-red-900/50 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors">
                     Withdraw
                 </button>
             </div>
@@ -734,29 +757,29 @@
         
         const { data: pending } = await supabaseClient.from('team_members').select('id, users(name, class_name)').eq('team_id', teamId).eq('status', 'Pending');
         const reqList = document.getElementById('manage-requests-list');
-        reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-gray-400 italic">No pending requests.</p>' : pending.map(p => `
-            <div class="flex justify-between items-center p-2 bg-yellow-900/20 rounded-lg border border-yellow-800 mb-1">
+        reqList.innerHTML = (!pending || pending.length === 0) ? '<p class="text-xs text-slate-400 italic py-2">No pending requests.</p>' : pending.map(p => `
+            <div class="flex justify-between items-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 mb-2">
                 <div>
-                    <span class="text-xs font-bold text-white block">${p.users.name}</span>
-                    <span class="text-[10px] text-gray-500 font-mono">${p.users.class_name || 'N/A'}</span>
+                    <span class="text-xs font-bold text-slate-800 dark:text-white block">${p.users.name}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">${p.users.class_name || 'N/A'}</span>
                 </div>
-                <div class="flex gap-1">
-                    <button onclick="window.handleRequest('${p.id}', 'Accepted', '${teamId}')" class="p-1 bg-green-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
-                    <button onclick="window.handleRequest('${p.id}', 'Rejected', '${teamId}')" class="p-1 bg-red-500 text-white rounded"><i data-lucide="x" class="w-3 h-3"></i></button>
+                <div class="flex gap-2">
+                    <button onclick="window.handleRequest('${p.id}', 'Accepted', '${teamId}')" class="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md hover:bg-green-200"><i data-lucide="check" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="window.handleRequest('${p.id}', 'Rejected', '${teamId}')" class="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-md hover:bg-red-200"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                 </div>
             </div>`).join('');
 
         const { data: members } = await supabaseClient.from('team_members').select('id, user_id, users(name, class_name, mobile)').eq('team_id', teamId).eq('status', 'Accepted');
         const memList = document.getElementById('manage-members-list');
         memList.innerHTML = members.map(m => `
-            <div class="flex justify-between items-center p-2 bg-gray-700 rounded-lg mb-1">
+            <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-2 border border-slate-100 dark:border-slate-700">
                 <div>
-                    <span class="text-xs font-bold text-white block ${m.user_id === currentUser.id ? 'text-yellow-500' : ''}">
+                    <span class="text-xs font-bold text-slate-800 dark:text-white block ${m.user_id === currentUser.id ? 'text-indigo-600 dark:text-indigo-400' : ''}">
                         ${m.users.name} ${m.user_id === currentUser.id ? '(You)' : ''}
                     </span>
-                    <span class="text-[10px] text-gray-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">${m.users.class_name || 'N/A'} • ${m.users.mobile || 'No #'}</span>
                 </div>
-                ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500"><i data-lucide="trash" class="w-3 h-3"></i></button>` : ''}
+                ${m.user_id !== currentUser.id && !isLocked ? `<button onclick="window.removeMember('${m.id}', '${teamId}')" class="text-red-500 hover:text-red-700"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>` : ''}
             </div>`).join('');
 
         const oldLock = document.getElementById('btn-lock-dynamic');
@@ -765,8 +788,8 @@
         if (!isLocked) {
              const lockBtn = document.createElement('button');
              lockBtn.id = 'btn-lock-dynamic';
-             lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-900/20 text-red-400 font-bold rounded-xl text-xs border border-red-900 flex items-center justify-center gap-2";
-             lockBtn.innerHTML = '<i data-lucide="lock" class="w-3 h-3"></i> LOCK TEAM PERMANENTLY';
+             lockBtn.className = "w-full py-3 mt-4 mb-2 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs border border-red-200 dark:border-red-900/50 flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors";
+             lockBtn.innerHTML = '<i data-lucide="lock" class="w-3.5 h-3.5"></i> LOCK TEAM PERMANENTLY';
              lockBtn.onclick = () => window.promptLockTeam(teamId, teamSize);
              memList.parentElement.parentElement.insertBefore(lockBtn, memList.parentElement.nextElementSibling);
         }
@@ -904,15 +927,19 @@
         const msgEl = document.getElementById('toast-msg');
         
         if (!msgEl) {
-             t.innerHTML = `<div id="toast-content" class="bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700/50"><div id="toast-icon"></div><p id="toast-msg" class="text-sm font-bold tracking-wide">${msg}</p></div>`;
+             t.innerHTML = `
+             <div id="toast-content" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 dark:border-slate-200">
+                <div id="toast-icon"></div>
+                <p id="toast-msg" class="text-sm font-semibold"></p>
+             </div>`;
         } else {
              document.getElementById('toast-msg').innerText = msg;
              const icon = document.getElementById('toast-icon');
              if (icon) {
                 if (type === 'error') {
-                    icon.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>';
+                    icon.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400 dark:text-red-500"></i>';
                 } else {
-                    icon.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
+                    icon.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400 dark:text-green-500"></i>';
                 }
             }
         }
@@ -946,7 +973,11 @@
             const div = document.createElement('div');
             div.id = 'toast-container';
             div.className = 'fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[70] transition-all duration-300 opacity-0 pointer-events-none translate-y-10 w-11/12 max-w-sm';
-            div.innerHTML = `<div id="toast-content" class="bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700/50"><div id="toast-icon"></div><p id="toast-msg" class="text-sm font-bold tracking-wide"></p></div>`;
+            div.innerHTML = `
+            <div id="toast-content" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 dark:border-slate-200">
+                <div id="toast-icon"></div>
+                <p id="toast-msg" class="text-sm font-semibold"></p>
+            </div>`;
             document.body.appendChild(div);
         }
     }
