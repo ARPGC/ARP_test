@@ -29,7 +29,6 @@
     // --- INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
         if(window.lucide) lucide.createIcons();
-        // initTheme removed (Light theme forced in CSS)
         injectToastContainer();
         setupTabSystem();
         setupConfirmModal(); 
@@ -166,8 +165,23 @@
 
     // --- 4. DASHBOARD ---
     async function loadDashboard() {
-        // loadLiveMatches removed as per request
+        // 1. Check Role and Show Admin Card if applicable
+        if (currentUser && currentUser.role === 'admin') {
+            const adminCard = document.getElementById('admin-dashboard-card');
+            if(adminCard) adminCard.classList.remove('hidden');
+        }
+
+        // 2. Load Public Data
         loadLatestChampions();
+    }
+
+    window.openAdminPanel = function() {
+        if(currentUser && currentUser.student_id) {
+            // Pass student_id to admin panel for role verification
+            window.location.href = `admin.html?id=${currentUser.student_id}`;
+        } else {
+            showToast("Error: User ID not found.", "error");
+        }
     }
 
     // --- UPDATED: WINNERS TABLE LOGIC ---
@@ -178,7 +192,7 @@
         // Loading State
         container.innerHTML = '<div class="py-12 flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
 
-        // Fetch from new 'winners' table
+        // Fetch from 'winners' table
         const { data: winners, error } = await supabaseClient
             .from('winners')
             .select('*')
@@ -230,7 +244,6 @@
         tableHtml += `</tbody></table></div>`;
         container.innerHTML = tableHtml;
         
-        // Re-initialize icons for the new table
         if(window.lucide) lucide.createIcons();
     }
 
@@ -240,7 +253,6 @@
         const btnUp = document.getElementById('btn-schedule-upcoming');
         const btnRes = document.getElementById('btn-schedule-results');
         
-        // Revised CSS Classes for clean toggle (Light Only)
         const activeClass = "flex-1 py-2 rounded-lg text-xs font-semibold transition-all bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100";
         const inactiveClass = "flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-500 hover:bg-slate-50";
         
@@ -365,7 +377,6 @@
             const isFull = t.seatsLeft <= 0;
             const btnText = isFull ? "Full" : "Join";
             
-            // Professional button styles
             const btnClass = isFull 
                 ? "px-4 py-2 bg-slate-100 text-slate-400 cursor-not-allowed text-xs font-semibold rounded-lg"
                 : "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors";
@@ -470,7 +481,6 @@
 
         // Attach event listener properly
         const joinBtn = document.getElementById('btn-confirm-join');
-        // Clone node to strip old event listeners
         const newBtn = joinBtn.cloneNode(true);
         joinBtn.parentNode.replaceChild(newBtn, joinBtn);
         
@@ -591,51 +601,6 @@
             else {
                 showToast("Left team successfully", "success");
                 window.loadTeamLocker();
-                window.closeModal('modal-confirm');
-            }
-        });
-    }
-
-    // STRICT WITHDRAWAL
-    window.withdrawRegistration = async function(regId, sportId, sportType, sportName) {
-        showConfirmDialog("Withdraw?", `Withdraw from ${sportName}?`, async () => {
-            
-            // 1. IF TEAM SPORT: Handle Team Membership First
-            if (sportType && sportType.toLowerCase() === 'team') {
-                const { data: membership } = await supabaseClient
-                    .from('team_members')
-                    .select('id, teams!inner(status, captain_id, name)')
-                    .eq('user_id', currentUser.id)
-                    .eq('teams.sport_id', sportId)
-                    .maybeSingle();
-
-                if (membership) {
-                    if (membership.teams.status === 'Locked') {
-                        window.closeModal('modal-confirm');
-                        return showToast(`Cannot withdraw! Your team '${membership.teams.name}' is LOCKED.`, "error");
-                    }
-                    if (membership.teams.captain_id === currentUser.id) {
-                        window.closeModal('modal-confirm');
-                        return showToast(`⚠️ Captains cannot withdraw. Delete the team in 'Teams' tab first.`, "error");
-                    }
-                    await supabaseClient.from('team_members').delete().eq('id', membership.id);
-                }
-            }
-
-            const { error } = await supabaseClient.from('registrations').delete().eq('id', regId);
-            
-            if (error) {
-                showToast("Withdrawal Failed: " + error.message, "error");
-            } else {
-                showToast("Withdrawn Successfully", "success");
-                myRegistrations = myRegistrations.filter(id => id != sportId);
-                
-                if(document.getElementById('history-list')) window.loadRegistrationHistory('history-list'); 
-                if(document.getElementById('my-registrations-list')) window.loadRegistrationHistory('my-registrations-list');
-                if(document.getElementById('sports-list') && document.getElementById('sports-list').children.length > 0) {
-                    renderSportsList(allSportsList);
-                }
-                
                 window.closeModal('modal-confirm');
             }
         });
