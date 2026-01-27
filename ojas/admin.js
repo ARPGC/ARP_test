@@ -21,18 +21,61 @@
     
     // UI State
     let currentManageTeamId = null;
+    let currentUserProfileId = null; // For User Manager
     let searchDebounceTimer = null;
+    let isAdminUser = false;
 
-    // --- 2. INITIALIZATION & AUTH ---
-    document.addEventListener('DOMContentLoaded', () => {
-        // Clear sensitive fields
+    // --- 2. INITIALIZATION & RBAC ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. Clear sensitive fields
         const passField = document.getElementById('admin-pass');
         if(passField) passField.value = '';
 
         if(window.lucide) lucide.createIcons();
+
+        // 2. CHECK ROLE ON LOAD
+        await verifyAdminRole();
     });
 
+    async function verifyAdminRole() {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+            // No user logged in at all
+            document.body.innerHTML = `<div class="flex h-screen items-center justify-center bg-slate-900 text-white flex-col">
+                <h1 class="text-3xl font-bold mb-2">Access Denied</h1>
+                <p class="text-slate-400">You must be logged in to view this page.</p>
+                <a href="index.html" class="mt-4 text-indigo-400 hover:underline">Go to Login</a>
+            </div>`;
+            return;
+        }
+
+        // Check 'role' column in users table
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+        if (error || !user || user.role !== 'admin') {
+            document.body.innerHTML = `<div class="flex h-screen items-center justify-center bg-slate-900 text-white flex-col">
+                <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 text-red-500"><i data-lucide="shield-alert" class="w-8 h-8"></i></div>
+                <h1 class="text-3xl font-bold mb-2">Unauthorized</h1>
+                <p class="text-slate-400">Your account does not have Administrator privileges.</p>
+                <button onclick="window.history.back()" class="mt-6 px-6 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors">Go Back</button>
+            </div>`;
+            if(window.lucide) lucide.createIcons();
+            return;
+        }
+
+        // If passed, allow Passkey Entry (Double Security)
+        isAdminUser = true;
+        console.log("Admin Role Verified.");
+    }
+
     window.checkAdminAuth = function() {
+        if(!isAdminUser) return; // Prevent bypass if role check failed
+
         const input = document.getElementById('admin-pass').value;
         const err = document.getElementById('login-error');
         
@@ -82,6 +125,7 @@
         if (viewId === 'registrations') loadRegistrations();
         if (viewId === 'teams') loadTeams();
         if (viewId === 'winners') loadWinners();
+        // Users view is event-driven (search), no auto-load needed
     }
 
     // --- 4. SHARED DATA FETCHING ---
@@ -90,7 +134,7 @@
         if (data) {
             rawSports = data;
             // Populate all dropdowns
-            ['reg-filter-sport', 'team-filter-sport', 'new-team-sport', 'winner-sport'].forEach(id => {
+            ['reg-filter-sport', 'team-filter-sport', 'new-team-sport', 'winner-sport', 'um-sport-select'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) {
                     // Keep "All" if it exists, else clear
@@ -116,7 +160,137 @@
         document.getElementById('stat-teams').innerText = teamCount || 0;
     }
 
-    // --- 5. REGISTRATIONS MODULE ---
+    // --- 5. USER MANAGER (NEW) ---
+    
+    window.searchUserManager = function(query) {
+        clearTimeout(searchDebounceTimer);
+        const resultsEl = document.getElementById('user-manager-results');
+        
+        if (!query || query.length < 2) {
+            resultsEl.classList.add('hidden');
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(async () => {
+            resultsEl.innerHTML = '<div class="p-4 text-xs text-slate-400 text-center">Searching...</div>';
+            resultsEl.classList.remove('hidden');
+
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, student_id, class_name, mobile')
+                .or(`name.ilike.%${query}%,student_id.ilike.%${query}%`)
+                .limit(5);
+
+            if (data && data.length > 0) {
+                resultsEl.innerHTML = data.map(u => `
+                    <div onclick="loadUserProfile('${u.id}')" 
+                         class="p-3 border-b border-slate-100 hover:bg-indigo-50 cursor-pointer last:border-0 flex justify-between items-center group">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800 group-hover:text-indigo-700">${u.name}</p>
+                            <p class="text-[10px] text-slate-500">${u.class_name} • #${u.student_id}</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-indigo-400"></i>
+                    </div>
+                `).join('');
+                if(window.lucide) lucide.createIcons();
+            } else {
+                resultsEl.innerHTML = '<div class="p-3 text-xs text-red-400 text-center">No student found.</div>';
+            }
+        }, 400);
+    }
+
+    window.loadUserProfile = async function(userId) {
+        document.getElementById('user-manager-results').classList.add('hidden');
+        document.getElementById('user-manager-search').value = ''; 
+        
+        currentUserProfileId = userId;
+        const profileEl = document.getElementById('user-manager-profile');
+        
+        // 1. Fetch User Info
+        const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+        if(!user) return alert("User not found");
+
+        document.getElementById('um-name').innerText = user.name;
+        document.getElementById('um-class').innerText = user.class_name || 'N/A';
+        document.getElementById('um-id').innerText = user.student_id || 'N/A';
+        document.getElementById('um-contact').innerText = `Mobile: ${user.mobile || 'N/A'}`;
+
+        // 2. Fetch Registrations
+        await refreshUserRegistrations();
+
+        profileEl.classList.remove('hidden');
+    }
+
+    async function refreshUserRegistrations() {
+        const listEl = document.getElementById('um-regs-list');
+        listEl.innerHTML = '<p class="p-4 text-xs text-slate-400">Loading registrations...</p>';
+
+        const { data: regs } = await supabase
+            .from('registrations')
+            .select('id, sports(name, type)')
+            .eq('user_id', currentUserProfileId);
+
+        document.getElementById('um-reg-count').innerText = regs ? regs.length : 0;
+
+        if(!regs || regs.length === 0) {
+            listEl.innerHTML = '<p class="p-6 text-center text-sm text-slate-400 italic">No active registrations.</p>';
+        } else {
+            listEl.innerHTML = regs.map(r => `
+                <div class="p-4 flex justify-between items-center hover:bg-slate-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                            ${r.sports.name.substring(0,2).toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">${r.sports.name}</p>
+                            <p class="text-[10px] text-slate-500 uppercase">${r.sports.type}</p>
+                        </div>
+                    </div>
+                    <button onclick="adminWithdrawUser('${r.id}')" class="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors" title="Withdraw Student">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            if(window.lucide) lucide.createIcons();
+        }
+    }
+
+    window.adminRegisterUser = async function() {
+        if(!currentUserProfileId) return;
+        const sportId = document.getElementById('um-sport-select').value;
+        if(!sportId) return alert("Select a sport first");
+
+        // Check if already registered
+        const { data: existing } = await supabase
+            .from('registrations')
+            .select('id')
+            .eq('user_id', currentUserProfileId)
+            .eq('sport_id', sportId);
+        
+        if(existing && existing.length > 0) return alert("Student is already registered for this sport.");
+
+        const { error } = await supabase.from('registrations').insert({
+            user_id: currentUserProfileId,
+            sport_id: sportId
+        });
+
+        if(error) alert("Error: " + error.message);
+        else {
+            alert("Registration Added!");
+            refreshUserRegistrations();
+        }
+    }
+
+    window.adminWithdrawUser = async function(regId) {
+        if(!confirm("Are you sure you want to withdraw the student from this event?")) return;
+        
+        const { error } = await supabase.from('registrations').delete().eq('id', regId);
+        if(error) alert("Error: " + error.message);
+        else refreshUserRegistrations();
+    }
+
+
+    // --- 6. REGISTRATIONS MODULE ---
     async function loadRegistrations() {
         const loader = document.getElementById('regs-loader');
         const tbody = document.getElementById('regs-tbody');
@@ -150,7 +324,7 @@
             const matchesSearch = (u.name || '').toLowerCase().includes(search) || (u.student_id || '').toString().includes(search);
             const matchesSport = fSport === 'All' || r.sports?.name === fSport;
             const matchesGender = fGender === 'All' || u.gender === fGender;
-            const matchesClass = fClass === 'All' || (u.class_name || '').startsWith(fClass); // StartsWith handles FY vs FYJC
+            const matchesClass = fClass === 'All' || (u.class_name || '').startsWith(fClass); 
 
             return matchesSearch && matchesSport && matchesGender && matchesClass;
         });
@@ -167,15 +341,13 @@
         `).join('');
     }
 
-    // --- 6. TEAMS & SQUADS MODULE ---
+    // --- 7. TEAMS & SQUADS MODULE ---
     window.loadTeams = async function() {
         const loader = document.getElementById('teams-loader');
         const grid = document.getElementById('teams-grid');
         loader.classList.remove('hidden');
         grid.innerHTML = '';
 
-        // Deep fetch for "Squads" export capability
-        // Fetching teams with captain info AND all members info
         const { data, error } = await supabase
             .from('teams')
             .select(`
@@ -190,7 +362,6 @@
             .order('created_at', { ascending: false });
 
         if (!error && data) {
-            // Process member counts
             rawTeams = data.map(t => {
                 const activeMembers = t.team_members.filter(m => m.status === 'Accepted');
                 return {
@@ -207,7 +378,7 @@
     window.renderTeamsGrid = function() {
         const search = document.getElementById('team-search').value.toLowerCase();
         const fSport = document.getElementById('team-filter-sport').value;
-        const fGender = document.getElementById('team-filter-gender').value; // Check captain's gender or sport category
+        const fGender = document.getElementById('team-filter-gender').value;
         const fClass = document.getElementById('team-filter-class').value;
         const fStatus = document.getElementById('team-filter-status').value;
         const fSort = document.getElementById('team-sort').value;
@@ -216,17 +387,16 @@
             const capt = t.users || {};
             const matchesSearch = t.name.toLowerCase().includes(search) || (capt.name || '').toLowerCase().includes(search);
             const matchesSport = fSport === 'All' || t.sports?.name === fSport;
-            const matchesGender = fGender === 'All' || (capt.gender === fGender); // Based on captain
+            const matchesGender = fGender === 'All' || (capt.gender === fGender);
             const matchesClass = fClass === 'All' || (capt.class_name || '').startsWith(fClass);
             const matchesStatus = fStatus === 'All' || t.status === fStatus;
 
             return matchesSearch && matchesSport && matchesGender && matchesClass && matchesStatus;
         });
 
-        // Sorting
         if (fSort === 'oldest') filtered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
         else if (fSort === 'full') filtered.sort((a,b) => (b.memberCount / b.sports.team_size) - (a.memberCount / a.sports.team_size));
-        else filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)); // Newest Default
+        else filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
 
         document.getElementById('teams-grid').innerHTML = filtered.map(t => {
             const max = t.sports?.team_size || 0;
@@ -264,13 +434,11 @@
             </div>
             `;
         }).join('');
-        
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. TEAM MANAGEMENT LOGIC ---
+    // --- 8. TEAM MANAGEMENT LOGIC (CRUD) ---
 
-    // USER SEARCH (Debounced)
     window.searchUsers = function(query, resultsId, hiddenInputId) {
         clearTimeout(searchDebounceTimer);
         const resultsEl = document.getElementById(resultsId);
@@ -292,7 +460,7 @@
 
             if (data && data.length > 0) {
                 resultsEl.innerHTML = data.map(u => `
-                    <div onclick="selectUser('${u.id}', '${u.name}', '${resultsId}', '${hiddenInputId}', '${query}')" 
+                    <div onclick="selectUser('${u.id}', '${u.name}', '${resultsId}', '${hiddenInputId}')" 
                          class="p-3 border-b border-slate-100 hover:bg-indigo-50 cursor-pointer last:border-0">
                         <p class="text-sm font-bold text-slate-800">${u.name}</p>
                         <p class="text-[10px] text-slate-500">${u.class_name} • #${u.student_id}</p>
@@ -301,21 +469,16 @@
             } else {
                 resultsEl.innerHTML = '<div class="p-3 text-xs text-red-400">No user found</div>';
             }
-        }, 400); // 400ms delay
+        }, 400); 
     }
 
-    window.selectUser = function(id, name, resultsId, inputId, queryStr) {
-        // Find the text input associated with this search
-        const inputContainer = document.getElementById(resultsId).previousElementSibling.previousElementSibling; // Rough DOM traversal, better to pass ID
-        // Or strictly set the input value if we know the ID
+    window.selectUser = function(id, name, resultsId, inputId) {
         if(inputId === 'new-team-captain-id') document.getElementById('new-team-captain-search').value = name;
         if(inputId === 'add-player-id') document.getElementById('add-player-search').value = name;
-
         document.getElementById(inputId).value = id;
         document.getElementById(resultsId).classList.add('hidden');
     }
 
-    // CREATE TEAM
     window.openCreateTeamModal = () => document.getElementById('modal-create-team').classList.remove('hidden');
     
     window.createTeam = async function() {
@@ -325,7 +488,6 @@
 
         if(!name || !sportId || !captainId) return alert("Please fill all fields");
 
-        // 1. Create Team
         const { data: team, error } = await supabase
             .from('teams')
             .insert({ name, sport_id: sportId, captain_id: captainId, status: 'Open' })
@@ -334,7 +496,6 @@
 
         if (error) return alert("Error creating team: " + error.message);
 
-        // 2. Add Captain to Members
         await supabase.from('team_members').insert({
             team_id: team.id,
             user_id: captainId,
@@ -343,10 +504,9 @@
 
         alert("Team Created Successfully!");
         document.getElementById('modal-create-team').classList.add('hidden');
-        loadTeams(); // Refresh
+        loadTeams(); 
     }
 
-    // MANAGE TEAM MODAL
     window.openManageTeamModal = function(teamId) {
         currentManageTeamId = teamId;
         const team = rawTeams.find(t => t.id === teamId);
@@ -355,7 +515,6 @@
         document.getElementById('manage-team-title').innerText = team.name;
         document.getElementById('manage-team-subtitle').innerText = `${team.sports.name} • Captain: ${team.users.name}`;
         
-        // Status & Lock Button
         const statusEl = document.getElementById('manage-team-status');
         const lockBtn = document.getElementById('btn-toggle-lock');
         statusEl.innerText = team.status;
@@ -392,7 +551,7 @@
                 </td>
             </tr>
         `).join('');
-        lucide.createIcons();
+        if(window.lucide) lucide.createIcons();
     }
 
     window.addMemberToTeam = async function() {
@@ -406,9 +565,8 @@
         });
 
         if (error) {
-            alert(error.message); // Likely duplicate key
+            alert(error.message);
         } else {
-            // Refresh data locally then re-render
             await loadTeams(); 
             const team = rawTeams.find(t => t.id === currentManageTeamId);
             renderManageRoster(team);
@@ -419,11 +577,9 @@
 
     window.removeMember = async function(userId) {
         if(!confirm("Remove this player?")) return;
-        
         await supabase.from('team_members').delete()
             .eq('team_id', currentManageTeamId)
             .eq('user_id', userId);
-            
         await loadTeams();
         const team = rawTeams.find(t => t.id === currentManageTeamId);
         renderManageRoster(team);
@@ -432,24 +588,19 @@
     window.toggleLock = async function(teamId, newStatus) {
         await supabase.from('teams').update({ status: newStatus }).eq('id', teamId);
         await loadTeams();
-        openManageTeamModal(teamId); // Refresh modal state
+        openManageTeamModal(teamId);
     }
 
     window.deleteTeam = async function() {
         if(!confirm("CRITICAL WARNING:\nAre you sure you want to delete this team?\nThis cannot be undone.")) return;
-        
-        // Delete members first (if cascade isn't set, but usually Supabase handles this if configured. Doing it manually to be safe)
         await supabase.from('team_members').delete().eq('team_id', currentManageTeamId);
         await supabase.from('teams').delete().eq('id', currentManageTeamId);
-        
         document.getElementById('modal-manage-team').classList.add('hidden');
         loadTeams();
     }
 
 
-    // --- 8. ADVANCED EXPORTS (The Magic) ---
-
-    // A. TEAMS SUMMARY EXCEL
+    // --- 9. ADVANCED EXPORTS ---
     window.exportTeamsExcel = function() {
         if(rawTeams.length === 0) return alert("No data");
         const data = rawTeams.map(t => ({
@@ -470,11 +621,10 @@
         XLSX.writeFile(wb, `OJAS_Teams_Summary_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // B. TEAMS LIST PDF
     window.exportTeamsPDF = function() {
         if(rawTeams.length === 0) return alert("No data");
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+        const doc = new jsPDF('l', 'mm', 'a4');
 
         doc.setFontSize(18);
         doc.text("OJAS 2026 - Teams Summary", 14, 20);
@@ -494,7 +644,6 @@
         doc.save("OJAS_Teams_List.pdf");
     }
 
-    // C. SQUADS MASTER EXCEL (Flattened)
     window.exportSquadsExcel = function() {
         if(rawTeams.length === 0) return alert("No data");
         let masterList = [];
@@ -506,7 +655,7 @@
                     "Team ID": t.id,
                     "Team Name": t.name,
                     "Sport": t.sports?.name,
-                    "Captain Name": t.users?.name, // Repeated for reference
+                    "Captain Name": t.users?.name,
                     "Player Name": m.users?.name,
                     "Player Gender": m.users?.gender,
                     "Player Class": m.users?.class_name,
@@ -522,7 +671,6 @@
         XLSX.writeFile(wb, `OJAS_Squads_MasterList_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // D. SQUADS REPORT PDF (Iterative Tables)
     window.exportSquadsPDF = function() {
         if(rawTeams.length === 0) return alert("No data");
         const { jsPDF } = window.jspdf;
@@ -536,22 +684,19 @@
         let yPos = 35;
 
         rawTeams.forEach((t, index) => {
-            // Check for page break
             if (yPos > 250) {
                 doc.addPage();
                 yPos = 20;
             }
 
-            // Header for Team
             doc.setFontSize(14);
-            doc.setTextColor(79, 70, 229); // Indigo
+            doc.setTextColor(79, 70, 229);
             doc.text(`${t.name} (${t.sports?.name})`, 14, yPos);
             
             doc.setFontSize(10);
             doc.setTextColor(100);
             doc.text(`Captain: ${t.users?.name}`, 14, yPos + 6);
 
-            // Table for Members
             const members = t.activeMembers || [];
             const rows = members.map((m, i) => [
                 i+1, m.users?.name, m.users?.class_name, m.users?.gender, m.users?.mobile
@@ -564,13 +709,8 @@
                 theme: 'striped',
                 headStyles: { fillColor: [50, 50, 50] },
                 margin: { left: 14, right: 14 },
-                didDrawPage: (d) => {
-                    // Update yPos for next loop iteration in case autoTable spans pages
-                    yPos = d.cursor.y + 15; 
-                }
+                didDrawPage: (d) => { yPos = d.cursor.y + 15; }
             });
-            
-            // Recalculate yPos after table
             yPos = doc.lastAutoTable.finalY + 15;
         });
 
@@ -578,7 +718,7 @@
     }
 
 
-    // --- 9. WINNERS MODULE ---
+    // --- 10. WINNERS MODULE ---
     async function loadWinners() {
         const container = document.getElementById('winners-list-container');
         container.innerHTML = '<div class="text-center py-4 text-slate-400">Loading...</div>';
@@ -607,13 +747,13 @@
                     <button onclick="window.deleteWinner(${w.id})" class="text-red-400 hover:text-red-600 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
             `).join('');
-            lucide.createIcons();
+            if(window.lucide) lucide.createIcons();
         }
     }
 
     window.saveWinner = async function() {
         const sportSelect = document.getElementById('winner-sport');
-        const sportName = sportSelect.options[sportSelect.selectedIndex].text; // Get text, not ID
+        const sportName = sportSelect.options[sportSelect.selectedIndex].text;
         const gender = document.getElementById('winner-gender').value;
         const gold = document.getElementById('winner-gold').value;
         const silver = document.getElementById('winner-silver').value;
@@ -641,7 +781,6 @@
         loadWinners();
     }
 
-    // --- UTILS ---
     window.exportTableToExcel = function(tableId, filename) {
         const table = document.getElementById(tableId);
         const wb = XLSX.utils.table_to_book(table);
