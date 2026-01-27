@@ -166,22 +166,72 @@
 
     // --- 4. DASHBOARD ---
     async function loadDashboard() {
-        window.loadLiveMatches(); 
+        // loadLiveMatches removed as per request
         loadLatestChampions();
     }
 
-    window.loadLiveMatches = async function() { 
-        const list = document.getElementById('live-matches-list');
-        if(list) {
-            list.innerHTML = `<p class="text-sm text-slate-500 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No live matches currently.</p>`;
-        }
-    }
-
+    // --- UPDATED: WINNERS TABLE LOGIC ---
     async function loadLatestChampions() {
         const container = document.getElementById('home-champions-list'); 
-        if (container) {
-            container.innerHTML = '<p class="text-sm text-slate-500 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No results declared yet.</p>';
+        if (!container) return;
+
+        // Loading State
+        container.innerHTML = '<div class="py-12 flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>';
+
+        // Fetch from new 'winners' table
+        const { data: winners, error } = await supabaseClient
+            .from('winners')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Winners Error:", error);
+            container.innerHTML = '<p class="text-xs text-red-500 text-center py-4">Failed to load winners.</p>';
+            return;
         }
+
+        if (!winners || winners.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 italic text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">No results declared yet.</p>';
+            return;
+        }
+
+        // Render Table
+        let tableHtml = `
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
+                <table class="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                        <tr class="bg-indigo-50 border-b border-indigo-100 text-[10px] uppercase text-indigo-900 font-extrabold tracking-wider">
+                            <th class="p-3 whitespace-nowrap">Sport</th>
+                            <th class="p-3 whitespace-nowrap text-center">Category</th>
+                            <th class="p-3 whitespace-nowrap text-center text-yellow-600"><i data-lucide="medal" class="w-3 h-3 inline"></i> Gold</th>
+                            <th class="p-3 whitespace-nowrap text-center text-slate-500"><i data-lucide="medal" class="w-3 h-3 inline"></i> Silver</th>
+                            <th class="p-3 whitespace-nowrap text-center text-amber-700"><i data-lucide="medal" class="w-3 h-3 inline"></i> Bronze</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-xs text-slate-700 divide-y divide-slate-100">
+        `;
+
+        winners.forEach(w => {
+            tableHtml += `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-3 font-bold text-slate-900 whitespace-nowrap">${w.sport_name}</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                            ${w.gender}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center font-medium bg-yellow-50/30 text-yellow-900">${w.gold || '-'}</td>
+                    <td class="p-3 text-center font-medium text-slate-600">${w.silver || '-'}</td>
+                    <td class="p-3 text-center font-medium text-amber-800">${w.bronze || '-'}</td>
+                </tr>
+            `;
+        });
+
+        tableHtml += `</tbody></table></div>`;
+        container.innerHTML = tableHtml;
+        
+        // Re-initialize icons for the new table
+        if(window.lucide) lucide.createIcons();
     }
 
     // --- 6. SCHEDULE MODULE ---
