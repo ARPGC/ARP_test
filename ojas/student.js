@@ -184,7 +184,7 @@
         }
     }
 
-    // --- UPDATED: WINNERS TABLE LOGIC ---
+    // --- UPDATED: WINNERS CARD LOGIC ---
     async function loadLatestChampions() {
         const container = document.getElementById('home-champions-list'); 
         if (!container) return;
@@ -209,41 +209,56 @@
             return;
         }
 
-        // Render Table
-        let tableHtml = `
-            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
-                <table class="w-full text-left border-collapse min-w-[500px]">
-                    <thead>
-                        <tr class="bg-indigo-50 border-b border-indigo-100 text-[10px] uppercase text-indigo-900 font-extrabold tracking-wider">
-                            <th class="p-3 whitespace-nowrap">Sport</th>
-                            <th class="p-3 whitespace-nowrap text-center">Category</th>
-                            <th class="p-3 whitespace-nowrap text-center text-yellow-600"><i data-lucide="medal" class="w-3 h-3 inline"></i> Gold</th>
-                            <th class="p-3 whitespace-nowrap text-center text-slate-500"><i data-lucide="medal" class="w-3 h-3 inline"></i> Silver</th>
-                            <th class="p-3 whitespace-nowrap text-center text-amber-700"><i data-lucide="medal" class="w-3 h-3 inline"></i> Bronze</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-xs text-slate-700 divide-y divide-slate-100">
-        `;
-
-        winners.forEach(w => {
-            tableHtml += `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-3 font-bold text-slate-900 whitespace-nowrap">${w.sport_name}</td>
-                    <td class="p-3 text-center">
-                        <span class="px-2 py-1 rounded bg-slate-100 border border-slate-200 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+        // Render Cards (Matching requested design)
+        container.innerHTML = winners.map(w => `
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mb-4">
+                
+                <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-50">
+                    <div class="flex items-center gap-3">
+                        <h4 class="font-extrabold text-slate-700 uppercase text-sm tracking-wide">${w.sport_name}</h4>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-100 text-purple-700 uppercase tracking-wide border border-purple-200">
                             ${w.gender}
                         </span>
-                    </td>
-                    <td class="p-3 text-center font-medium bg-yellow-50/30 text-yellow-900">${w.gold || '-'}</td>
-                    <td class="p-3 text-center font-medium text-slate-600">${w.silver || '-'}</td>
-                    <td class="p-3 text-center font-medium text-amber-800">${w.bronze || '-'}</td>
-                </tr>
-            `;
-        });
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-wide border border-green-200">
+                        Finished
+                    </span>
+                </div>
 
-        tableHtml += `</tbody></table></div>`;
-        container.innerHTML = tableHtml;
+                <div class="space-y-4">
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                            <div class="absolute inset-0 bg-yellow-100 rounded-full border border-yellow-200"></div>
+                            <i data-lucide="trophy" class="w-4 h-4 text-yellow-600 relative z-10"></i>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold border border-white">1</div>
+                        </div>
+                        <span class="font-bold text-slate-800 text-sm">${w.gold || 'TBD'}</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                            <div class="absolute inset-0 bg-slate-100 rounded-full border border-slate-200"></div>
+                            <i data-lucide="medal" class="w-4 h-4 text-slate-500 relative z-10"></i>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-slate-400 rounded-full text-[9px] text-white flex items-center justify-center font-bold border border-white">2</div>
+                        </div>
+                        <span class="font-semibold text-slate-700 text-sm">${w.silver || '-'}</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div class="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                            <div class="absolute inset-0 bg-amber-100 rounded-full border border-amber-200"></div>
+                            <i data-lucide="medal" class="w-4 h-4 text-amber-700 relative z-10"></i>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-amber-600 rounded-full text-[9px] text-white flex items-center justify-center font-bold border border-white">3</div>
+                        </div>
+                        <span class="font-medium text-slate-600 text-sm">${w.bronze || '-'}</span>
+                    </div>
+
+                </div>
+            </div>
+        `).join('');
         
+        // Re-initialize icons
         if(window.lucide) lucide.createIcons();
     }
 
@@ -377,6 +392,7 @@
             const isFull = t.seatsLeft <= 0;
             const btnText = isFull ? "Full" : "Join";
             
+            // Professional button styles
             const btnClass = isFull 
                 ? "px-4 py-2 bg-slate-100 text-slate-400 cursor-not-allowed text-xs font-semibold rounded-lg"
                 : "px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors";
@@ -481,6 +497,7 @@
 
         // Attach event listener properly
         const joinBtn = document.getElementById('btn-confirm-join');
+        // Clone node to strip old event listeners
         const newBtn = joinBtn.cloneNode(true);
         joinBtn.parentNode.replaceChild(newBtn, joinBtn);
         
@@ -601,6 +618,51 @@
             else {
                 showToast("Left team successfully", "success");
                 window.loadTeamLocker();
+                window.closeModal('modal-confirm');
+            }
+        });
+    }
+
+    // STRICT WITHDRAWAL
+    window.withdrawRegistration = async function(regId, sportId, sportType, sportName) {
+        showConfirmDialog("Withdraw?", `Withdraw from ${sportName}?`, async () => {
+            
+            // 1. IF TEAM SPORT: Handle Team Membership First
+            if (sportType && sportType.toLowerCase() === 'team') {
+                const { data: membership } = await supabaseClient
+                    .from('team_members')
+                    .select('id, teams!inner(status, captain_id, name)')
+                    .eq('user_id', currentUser.id)
+                    .eq('teams.sport_id', sportId)
+                    .maybeSingle();
+
+                if (membership) {
+                    if (membership.teams.status === 'Locked') {
+                        window.closeModal('modal-confirm');
+                        return showToast(`Cannot withdraw! Your team '${membership.teams.name}' is LOCKED.`, "error");
+                    }
+                    if (membership.teams.captain_id === currentUser.id) {
+                        window.closeModal('modal-confirm');
+                        return showToast(`⚠️ Captains cannot withdraw. Delete the team in 'Teams' tab first.`, "error");
+                    }
+                    await supabaseClient.from('team_members').delete().eq('id', membership.id);
+                }
+            }
+
+            const { error } = await supabaseClient.from('registrations').delete().eq('id', regId);
+            
+            if (error) {
+                showToast("Withdrawal Failed: " + error.message, "error");
+            } else {
+                showToast("Withdrawn Successfully", "success");
+                myRegistrations = myRegistrations.filter(id => id != sportId);
+                
+                if(document.getElementById('history-list')) window.loadRegistrationHistory('history-list'); 
+                if(document.getElementById('my-registrations-list')) window.loadRegistrationHistory('my-registrations-list');
+                if(document.getElementById('sports-list') && document.getElementById('sports-list').children.length > 0) {
+                    renderSportsList(allSportsList);
+                }
+                
                 window.closeModal('modal-confirm');
             }
         });
