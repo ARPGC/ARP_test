@@ -1,5 +1,5 @@
 // ==========================================
-// URJA 2026 - STUDENT PORTAL CONTROLLER (LIVE V2)
+// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL FIXED)
 // ==========================================
 
 (function() { // Wrapped in IIFE for safety
@@ -120,21 +120,38 @@
         }
     }
 
-    // --- 3. REALTIME SUBSCRIPTION (NEW) ---
+    // --- 3. REALTIME SUBSCRIPTION (FIXED) ---
     function subscribeToLiveMatches() {
         supabaseClient
             .channel('public:matches')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, payload => {
-                // If the updated match is currently open in the modal, refresh UI
-                if (currentLiveMatchId && payload.new.id === currentLiveMatchId) {
-                    updateLiveModalUI(payload.new);
-                }
-                // Refresh schedule list if visible
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, async (payload) => {
+                
+                // 1. Refresh Schedule List (to show new scores/winners on cards)
                 if (!document.getElementById('view-schedule').classList.contains('hidden')) {
                      window.loadSchedule();
                 }
+
+                // 2. If the updated match is currently open in the modal, refresh UI
+                if (currentLiveMatchId && payload.new.id === currentLiveMatchId) {
+                    // FIX: Don't use payload.new directly because it lacks joined 'sports' data.
+                    // Fetch full data first.
+                    await refreshAndRenderLiveModal(payload.new.id);
+                }
             })
             .subscribe();
+    }
+
+    // Helper to re-fetch single match with joins
+    async function refreshAndRenderLiveModal(matchId) {
+        const { data: match, error } = await supabaseClient
+            .from('matches')
+            .select(`*, sports(name, is_performance, type)`)
+            .eq('id', matchId)
+            .single();
+
+        if (!error && match) {
+            updateLiveModalUI(match);
+        }
     }
 
     // --- 4. NAVIGATION ---
@@ -250,7 +267,7 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 6. SCHEDULE MODULE (UPDATED WITH CLICKABLE CARDS) ---
+    // --- 6. SCHEDULE MODULE ---
     window.filterSchedule = function(view) {
         currentScheduleView = view;
         const btnUp = document.getElementById('btn-schedule-upcoming');
@@ -277,7 +294,7 @@
 
         const { data: matches, error } = await supabaseClient
             .from('matches')
-            .select(`*, sports(name, icon, is_performance)`)
+            .select(`*, sports(name, icon, is_performance, category)`)
             .in('status', filterStatus)
             .order('match_time', { ascending: currentScheduleView === 'upcoming' });
 
@@ -304,34 +321,29 @@
             const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const dateStr = date.toLocaleDateString([], {day: 'numeric', month: 'short'});
 
-            // Resolve Names
-            let p1 = "TBD", p2 = "TBD";
-            const parts = m.participants || {};
-            if (m.sports.is_performance) {
-                p1 = `${parts.students?.length || 0} Participants`;
-                p2 = "";
-            } else if (m.sport_type === 'Team') {
-                // For list view, we might not have team names fully resolved if only IDs stored
-                // We will rely on what's in 'live_data' for cache or fallback to "Team A vs Team B"
-                // Ideally, backend should join team names. For now, we use generic if not in parts.
-                // Assuming admin put names in parts for easier querying or we fetch. 
-                // To keep this fast, we will rely on admin having put names OR use generics.
-                // **Hack:** If teams are IDs, we show "Click to View".
-                p1 = "View Match"; p2 = "Details"; 
-            } else {
-                p1 = parts.player1_name || "Player 1";
-                p2 = parts.player2_name || "Player 2";
-            }
+            // Names Logic
+            let title = m.title || 'League Match';
             
-            // Override with live cache if available (Admin portal sets this)
-            if(m.live_data?.winner) { /* ... */ }
+            // Winners Display for non-interactive sports
+            let winnerText = "";
+            if (m.status === 'Completed' && m.live_data?.winner) {
+                winnerText = `<span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded border border-green-100 mt-2 inline-block">🏆 Winner: ${m.live_data.winner}</span>`;
+            }
 
             let badge = isLive 
                 ? `<span class="px-2 py-0.5 rounded bg-red-100 text-red-600 text-[10px] font-bold animate-pulse border border-red-200">LIVE</span>` 
                 : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">${timeStr}</span>`;
 
+            // Interaction Logic: Only Cricket & Performance open Modal
+            const isCricket = m.sports.name.toLowerCase().includes('cricket');
+            const isPerf = m.sports.is_performance;
+            const canOpen = isCricket || isPerf;
+
+            const clickAction = canOpen ? `onclick="window.openLiveMatch('${m.id}')"` : `onclick="showToast('Winner: ${m.live_data?.winner || "Decided"}', 'info')"`;
+            const cursor = canOpen ? "cursor-pointer active:scale-[0.98]" : "cursor-default";
+
             return `
-            <div onclick="window.openLiveMatch('${m.id}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-3 relative overflow-hidden group active:scale-[0.98] transition-all cursor-pointer">
+            <div ${canOpen ? clickAction : ''} class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-3 relative overflow-hidden group ${cursor} transition-all">
                 ${isLive ? '<div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>' : ''}
                 
                 <div class="flex justify-between items-start mb-3 pl-2">
@@ -340,28 +352,57 @@
                              <i data-lucide="${m.sports.icon || 'trophy'}" class="w-3.5 h-3.5"></i>
                         </div>
                         <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">${m.sports.name}</span>
+                        ${m.participants?.category ? `<span class="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-bold">${m.participants.category}</span>` : ''}
                     </div>
                     ${badge}
                 </div>
 
                 <div class="pl-2">
-                    <h4 class="text-sm font-bold text-slate-900 mb-1 line-clamp-1">${m.title || 'League Match'}</h4>
+                    <h4 class="text-sm font-bold text-slate-900 mb-1 line-clamp-1">${title}</h4>
                     <p class="text-xs text-slate-500 flex items-center gap-1">
                         <i data-lucide="map-pin" class="w-3 h-3"></i> ${m.location || 'Ground'} • ${dateStr}
                     </p>
+                    ${winnerText}
                 </div>
                 
+                ${canOpen ? `
                 <div class="absolute right-4 bottom-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
                     <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                </div>
+                </div>` : ''}
             </div>`;
         }).join('');
         
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. LIVE MATCH MODAL LOGIC (NEW) ---
+    // --- 7. LIVE MATCH MODAL LOGIC (UPDATED) ---
     window.openLiveMatch = async function(matchId) {
+        // Fetch Fresh Data to check type
+        const { data: match, error } = await supabaseClient
+            .from('matches')
+            .select(`*, sports(name, is_performance, type)`)
+            .eq('id', matchId)
+            .single();
+
+        if (error || !match) {
+            showToast("Error loading match.", "error");
+            return;
+        }
+
+        // RESTRICTION: Only open for Cricket or Performance
+        const isCricket = match.sports.name.toLowerCase().includes('cricket');
+        const isPerf = match.sports.is_performance;
+
+        if (!isCricket && !isPerf) {
+            // For other sports, just show winner in toast if completed
+            if (match.status === 'Completed' && match.live_data?.winner) {
+                showToast(`🏆 Winner: ${match.live_data.winner}`, "success");
+            } else {
+                showToast("Live view available for Cricket & Performance events only.", "info");
+            }
+            return;
+        }
+
         currentLiveMatchId = matchId;
         const modal = document.getElementById('modal-match-live');
         modal.classList.remove('hidden');
@@ -371,24 +412,14 @@
         document.getElementById('live-ui-versus').classList.add('hidden');
         document.getElementById('live-ui-performance').classList.add('hidden');
 
-        // Fetch Fresh Data
-        const { data: match, error } = await supabaseClient
-            .from('matches')
-            .select(`*, sports(name, is_performance, type)`)
-            .eq('id', matchId)
-            .single();
-
-        if (error || !match) {
-            showToast("Error loading match.", "error");
-            closeModal('modal-match-live');
-            return;
-        }
-
         // Render Initial State
         updateLiveModalUI(match);
     }
 
-    async function updateLiveModalUI(match) {
+    // This function can now be safely called by Realtime subscription wrapper
+    window.updateLiveModalUI = async function(match) {
+        if (!match || !match.sports) return; // Safety check
+
         // 1. Header
         document.getElementById('live-modal-sport').innerText = match.sports.name;
 
@@ -399,7 +430,7 @@
             document.getElementById('live-ui-versus').classList.add('hidden');
             await renderPerformanceLeaderboard(match);
         } else {
-            // VERSUS MODE (Scoreboard)
+            // VERSUS MODE (Scoreboard - Cricket Only as per logic)
             document.getElementById('live-ui-versus').classList.remove('hidden');
             document.getElementById('live-ui-performance').classList.add('hidden');
             await renderVersusScoreboard(match);
@@ -411,30 +442,19 @@
         const parts = match.participants || {};
 
         // A. Update Scores
-        const isCricket = match.sports.name.toLowerCase().includes('cricket');
+        // Team 1
+        const t1 = live.t1 || { r: 0, w: 0, o: 0 };
+        document.getElementById('live-score-s1').innerText = `${t1.r}/${t1.w}`;
+        document.getElementById('live-over-s1').innerText = `(${t1.o} ov)`;
         
-        if (isCricket) {
-            // Team 1
-            const t1 = live.t1 || { r: 0, w: 0, o: 0 };
-            document.getElementById('live-score-s1').innerText = `${t1.r}/${t1.w}`;
-            document.getElementById('live-over-s1').innerText = `(${t1.o} ov)`;
-            
-            // Team 2
-            const t2 = live.t2 || { r: 0, w: 0, o: 0 };
-            document.getElementById('live-score-s2').innerText = `${t2.r}/${t2.w}`;
-            document.getElementById('live-over-s2').innerText = `(${t2.o} ov)`;
-        } else {
-            // Standard (Football/Chess)
-            document.getElementById('live-score-s1').innerText = live.s1 || 0;
-            document.getElementById('live-over-s1').innerText = ''; // Hide overs
-            document.getElementById('live-score-s2').innerText = live.s2 || 0;
-            document.getElementById('live-over-s2').innerText = '';
-        }
+        // Team 2
+        const t2 = live.t2 || { r: 0, w: 0, o: 0 };
+        document.getElementById('live-score-s2').innerText = `${t2.r}/${t2.w}`;
+        document.getElementById('live-over-s2').innerText = `(${t2.o} ov)`;
 
         // B. Resolve Names & Fetch Rosters
         let name1 = "Team A", name2 = "Team B";
 
-        // If Team Sport, we need to fetch team names from IDs
         if (match.sport_type === 'Team' && parts.team1_id) {
             // 1. Fetch Team Names
             const { data: teams } = await supabaseClient
@@ -449,7 +469,8 @@
                 if(team2) name2 = team2.name;
             }
 
-            // 2. Fetch Rosters (Only if container is empty or we force refresh)
+            // 2. Fetch Rosters
+            // Only fetch if currently empty to avoid flickering on every live update
             const list1 = document.getElementById('roster-list-p1');
             if (list1.innerHTML.includes('Loading')) {
                 await fetchAndRenderRoster(parts.team1_id, 'roster-list-p1');
@@ -457,7 +478,7 @@
             }
 
         } else {
-            // Individual Sport
+            // Fallback (Though modal shouldn't open for non-team non-perf)
             name1 = parts.player1_name || "Player 1";
             name2 = parts.player2_name || "Player 2";
             document.getElementById('roster-list-p1').innerHTML = `<p class="text-sm font-bold text-slate-800">${name1}</p>`;
@@ -496,23 +517,31 @@
 
     async function renderPerformanceLeaderboard(match) {
         const table = document.getElementById('live-perf-table');
-        const results = match.live_data?.results || [];
+        let results = match.live_data?.results || [];
 
         if (results.length === 0) {
             table.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-slate-400 text-xs">Event scheduled. Waiting for results.</td></tr>';
             return;
         }
 
+        // SORTING: Rank 1 (Low) to Rank X (High)
+        // Treat missing ranks as high number to push to bottom
+        results.sort((a, b) => {
+            const rA = a.rank || 9999;
+            const rB = b.rank || 9999;
+            return rA - rB;
+        });
+
         // Fetch Names for UIDs in results
         const uids = results.map(r => r.uid);
         const { data: users } = await supabaseClient.from('users').select('id, name, student_id').in('id', uids);
 
-        table.innerHTML = results.map((res, index) => {
+        table.innerHTML = results.map((res) => {
             const user = users?.find(u => u.id === res.uid);
             const name = user ? user.name : "Unknown ID";
             const sub = user ? user.student_id : "";
             
-            let rankDisplay = `<span class="font-bold text-slate-500">#${res.rank}</span>`;
+            let rankDisplay = `<span class="font-bold text-slate-500">#${res.rank || '-'}</span>`;
             if (res.rank === 1) rankDisplay = '🏆';
             if (res.rank === 2) rankDisplay = '🥈';
             if (res.rank === 3) rankDisplay = '🥉';
@@ -529,9 +558,7 @@
         }).join('');
     }
 
-
-    // --- 8. TEAM & REGISTRATION LOGIC (Existing Functionality Preserved) ---
-    // Note: I am keeping the existing functions below to ensure nothing breaks.
+    // --- 8. TEAM & REGISTRATION LOGIC (Standard) ---
     
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
