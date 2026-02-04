@@ -1,12 +1,12 @@
 // ==========================================
-// OJAS 2026 - VOLUNTEER CONTROLLER
+// OJAS 2026 - VOLUNTEER CONTROLLER (FIXED)
 // ==========================================
 
 (function() { 
 
     // --- 1. CONFIGURATION ---
     const SUPABASE_URL = 'https://sijmmlhltkksykhbuatn.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_9GjhwaWzz0McozvxVMINyQ_ZFU58z7F'; // Ideally use environment variables in production
+    const SUPABASE_KEY = 'sb_publishable_9GjhwaWzz0McozvxVMINyQ_ZFU58z7F'; 
 
     if(!window.supabase) return console.error("Supabase not loaded");
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -29,20 +29,28 @@
 
         if (!studentId) return showAuthError("No ID found. Please scan your QR code again.");
 
-        // Fetch User details + Assigned Sport details in one query
+        // FIX: Simplified the JOIN query. 
+        // Instead of 'sports:assigned_sport_id', we just call 'sports' (the table name).
         const { data: user, error } = await supabase
             .from('users')
-            .select(`*, sports:assigned_sport_id (id, name, type, is_performance)`)
+            .select(`*, sports (id, name, type, is_performance)`)
             .eq('student_id', studentId)
             .single();
 
-        if (error || !user) return showAuthError("Access Denied: User not found.");
+        if (error) {
+            console.error("Auth Error:", error);
+            return showAuthError("Access Denied: " + error.message);
+        }
+
+        if (!user) return showAuthError("User not found.");
         if (user.role !== 'volunteer') return showAuthError("Access Denied: You are not registered as a Volunteer.");
-        if (!user.assigned_sport_id) return showAuthError("No Sport Assigned. Contact Admin.");
+        
+        // Check if sport is linked
+        if (!user.sports) return showAuthError("No Sport Assigned. Please ask Admin to assign a sport to your ID.");
 
         // Auth Success
         currentVolunteer = user;
-        assignedSport = user.sports;
+        assignedSport = user.sports; // Supabase puts the joined data in a property named after the table
 
         // Update UI Header
         document.getElementById('vol-sport-name').innerText = assignedSport.name;
@@ -61,7 +69,8 @@
         const el = document.getElementById('auth-msg');
         el.innerText = msg;
         el.classList.add('text-red-600', 'font-bold');
-        document.querySelector('.animate-spin').classList.remove('animate-spin'); // Stop spinner
+        const spinner = document.querySelector('.animate-spin');
+        if(spinner) spinner.classList.remove('animate-spin'); 
     }
 
     // --- 4. DATA LOADING & REALTIME ---
@@ -171,7 +180,10 @@
                 const d = match.live_data || {};
                 const t1 = d.t1 || {r:0,w:0,o:0};
                 const t2 = d.t2 || {r:0,w:0,o:0};
-                const p = match.participants || {};
+                
+                // Get names from participants JSON or fallback
+                const t1Name = match.participants?.team1_name || 'Team 1'; // If team names stored
+                const t2Name = match.participants?.team2_name || 'Team 2';
 
                 // Reusable Input Block Helper
                 const inputBlock = (teamKey, label, field, val) => `
@@ -187,7 +199,7 @@
                 bodyHtml = `
                 <div class="p-4 space-y-6">
                     <div>
-                        <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-indigo-50 pb-1">${match.participants.team1_id ? 'Batting Team A' : 'Batting 1'}</p>
+                        <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-indigo-50 pb-1">Batting 1</p>
                         <div class="grid grid-cols-3 gap-3">
                             ${inputBlock('t1', 'Runs', 'r', t1.r)}
                             ${inputBlock('t1', 'Wickets', 'w', t1.w)}
@@ -195,7 +207,7 @@
                         </div>
                     </div>
                     <div>
-                        <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-indigo-50 pb-1">${match.participants.team2_id ? 'Batting Team B' : 'Batting 2'}</p>
+                        <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-indigo-50 pb-1">Batting 2</p>
                         <div class="grid grid-cols-3 gap-3">
                             ${inputBlock('t2', 'Runs', 'r', t2.r)}
                             ${inputBlock('t2', 'Wickets', 'w', t2.w)}
@@ -211,7 +223,7 @@
                 <div class="p-6">
                     <div class="flex items-center justify-between gap-4">
                         <div class="flex-1 text-center">
-                            <p class="text-[10px] font-bold text-slate-400 mb-2 truncate px-1">${match.participants.player1_name || 'Home'}</p>
+                            <p class="text-[10px] font-bold text-slate-400 mb-2 truncate px-1">Player 1</p>
                             <input type="number" 
                                 class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500 transition-all"
                                 value="${s.s1 || 0}"
@@ -221,7 +233,7 @@
                         <div class="text-slate-300 font-black text-xl italic">VS</div>
                         
                         <div class="flex-1 text-center">
-                            <p class="text-[10px] font-bold text-slate-400 mb-2 truncate px-1">${match.participants.player2_name || 'Away'}</p>
+                            <p class="text-[10px] font-bold text-slate-400 mb-2 truncate px-1">Player 2</p>
                             <input type="number" 
                                 class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500 transition-all"
                                 value="${s.s2 || 0}"
@@ -324,14 +336,14 @@
         });
 
         // Remove after delay
-        if (type !== 'info') { // Info toasts stay until replaced usually, but here we auto-dismiss for simplicity
+        if (type !== 'info') { 
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(100%)';
                 setTimeout(() => toast.remove(), 300);
             }, 2000);
         } else {
-            // Self-remove info toasts quickly to prevent clutter during rapid typing
+            // Self-remove info toasts quickly to prevent clutter
             setTimeout(() => {
                 toast.style.opacity = '0'; 
                 setTimeout(() => toast.remove(), 300);
