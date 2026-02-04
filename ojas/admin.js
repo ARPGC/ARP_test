@@ -1,12 +1,12 @@
 // ==========================================
-// OJAS 2026 - ADMIN PORTAL CONTROLLER
+// OJAS 2026 - ADMIN PORTAL CONTROLLER (V2)
 // ==========================================
 
 (function() { 
 
     // --- 1. CONFIGURATION ---
     const SUPABASE_URL = 'https://sijmmlhltkksykhbuatn.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_9GjhwaWzz0McozvxVMINyQ_ZFU58z7F';
+    const SUPABASE_KEY = 'sb_publishable_9GjhwaWzz0McozvxVMINyQ_ZFU58z7F'; // Ideally move to env
     const ADMIN_PASS = 'admin1205'; 
 
     // Initialize Supabase
@@ -18,38 +18,36 @@
     let rawTeams = [];
     let rawSports = [];
     let rawWinners = [];
+    let rawMatches = []; // New Cache for Matches
     
     // UI State
     let currentManageTeamId = null;
-    let currentUserProfileId = null; // For User Manager
+    let currentUserProfileId = null; 
+    let currentLiveMatchId = null; // New for Live Score
     let searchDebounceTimer = null;
     
     // Admin Session State
     let isAdminUser = false;
-    let currentAdmin = null; // Stores { id, name, student_id }
+    let currentAdmin = null; 
 
     // --- 2. INITIALIZATION & RBAC ---
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. Clear sensitive fields
         const passField = document.getElementById('admin-pass');
         if(passField) passField.value = '';
 
         if(window.lucide) lucide.createIcons();
-
-        // 2. CHECK ROLE BY URL PARAMETER
         await verifyAdminRole();
     });
 
     async function verifyAdminRole() {
         const urlParams = new URLSearchParams(window.location.search);
-        const urlId = urlParams.get('id'); // Expecting raw student_id (e.g. ?id=2021)
+        const urlId = urlParams.get('id'); 
 
         if (!urlId) {
             renderAccessDenied("No ID Provided", "Please ensure the URL contains your ID.");
             return;
         }
 
-        // Check 'role' column in users table using the student_id from URL
         const { data: user, error } = await supabase
             .from('users')
             .select('id, name, student_id, role')
@@ -62,9 +60,8 @@
             return;
         }
 
-        // If passed, allow Passkey Entry (Double Security)
         isAdminUser = true;
-        currentAdmin = user; // Store admin details for logging
+        currentAdmin = user;
         console.log(`Admin Verified: ${user.name} (${user.student_id})`);
     }
 
@@ -83,24 +80,18 @@
     // --- 3. ACTIVITY LOGGING SYSTEM ---
     async function logActivity(actionType, details) {
         if (!currentAdmin) return;
-
         console.log(`[LOG] ${actionType}: ${details}`);
-
-        // Fire and forget - don't await strictly for UI speed, but catch errors
         supabase.from('activity_logs').insert({
             admin_id: currentAdmin.id,
             admin_name: currentAdmin.name,
             action_type: actionType,
             details: details
-        }).then(({ error }) => {
-            if (error) console.error("Logging failed:", error);
-        });
+        }).then(({ error }) => { if (error) console.error("Logging failed:", error); });
     }
 
     // --- 4. APP UNLOCK ---
     window.checkAdminAuth = function() {
-        if(!isAdminUser) return; // Prevent bypass if role check failed
-
+        if(!isAdminUser) return; 
         const input = document.getElementById('admin-pass').value;
         const err = document.getElementById('login-error');
         
@@ -116,11 +107,10 @@
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('admin-app').classList.remove('hidden');
         
-        // Load Initial Data
         loadDashboardStats();
         fetchSportsList();
+        loadTeams(); // Pre-load teams for lookups
         
-        // Default View
         switchView('dashboard');
     }
 
@@ -143,24 +133,36 @@
             nav.classList.add('font-semibold');
         }
 
+        // Lazy Load Data based on View
         if (viewId === 'registrations') loadRegistrations();
         if (viewId === 'teams') loadTeams();
         if (viewId === 'winners') loadWinners();
+        if (viewId === 'matches') loadMatches();
     }
 
     // --- 6. SHARED DATA FETCHING ---
     async function fetchSportsList() {
-        const { data } = await supabase.from('sports').select('id, name').order('name');
+        const { data } = await supabase.from('sports').select('*').order('name');
         if (data) {
             rawSports = data;
-            ['reg-filter-sport', 'team-filter-sport', 'new-team-sport', 'winner-sport', 'um-sport-select'].forEach(id => {
+            // Populate Dropdowns
+            ['reg-filter-sport', 'team-filter-sport', 'new-team-sport', 'winner-sport', 'um-sport-select', 'sched-sport'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) {
-                    const hasAll = el.querySelector('option[value="All"]');
-                    el.innerHTML = hasAll ? '<option value="All">All Sports</option>' : '';
-                    data.forEach(s => {
-                        el.innerHTML += `<option value="${id.includes('filter') ? s.name : s.id}">${s.name}</option>`;
-                    });
+                    // Specific handling for Schedule Modal
+                    if(id === 'sched-sport') {
+                         el.innerHTML = '<option value="">-- Choose Sport --</option>';
+                         data.forEach(s => el.innerHTML += `<option value="${s.id}" data-type="${s.type}">${s.name}</option>`);
+                         // Attach listener for dynamic form
+                         el.addEventListener('change', handleScheduleSportChange);
+                    } else {
+                        const hasAll = el.querySelector('option[value="All"]');
+                        el.innerHTML = hasAll ? '<option value="All">All Sports</option>' : '';
+                        data.forEach(s => {
+                            const val = id.includes('filter') ? s.name : s.id;
+                            el.innerHTML += `<option value="${val}">${s.name}</option>`;
+                        });
+                    }
                 }
             });
         }
@@ -177,7 +179,375 @@
         document.getElementById('stat-teams').innerText = teamCount || 0;
     }
 
-    // --- 7. USER MANAGER ---
+    // ==========================================
+    // MODULE: MATCHES & LIVE SCORES (NEW)
+    // ==========================================
+
+    // A. LOAD MATCHES
+    window.loadMatches = async function() {
+        const grid = document.getElementById('matches-grid');
+        grid.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400">Loading matches...</div>';
+
+        const { data, error } = await supabase
+            .from('matches')
+            .select(`*, sports (name, type, icon)`)
+            .order('match_time', { ascending: true });
+
+        if (error) {
+            grid.innerHTML = `<div class="col-span-full text-red-500 text-center">Error loading matches: ${error.message}</div>`;
+            return;
+        }
+
+        rawMatches = data;
+        renderMatchesGrid();
+    }
+
+    async function renderMatchesGrid() {
+        const grid = document.getElementById('matches-grid');
+        grid.innerHTML = '';
+
+        if(rawMatches.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-center py-12 border border-dashed border-slate-300 rounded-2xl">
+                <p class="text-slate-500 font-bold">No matches scheduled yet.</p>
+                <button onclick="window.openScheduleModal()" class="text-indigo-600 text-sm mt-2 hover:underline">Schedule your first match</button>
+            </div>`;
+            return;
+        }
+
+        // We need to resolve names from JSON IDs. Simple approach: use rawTeams cache or fetch.
+        // For performance in this demo, we assume rawTeams is populated. 
+        if(rawTeams.length === 0) await loadTeams(); 
+
+        for (const match of rawMatches) {
+            let p1Name = 'TBD', p2Name = 'TBD';
+            let scoreDisplay = '0 - 0';
+            let statusColor = 'bg-slate-100 text-slate-600';
+
+            // Resolve Names based on JSON
+            const parts = match.participants || {};
+            if (match.sport_type === 'Team') {
+                const t1 = rawTeams.find(t => t.id === parts.team1_id);
+                const t2 = rawTeams.find(t => t.id === parts.team2_id);
+                p1Name = t1 ? t1.name : 'Unknown';
+                p2Name = t2 ? t2.name : 'Unknown';
+            } else if (match.sport_type === 'Performance') {
+                p1Name = 'Multiple';
+                p2Name = 'Participants';
+            }
+
+            // Status Styling
+            if(match.status === 'Live') statusColor = 'bg-red-100 text-red-600 animate-pulse';
+            if(match.status === 'Completed') statusColor = 'bg-green-100 text-green-600';
+
+            // Score Display
+            const live = match.live_data || {};
+            if(match.sports.name.toLowerCase().includes('cricket')) {
+                const s1 = live.t1 ? `${live.t1.r}/${live.t1.w} (${live.t1.o})` : '0/0';
+                const s2 = live.t2 ? `${live.t2.r}/${live.t2.w} (${live.t2.o})` : '0/0';
+                scoreDisplay = `${s1} vs ${s2}`;
+            } else if (match.sport_type === 'Performance') {
+                scoreDisplay = 'View Results';
+            } else {
+                scoreDisplay = `${live.s1 || 0} - ${live.s2 || 0}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col";
+            card.innerHTML = `
+                <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">${match.sports.name}</span>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded ${statusColor}">${match.status}</span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400">${new Date(match.match_time).toLocaleDateString()}</div>
+                </div>
+                <div class="p-6 text-center flex-1 flex flex-col justify-center">
+                    <p class="text-xs font-bold text-slate-400 mb-2 uppercase">${match.title || 'Match'}</p>
+                    
+                    ${match.sport_type === 'Performance' 
+                        ? `<h3 class="text-lg font-bold text-slate-800">Rankings Event</h3>`
+                        : `<div class="flex justify-between items-center mb-4 px-4">
+                                <span class="font-bold text-slate-800 w-1/3 truncate text-right">${p1Name}</span>
+                                <span class="text-xs text-slate-400 px-2">VS</span>
+                                <span class="font-bold text-slate-800 w-1/3 truncate text-left">${p2Name}</span>
+                           </div>`
+                    }
+
+                    <div class="bg-slate-900 text-white py-3 rounded-xl mb-4">
+                        <span class="text-xl font-mono font-bold tracking-widest">${scoreDisplay}</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-auto">
+                         <button onclick="window.openLiveScoreMode('${match.id}')" class="py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700">
+                            ${match.status === 'Completed' ? 'Edit Result' : 'Live Console'}
+                         </button>
+                         <button onclick="window.deleteMatch('${match.id}')" class="py-2 bg-white border border-slate-200 text-red-500 text-xs font-bold rounded-lg hover:bg-red-50">
+                            Delete
+                         </button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+        if(window.lucide) lucide.createIcons();
+    }
+
+    // B. SCHEDULE MATCH
+    window.openScheduleModal = () => {
+        document.getElementById('modal-schedule-match').classList.remove('hidden');
+        document.getElementById('sched-participants-container').classList.add('hidden'); // Reset view
+        document.getElementById('sched-sport').value = "";
+    }
+
+    window.handleScheduleSportChange = async function(e) {
+        const sportId = e.target.value;
+        const option = e.target.options[e.target.selectedIndex];
+        const type = option.getAttribute('data-type'); // 'Team' | 'Individual' | 'Performance'
+        
+        const container = document.getElementById('sched-participants-container');
+        const teamView = document.getElementById('sched-type-team');
+        const perfView = document.getElementById('sched-type-performance');
+        
+        container.classList.remove('hidden');
+        
+        if (type === 'Performance') {
+            teamView.classList.add('hidden');
+            perfView.classList.remove('hidden');
+        } else {
+            // Team or Individual (Versus Mode)
+            perfView.classList.add('hidden');
+            teamView.classList.remove('hidden');
+            
+            // Populate Teams Dropdown
+            const t1Select = document.getElementById('sched-team1');
+            const t2Select = document.getElementById('sched-team2');
+            t1Select.innerHTML = '<option>Loading...</option>';
+            
+            // Fetch relevant teams
+            const { data: teams } = await supabase.from('teams').select('id, name').eq('sport_id', sportId);
+            
+            let html = '<option value="">-- Select --</option>';
+            if(teams) teams.forEach(t => html += `<option value="${t.id}">${t.name}</option>`);
+            
+            t1Select.innerHTML = html;
+            t2Select.innerHTML = html;
+        }
+    }
+
+    window.publishSchedule = async function() {
+        const sportEl = document.getElementById('sched-sport');
+        const sportId = sportEl.value;
+        const sportType = sportEl.options[sportEl.selectedIndex].getAttribute('data-type');
+        
+        const title = document.getElementById('sched-title').value;
+        const time = document.getElementById('sched-datetime').value;
+        const loc = document.getElementById('sched-location').value;
+
+        if(!sportId || !time) return alert("Sport and Date are required");
+
+        let participants = {};
+        
+        if (sportType === 'Team') {
+            const t1 = document.getElementById('sched-team1').value;
+            const t2 = document.getElementById('sched-team2').value;
+            if(!t1 || !t2) return alert("Select both teams");
+            participants = { team1_id: t1, team2_id: t2 };
+        } else if (sportType === 'Performance') {
+            participants = null; // Will fetch dynamically
+        }
+
+        const payload = {
+            sport_id: sportId,
+            sport_type: sportType,
+            title: title,
+            match_time: new Date(time).toISOString(),
+            location: loc,
+            status: 'Scheduled',
+            participants: participants,
+            live_data: {} 
+        };
+
+        const { error } = await supabase.from('matches').insert(payload);
+        
+        if(error) {
+            alert("Error: " + error.message);
+        } else {
+            alert("Match Scheduled!");
+            document.getElementById('modal-schedule-match').classList.add('hidden');
+            loadMatches();
+            logActivity("SCHEDULE_MATCH", `Scheduled ${sportType} match: ${title}`);
+        }
+    }
+
+    window.deleteMatch = async function(id) {
+        if(!confirm("Delete this match?")) return;
+        await supabase.from('matches').delete().eq('id', id);
+        loadMatches();
+        logActivity("DELETE_MATCH", `Deleted match ID: ${id}`);
+    }
+
+    // C. LIVE SCORE CONTROL
+    window.openLiveScoreMode = async function(matchId) {
+        currentLiveMatchId = matchId;
+        const match = rawMatches.find(m => m.id === matchId);
+        if(!match) return;
+
+        document.getElementById('live-match-subtitle').innerText = `${match.title} • ${match.sports.name}`;
+        
+        // Hide all views first
+        document.getElementById('live-view-standard').classList.add('hidden');
+        document.getElementById('live-view-cricket').classList.add('hidden');
+        document.getElementById('live-view-performance').classList.add('hidden');
+
+        const live = match.live_data || {};
+
+        // 1. CRICKET VIEW
+        if (match.sports.name.toLowerCase().includes('cricket')) {
+            document.getElementById('live-view-cricket').classList.remove('hidden');
+            
+            // Set Team Names
+            const parts = match.participants || {};
+            const t1 = rawTeams.find(t => t.id === parts.team1_id);
+            const t2 = rawTeams.find(t => t.id === parts.team2_id);
+            document.getElementById('live-cric-name1').innerText = t1 ? t1.name : 'Team A';
+            document.getElementById('live-cric-name2').innerText = t2 ? t2.name : 'Team B';
+
+            // Fill Data
+            const d1 = live.t1 || {r:0, w:0, o:0};
+            const d2 = live.t2 || {r:0, w:0, o:0};
+            
+            document.getElementById('cric-r1').value = d1.r; document.getElementById('cric-w1').value = d1.w; document.getElementById('cric-o1').value = d1.o;
+            document.getElementById('cric-r2').value = d2.r; document.getElementById('cric-w2').value = d2.w; document.getElementById('cric-o2').value = d2.o;
+        } 
+        // 2. PERFORMANCE VIEW (Race)
+        else if (match.sport_type === 'Performance') {
+            document.getElementById('live-view-performance').classList.remove('hidden');
+            const tbody = document.getElementById('live-perf-rows');
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center p-4">Loading participants...</td></tr>';
+
+            // Fetch all students registered for this sport
+            const { data: regs } = await supabase
+                .from('registrations')
+                .select('id, users(id, name, student_id)')
+                .eq('sport_id', match.sport_id);
+
+            if(regs) {
+                // Merge with existing results if any
+                const existingResults = live.results || []; // Array of {uid, time, rank}
+
+                tbody.innerHTML = regs.map((r, index) => {
+                    const u = r.users;
+                    const prev = existingResults.find(res => res.uid === u.id) || {};
+                    return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3"><input type="number" class="w-12 p-1 border rounded text-center font-bold" value="${prev.rank || index + 1}" id="perf-rank-${u.id}"></td>
+                        <td class="p-3">
+                            <p class="font-bold text-slate-800 text-sm">${u.name}</p>
+                            <p class="text-[10px] text-slate-500">#${u.student_id}</p>
+                        </td>
+                        <td class="p-3 text-right">
+                            <input type="text" placeholder="Time/Score" class="w-24 p-1 border rounded text-right font-mono" value="${prev.time || ''}" id="perf-time-${u.id}">
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        } 
+        // 3. STANDARD VIEW (Football, etc.)
+        else {
+            document.getElementById('live-view-standard').classList.remove('hidden');
+            const parts = match.participants || {};
+            const t1 = rawTeams.find(t => t.id === parts.team1_id);
+            const t2 = rawTeams.find(t => t.id === parts.team2_id);
+            document.getElementById('live-std-name1').innerText = t1 ? t1.name : 'Team A';
+            document.getElementById('live-std-name2').innerText = t2 ? t2.name : 'Team B';
+            document.getElementById('live-std-score1').value = live.s1 || 0;
+            document.getElementById('live-std-score2').value = live.s2 || 0;
+        }
+
+        // Set status to Live automatically if opened
+        if(match.status === 'Scheduled') {
+            await supabase.from('matches').update({ status: 'Live' }).eq('id', matchId);
+        }
+
+        document.getElementById('modal-live-score').classList.remove('hidden');
+    }
+
+    window.updateLiveScore = async function(mode) {
+        if(!currentLiveMatchId) return;
+        let newData = {};
+
+        if (mode === 'cricket') {
+            newData = {
+                t1: {
+                    r: document.getElementById('cric-r1').value,
+                    w: document.getElementById('cric-w1').value,
+                    o: document.getElementById('cric-o1').value
+                },
+                t2: {
+                    r: document.getElementById('cric-r2').value,
+                    w: document.getElementById('cric-w2').value,
+                    o: document.getElementById('cric-o2').value
+                }
+            };
+        } else if (mode === 'standard') {
+            newData = {
+                s1: document.getElementById('live-std-score1').value,
+                s2: document.getElementById('live-std-score2').value
+            };
+        } else if (mode === 'performance') {
+            // Scrape the table inputs
+            const rows = document.getElementById('live-perf-rows').querySelectorAll('tr');
+            let results = [];
+            rows.forEach(row => {
+                const rankIn = row.querySelector('input[id^="perf-rank-"]');
+                const timeIn = row.querySelector('input[id^="perf-time-"]');
+                if(rankIn && timeIn) {
+                    const uid = rankIn.id.replace('perf-rank-', '');
+                    if(timeIn.value) { // Only save if time is entered
+                        results.push({
+                            uid: uid,
+                            rank: parseInt(rankIn.value),
+                            time: timeIn.value
+                        });
+                    }
+                }
+            });
+            // Sort by Rank
+            results.sort((a,b) => a.rank - b.rank);
+            newData = { results: results };
+        }
+
+        const { error } = await supabase
+            .from('matches')
+            .update({ live_data: newData, status: 'Live' })
+            .eq('id', currentLiveMatchId);
+
+        if(error) alert("Sync Error");
+        else {
+            // Show brief success indicator
+            const btn = event.target;
+            const oldText = btn.innerText;
+            btn.innerText = "Synced ✓";
+            btn.classList.add('bg-green-600');
+            setTimeout(() => {
+                btn.innerText = oldText;
+                btn.classList.remove('bg-green-600');
+            }, 1000);
+            loadMatches(); // Refresh grid background
+        }
+    }
+
+    window.endMatch = async function() {
+        if(!confirm("End this match and finalize results?")) return;
+        await supabase.from('matches').update({ status: 'Completed' }).eq('id', currentLiveMatchId);
+        document.getElementById('modal-live-score').classList.add('hidden');
+        loadMatches();
+    }
+
+
+    // ==========================================
+    // MODULE: USER MANAGER (EXISTING)
+    // ==========================================
     window.searchUserManager = function(query) {
         clearTimeout(searchDebounceTimer);
         const resultsEl = document.getElementById('user-manager-results');
@@ -276,7 +646,6 @@
 
         if(!sportId) return alert("Select a sport first");
 
-        // Check if already registered
         const { data: existing } = await supabase.from('registrations').select('id').eq('user_id', currentUserProfileId).eq('sport_id', sportId);
         if(existing && existing.length > 0) return alert("Student is already registered for this sport.");
 
@@ -285,7 +654,6 @@
         if(error) {
             alert("Error: " + error.message);
         } else {
-            // LOGGING
             await logActivity("MANUAL_REGISTER", `Registered user (ID: ${currentUserProfileId}) for ${sportName}`);
             alert("Registration Added!");
             refreshUserRegistrations();
@@ -299,14 +667,15 @@
         if(error) {
             alert("Error: " + error.message);
         } else {
-            // LOGGING
             await logActivity("MANUAL_WITHDRAW", `Withdrew user (ID: ${currentUserProfileId}) from ${sportName}`);
             refreshUserRegistrations();
         }
     }
 
 
-    // --- 8. REGISTRATIONS LIST ---
+    // ==========================================
+    // MODULE: REGISTRATIONS (EXISTING)
+    // ==========================================
     async function loadRegistrations() {
         const loader = document.getElementById('regs-loader');
         const tbody = document.getElementById('regs-tbody');
@@ -352,7 +721,9 @@
         `).join('');
     }
 
-    // --- 9. TEAMS MODULE ---
+    // ==========================================
+    // MODULE: TEAMS (EXISTING)
+    // ==========================================
     window.loadTeams = async function() {
         const loader = document.getElementById('teams-loader');
         const grid = document.getElementById('teams-grid');
@@ -421,21 +792,15 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 10. TEAM ACTIONS ---
-
+    // --- TEAMS ACTIONS ---
     window.searchUsers = function(query, resultsId, hiddenInputId) {
         clearTimeout(searchDebounceTimer);
         const resultsEl = document.getElementById(resultsId);
-        
-        if (!query || query.length < 2) {
-            resultsEl.classList.add('hidden');
-            return;
-        }
+        if (!query || query.length < 2) { resultsEl.classList.add('hidden'); return; }
 
         searchDebounceTimer = setTimeout(async () => {
             resultsEl.innerHTML = '<div class="p-3 text-xs text-slate-400">Searching...</div>';
             resultsEl.classList.remove('hidden');
-
             const { data } = await supabase.from('users').select('id, name, student_id, class_name').or(`name.ilike.%${query}%,student_id.ilike.%${query}%`).limit(5);
 
             if (data && data.length > 0) {
@@ -445,9 +810,7 @@
                         <p class="text-sm font-bold text-slate-800">${u.name}</p>
                         <p class="text-[10px] text-slate-500">${u.class_name} • #${u.student_id}</p>
                     </div>`).join('');
-            } else {
-                resultsEl.innerHTML = '<div class="p-3 text-xs text-red-400">No user found</div>';
-            }
+            } else { resultsEl.innerHTML = '<div class="p-3 text-xs text-red-400">No user found</div>'; }
         }, 400); 
     }
 
@@ -464,19 +827,15 @@
         const name = document.getElementById('new-team-name').value;
         const sportSelect = document.getElementById('new-team-sport');
         const sportId = sportSelect.value;
-        const sportName = sportSelect.options[sportSelect.selectedIndex].text;
         const captainId = document.getElementById('new-team-captain-id').value;
 
         if(!name || !sportId || !captainId) return alert("Please fill all fields");
 
         const { data: team, error } = await supabase.from('teams').insert({ name, sport_id: sportId, captain_id: captainId, status: 'Open' }).select().single();
-
         if (error) return alert("Error: " + error.message);
 
         await supabase.from('team_members').insert({ team_id: team.id, user_id: captainId, status: 'Accepted' });
-
-        // LOGGING
-        await logActivity("CREATE_TEAM", `Created team '${name}' for ${sportName}`);
+        await logActivity("CREATE_TEAM", `Created team '${name}'`);
 
         alert("Team Created Successfully!");
         document.getElementById('modal-create-team').classList.add('hidden');
@@ -533,9 +892,7 @@
         if (error) {
             alert(error.message);
         } else {
-            // LOGGING
             await logActivity("ADD_MEMBER", `Added ${userName} to team ID: ${currentManageTeamId}`);
-            
             await loadTeams(); 
             const team = rawTeams.find(t => t.id === currentManageTeamId);
             renderManageRoster(team);
@@ -547,10 +904,7 @@
     window.removeMember = async function(userId) {
         if(!confirm("Remove this player?")) return;
         await supabase.from('team_members').delete().eq('team_id', currentManageTeamId).eq('user_id', userId);
-        
-        // LOGGING
         await logActivity("REMOVE_MEMBER", `Removed user ${userId} from team ${currentManageTeamId}`);
-        
         await loadTeams();
         const team = rawTeams.find(t => t.id === currentManageTeamId);
         renderManageRoster(team);
@@ -558,34 +912,28 @@
 
     window.toggleLock = async function(teamId, newStatus, teamName) {
         await supabase.from('teams').update({ status: newStatus }).eq('id', teamId);
-        
-        // LOGGING
         await logActivity("UPDATE_STATUS", `Changed status of '${teamName}' to ${newStatus}`);
-
         await loadTeams();
         openManageTeamModal(teamId);
     }
 
     window.deleteTeam = async function() {
         if(!confirm("CRITICAL WARNING:\nAre you sure you want to delete this team?\nThis cannot be undone.")) return;
-        
-        // LOGGING (before delete)
         await logActivity("DELETE_TEAM", `Deleted team ID: ${currentManageTeamId}`);
-
         await supabase.from('team_members').delete().eq('team_id', currentManageTeamId);
         await supabase.from('teams').delete().eq('id', currentManageTeamId);
-        
         document.getElementById('modal-manage-team').classList.add('hidden');
         loadTeams();
     }
 
-
-    // --- 11. WINNERS MODULE ---
+    // ==========================================
+    // MODULE: WINNERS (EXISTING)
+    // ==========================================
     async function loadWinners() {
         const container = document.getElementById('winners-list-container');
         container.innerHTML = '<div class="text-center py-4 text-slate-400">Loading...</div>';
 
-        const { data, error } = await supabase.from('winners').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase.from('winners').select('*').order('created_at', { ascending: false });
         if(data) {
             rawWinners = data;
             if(data.length === 0) {
@@ -627,9 +975,7 @@
         if(error) {
             alert("Error: " + error.message);
         } else {
-            // LOGGING
             await logActivity("DECLARE_WINNER", `Declared ${gold} as Gold for ${sportName} (${gender})`);
-            
             document.getElementById('winner-gold').value = '';
             document.getElementById('winner-silver').value = '';
             document.getElementById('winner-bronze').value = '';
@@ -640,32 +986,24 @@
     window.deleteWinner = async function(id) {
         if(!confirm("Delete this record?")) return;
         await supabase.from('winners').delete().eq('id', id);
-        
-        // LOGGING
         await logActivity("DELETE_WINNER", `Deleted winner record ID: ${id}`);
         loadWinners();
     }
 
-
-    // --- 12. EXPORTS ---
+    // ==========================================
+    // MODULE: EXPORTS (EXISTING)
+    // ==========================================
     window.exportTeamsExcel = function() {
         if(rawTeams.length === 0) return alert("No data");
         const data = rawTeams.map(t => ({
-            "Team Name": t.name,
-            "Sport": t.sports?.name,
-            "Status": t.status,
-            "Member Count": t.memberCount,
-            "Max Size": t.sports?.team_size,
-            "Captain Name": t.users?.name,
-            "Captain Gender": t.users?.gender,
-            "Captain Class": t.users?.class_name,
-            "Captain Mobile": t.users?.mobile,
-            "Created Date": new Date(t.created_at).toLocaleDateString()
+            "Team Name": t.name, "Sport": t.sports?.name, "Status": t.status,
+            "Member Count": t.memberCount, "Max Size": t.sports?.team_size,
+            "Captain": t.users?.name, "Captain Class": t.users?.class_name, "Mobile": t.users?.mobile
         }));
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Teams");
-        XLSX.writeFile(wb, `OJAS_Teams_Summary_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.writeFile(wb, `OJAS_Teams_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
     window.exportTeamsPDF = function() {
@@ -686,9 +1024,8 @@
             const members = t.activeMembers || [];
             members.forEach(m => {
                 masterList.push({
-                    "Team ID": t.id, "Team Name": t.name, "Sport": t.sports?.name, "Captain Name": t.users?.name,
-                    "Player Name": m.users?.name, "Player Gender": m.users?.gender, "Player Class": m.users?.class_name,
-                    "Player Mobile": m.users?.mobile, "Player ID": m.users?.student_id
+                    "Team ID": t.id, "Team Name": t.name, "Sport": t.sports?.name, "Captain": t.users?.name,
+                    "Player": m.users?.name, "Class": m.users?.class_name, "Mobile": m.users?.mobile, "ID": m.users?.student_id
                 });
             });
         });
