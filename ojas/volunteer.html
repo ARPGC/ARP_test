@@ -17,6 +17,10 @@
         .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .toast-exit { transform: translateY(0); opacity: 1; }
         .toast-exit-active { transform: translateY(100%); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 pb-20">
@@ -29,22 +33,66 @@
         <p id="auth-msg" class="text-sm text-slate-500 mt-2">Please wait while we check your volunteer status.</p>
     </div>
 
-    <div id="app-container" class="hidden min-h-screen">
+    <div id="app-container" class="hidden min-h-screen flex flex-col">
         
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
-            <div>
-                <h1 class="text-lg font-extrabold text-slate-900 tracking-tight">OJAS <span class="text-indigo-600">LIVE</span></h1>
-                <p id="vol-sport-name" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Loading Sport...</p>
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm h-16">
+            <div class="flex items-center gap-3">
+                <button id="btn-back" onclick="window.closeMatchView()" class="hidden p-2 -ml-2 text-slate-500 hover:text-indigo-600 transition-colors">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </button>
+                <div>
+                    <h1 class="text-lg font-extrabold text-slate-900 tracking-tight leading-tight">OJAS <span class="text-indigo-600">LIVE</span></h1>
+                    <p id="vol-sport-name" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Loading...</p>
+                </div>
             </div>
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs" id="vol-initials">V</div>
+                <div class="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shadow-inner" id="vol-initials">V</div>
             </div>
         </header>
 
-        <main class="p-4 space-y-4" id="matches-container">
-            <div class="text-center py-12 text-slate-400">
-                <i data-lucide="wifi-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-                <p>No live matches found for your assigned sport.</p>
+        <main id="view-match-list" class="flex-1 p-4 space-y-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Live Matches</h2>
+                <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online
+                </span>
+            </div>
+            
+            <div id="matches-list-container" class="space-y-3">
+                <div class="text-center py-12 text-slate-400">
+                    <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-2 opacity-50"></i>
+                    <p class="text-xs">Searching for live matches...</p>
+                </div>
+            </div>
+        </main>
+
+        <main id="view-score-control" class="hidden flex-1 p-4 flex flex-col">
+            <div class="bg-indigo-600 text-white rounded-xl p-4 mb-4 shadow-lg shadow-indigo-200">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded text-white/90">LIVE MATCH</span>
+                    <span id="match-timer" class="text-xs font-mono opacity-80">--:--</span>
+                </div>
+                <h2 id="control-match-title" class="text-lg font-bold leading-tight mb-1">Match Title</h2>
+                <p id="control-match-versus" class="text-xs text-indigo-100 opacity-90">Team A vs Team B</p>
+            </div>
+
+            <div id="score-inputs-container" class="flex-1 space-y-4">
+                </div>
+
+            <div id="end-match-section" class="mt-8 pt-6 border-t border-slate-200">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                    <h3 class="text-xs font-bold text-slate-900 uppercase flex items-center gap-2">
+                        <i data-lucide="flag" class="w-4 h-4"></i> Finish Match
+                    </h3>
+                    
+                    <select id="select-winner" class="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-bold">
+                        <option value="">Select Winner...</option>
+                        </select>
+
+                    <button onclick="window.endMatchVolunteer()" class="w-full text-white bg-slate-900 hover:bg-slate-800 font-bold rounded-lg text-sm px-5 py-3 text-center shadow-lg transition-all active:scale-95">
+                        End Match & Submit
+                    </button>
+                </div>
             </div>
         </main>
 
