@@ -1,5 +1,5 @@
 // ==========================================
-// OJAS 2026 - VOLUNTEER CONTROLLER (FINAL)
+// OJAS 2026 - VOLUNTEER CONTROLLER (FIXED TEAMS)
 // ==========================================
 
 (function() { 
@@ -15,7 +15,8 @@
     let currentVolunteer = null;
     let assignedSport = null;
     let liveMatches = [];
-    let currentActiveMatchId = null; // Tracks which match is currently open
+    let rawTeams = []; // NEW: Cache for Team Names
+    let currentActiveMatchId = null; 
 
     // --- 2. INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
@@ -30,30 +31,28 @@
 
         if (!studentId) return showAuthError("No ID found. Please scan your QR code again.");
 
-        // Fetch User + Assigned Sport
         const { data: user, error } = await supabase
             .from('users')
             .select(`*, sports (id, name, type, is_performance)`)
             .eq('student_id', studentId)
             .single();
 
-        if (error || !user) return showAuthError("Access Denied: User not found.");
+        if (error) return showAuthError("Access Denied: " + error.message);
+        if (!user) return showAuthError("User not found.");
         if (user.role !== 'volunteer') return showAuthError("Access Denied: Not a Volunteer.");
-        if (!user.sports) return showAuthError("No Sport Assigned. Contact Admin.");
+        if (!user.sports) return showAuthError("No Sport Assigned.");
 
-        // Auth Success
         currentVolunteer = user;
         assignedSport = user.sports;
 
-        // Update UI
         document.getElementById('vol-sport-name').innerText = assignedSport.name;
         document.getElementById('vol-initials').innerText = user.name.substring(0, 2).toUpperCase();
         
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
-        // Load Data
-        loadLiveMatches();
+        // NEW: Load Teams & Matches in parallel
+        await Promise.all([loadTeams(), loadLiveMatches()]);
         subscribeToRealtime();
     }
 
@@ -61,12 +60,21 @@
         const el = document.getElementById('auth-msg');
         el.innerText = msg;
         el.classList.add('text-red-600', 'font-bold');
-        document.querySelector('.animate-spin').classList.remove('animate-spin');
+        document.querySelector('.animate-spin').classList.remove('animate-spin'); 
     }
 
-    // --- 4. DATA LOADING & REALTIME ---
+    // --- 4. DATA LOADING ---
+    
+    // NEW: Fetch Teams to resolve IDs to Names
+    async function loadTeams() {
+        const { data } = await supabase.from('teams').select('id, name');
+        if (data) rawTeams = data;
+    }
+
     async function loadLiveMatches() {
-        // Fetch only Live matches for this sport
+        const container = document.getElementById('matches-container');
+        if(liveMatches.length === 0) container.innerHTML = '<div class="text-center py-10"><span class="loading-spinner text-indigo-600">Loading Live Events...</span></div>';
+
         const { data, error } = await supabase
             .from('matches')
             .select('*')
@@ -74,17 +82,17 @@
             .eq('status', 'Live')
             .order('created_at', { ascending: false });
 
-        if (error) return showToast("Connection Error", "error");
+        if (error) {
+            showToast("Connection Error", "error");
+            return;
+        }
 
         liveMatches = data;
 
-        // Decision: Render List or Update Active Console
         if (currentActiveMatchId) {
             const activeMatch = liveMatches.find(m => m.id === currentActiveMatchId);
-            if (activeMatch) {
-                renderScoreboard(activeMatch); // Update stats while keeping user in console
-            } else {
-                // Match ended or deleted while viewing
+            if (activeMatch) renderScoreboard(activeMatch); 
+            else {
                 closeMatchView();
                 showToast("Match ended or removed", "info");
                 renderMatchList();
@@ -103,13 +111,31 @@
                 table: 'matches', 
                 filter: `sport_id=eq.${assignedSport.id}` 
             }, (payload) => {
-                console.log("Realtime Update:", payload);
                 loadLiveMatches();
             })
             .subscribe();
     }
 
-    // --- 5. VIEW 1: MATCH LIST (LOBBY) ---
+    // HELPER: Resolve Name from ID or JSON
+    function getParticipantName(match, type) { // type = '1' or '2'
+        const p = match.participants || {};
+        
+        // 1. Try JSON Name (if saved)
+        if (p[`player${type}_name`]) return p[`player${type}_name`];
+        if (p[`team${type}_name`]) return p[`team${type}_name`];
+
+        // 2. Try ID Lookup in rawTeams
+        const teamId = p[`team${type}_id`];
+        if (teamId && rawTeams.length > 0) {
+            const team = rawTeams.find(t => t.id === teamId);
+            if (team) return team.name;
+        }
+
+        // 3. Fallback
+        return type === '1' ? 'Team A' : 'Team B';
+    }
+
+    // --- 5. VIEW 1: MATCH LIST ---
     window.renderMatchList = function() {
         const container = document.getElementById('matches-list-container');
         container.innerHTML = '';
@@ -126,9 +152,9 @@
         }
 
         liveMatches.forEach(match => {
-            // Resolve Names
-            let p1 = match.participants?.player1_name || match.participants?.team1_name || "Team A";
-            let p2 = match.participants?.player2_name || match.participants?.team2_name || "Team B";
+            let p1 = getParticipantName(match, '1');
+            let p2 = getParticipantName(match, '2');
+
             if (assignedSport.is_performance) {
                 p1 = "Performance Event"; 
                 p2 = `${match.participants?.students?.length || 0} Participants`;
@@ -167,32 +193,28 @@
 
         currentActiveMatchId = matchId;
 
-        // Toggle Views
         document.getElementById('view-match-list').classList.add('hidden');
         document.getElementById('view-score-control').classList.remove('hidden');
-        document.getElementById('btn-back').classList.remove('hidden'); // Show back button
+        document.getElementById('btn-back').classList.remove('hidden');
 
-        // Populate Header Info
         document.getElementById('control-match-title').innerText = match.title;
         
         let versusText = "";
-        const p = match.participants || {};
-        
-        // Setup Winner Dropdown
         const winnerSelect = document.getElementById('select-winner');
         winnerSelect.innerHTML = '<option value="">Select Winner...</option>';
 
         if (assignedSport.is_performance) {
             versusText = "Update Results";
-            document.getElementById('end-match-section').classList.add('hidden'); // No winner selection for perf here usually
+            document.getElementById('end-match-section').classList.add('hidden'); 
         } else {
             document.getElementById('end-match-section').classList.remove('hidden');
-            // Resolve Names
-            const n1 = p.player1_name || p.team1_name || "Team A";
-            const n2 = p.player2_name || p.team2_name || "Team B";
+            
+            // Resolve Names using Helper
+            const n1 = getParticipantName(match, '1');
+            const n2 = getParticipantName(match, '2');
+            
             versusText = `${n1} vs ${n2}`;
             
-            // Populate Dropdown
             winnerSelect.innerHTML += `<option value="${n1}">${n1}</option>`;
             winnerSelect.innerHTML += `<option value="${n2}">${n2}</option>`;
             winnerSelect.innerHTML += `<option value="Draw">Draw</option>`;
@@ -212,10 +234,6 @@
 
     function renderScoreboard(match) {
         const container = document.getElementById('score-inputs-container');
-        // If focusing on an input, don't fully wipe innerHTML to prevent focus loss (Basic check)
-        // ideally we use diffing, but for simple app, we wipe. 
-        // CAUTION: This might kill focus if realtime update happens while typing. 
-        // For volunteers, updates usually come from them, so it's okay.
         container.innerHTML = '';
 
         // A. PERFORMANCE
@@ -247,8 +265,8 @@
             const t1 = d.t1 || {r:0,w:0,o:0};
             const t2 = d.t2 || {r:0,w:0,o:0};
             
-            const n1 = match.participants?.team1_name || 'Team A';
-            const n2 = match.participants?.team2_name || 'Team B';
+            const n1 = getParticipantName(match, '1');
+            const n2 = getParticipantName(match, '2');
 
             const inputBlock = (teamKey, label, field, val) => `
                 <div class="flex flex-col">
@@ -283,8 +301,8 @@
         // C. STANDARD
         else {
             const s = match.live_data || {s1:0, s2:0};
-            const n1 = match.participants?.player1_name || match.participants?.team1_name || 'Home';
-            const n2 = match.participants?.player2_name || match.participants?.team2_name || 'Away';
+            const n1 = getParticipantName(match, '1');
+            const n2 = getParticipantName(match, '2');
 
             container.innerHTML = `
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -326,23 +344,24 @@
     }
 
     window.updateCricketScore = async function(matchId, teamKey, field, value) {
+        showToast("Updating...", "info");
         const match = liveMatches.find(m => m.id === matchId);
         let liveData = match.live_data || {};
         if(!liveData[teamKey]) liveData[teamKey] = {};
         liveData[teamKey][field] = value;
         const { error } = await supabase.from('matches').update({ live_data: liveData }).eq('id', matchId);
-        if(error) showToast("Failed", "error");
+        if(error) showToast("Failed", "error"); else showToast("Score Updated", "success");
     }
 
     window.updateStandardScore = async function(matchId, scoreKey, value) {
+        showToast("Updating...", "info");
         const match = liveMatches.find(m => m.id === matchId);
         let liveData = match.live_data || {};
         liveData[scoreKey] = value;
         const { error } = await supabase.from('matches').update({ live_data: liveData }).eq('id', matchId);
-        if(error) showToast("Failed", "error");
+        if(error) showToast("Failed", "error"); else showToast("Score Updated", "success");
     }
 
-    // --- 8. END MATCH LOGIC ---
     window.endMatchVolunteer = async function() {
         if (!currentActiveMatchId) return;
         
@@ -354,18 +373,10 @@
 
         showToast("Finalizing Match...", "info");
 
-        // 1. Get current live_data to preserve scores
         const match = liveMatches.find(m => m.id === currentActiveMatchId);
         const finalLiveData = { ...match.live_data, winner: winner };
 
-        // 2. Update DB
-        const { error } = await supabase
-            .from('matches')
-            .update({ 
-                status: 'Completed', 
-                live_data: finalLiveData 
-            })
-            .eq('id', currentActiveMatchId);
+        const { error } = await supabase.from('matches').update({ status: 'Completed', live_data: finalLiveData }).eq('id', currentActiveMatchId);
 
         if (error) {
             showToast("Error ending match", "error");
@@ -375,7 +386,6 @@
         }
     }
 
-    // --- 9. TOASTS ---
     function showToast(msg, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -388,8 +398,12 @@
         container.appendChild(toast);
         if(window.lucide) lucide.createIcons();
 
-        requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
-        setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(100%)'; setTimeout(() => toast.remove(), 300); }, 2000);
+        requestAnimationFrame(() => toast.classList.remove('translate-y-full', 'opacity-0'));
+        setTimeout(() => { 
+            toast.style.opacity = '0'; 
+            toast.style.transform = 'translateY(100%)'; 
+            setTimeout(() => toast.remove(), 300); 
+        }, 2000);
     }
 
 })();
