@@ -29,6 +29,7 @@
 
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
+        
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -325,9 +326,40 @@
                         </button>
                     </div>
 
-                    <div class="flex gap-4 border-b border-slate-200 pb-1">
-                        <button class="px-4 py-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600">Live / Upcoming</button>
-                        <button class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">Completed</button>
+                    <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-2 items-center sticky top-0 z-10">
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="match-search" onkeyup="renderMatchesGrid()" placeholder="Search Teams or Title..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
+                        </div>
+                        
+                        <select id="match-filter-sport" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 min-w-[120px]">
+                            <option value="All">All Sports</option>
+                        </select>
+                        
+                        <select id="match-filter-status" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
+                            <option value="All">All Statuses</option>
+                            <option value="Live">Live</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+
+                        <select id="match-sort" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 ml-auto">
+                            <option value="time_asc">Time (Earliest First)</option>
+                            <option value="time_desc">Time (Latest First)</option>
+                        </select>
+                        
+                        <div class="h-8 w-px bg-slate-200 mx-1"></div>
+                        
+                        <button onclick="window.exportMatchesExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
+                            <i data-lucide="sheet" class="w-3.5 h-3.5"></i> Excel
+                        </button>
+                        <button onclick="window.exportMatchesPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i> PDF
+                        </button>
+                        
+                        <button onclick="window.loadMatches()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
                     </div>
 
                     <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -486,8 +518,13 @@
                         <select id="sched-sport" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500"></select>
                     </div>
                     <div class="col-span-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Match Title / Round</label>
-                        <input type="text" id="sched-title" placeholder="e.g. Semi Final" class="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Category / Gender</label>
+                        <select id="sched-gender" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                            <option value="">-- All --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Mixed">Mixed</option>
+                        </select>
                     </div>
                     <div class="col-span-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase">Round Number</label>
@@ -495,24 +532,33 @@
                     </div>
                 </div>
 
+                <div class="col-span-full">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Match Title</label>
+                    <input type="text" id="sched-title" placeholder="e.g. Semi Final" class="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                </div>
+
                 <div id="sched-participants-container" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-4">
                     <div id="sched-type-team" class="hidden">
                         <div class="flex items-center gap-4">
                             <div class="flex-1">
-                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Home Team</label>
+                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Home</label>
                                 <select id="sched-team1" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
                             </div>
-                            <span class="text-sm font-bold text-slate-400 mt-5">VS</span>
-                            <div class="flex-1">
-                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Away Team</label>
+                            <span class="text-sm font-bold text-slate-400 mt-5" id="vs-text">VS</span>
+                            <div class="flex-1" id="away-container">
+                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Away</label>
                                 <select id="sched-team2" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
                             </div>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                             <input type="checkbox" id="sched-is-bye" class="w-4 h-4 text-indigo-600 rounded">
+                             <label for="sched-is-bye" class="text-xs font-bold text-slate-600 cursor-pointer">Declare Bye (Home advances automatically)</label>
                         </div>
                     </div>
 
                     <div id="sched-type-performance" class="hidden text-center py-2">
                         <p class="text-sm font-bold text-indigo-700">Performance Event</p>
-                        <p class="text-xs text-slate-500">All registered students for this sport will be loaded automatically.</p>
+                        <p class="text-xs text-slate-500">All registered students will be loaded automatically.</p>
                     </div>
                 </div>
 
@@ -550,7 +596,7 @@
                         <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                         Live Score Control
                     </h3>
-                    <p id="live-match-subtitle" class="text-xs text-slate-500 mt-1">Updating: Final Match - Football</p>
+                    <p id="live-match-subtitle" class="text-xs text-slate-500 mt-1">Updating...</p>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="window.endMatch()" class="px-3 py-1.5 bg-red-100 text-red-600 text-xs font-bold rounded-lg hover:bg-red-200">End Match</button>
@@ -560,19 +606,29 @@
 
             <div class="flex-1 overflow-y-auto p-6 bg-slate-50/50">
                 
+                <div id="live-winner-section" class="hidden mb-6 bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-bold text-yellow-800 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4"></i> Declare Winner</h4>
+                        <p class="text-[10px] text-yellow-600">Select the winner before ending the match.</p>
+                    </div>
+                    <select id="live-winner-select" class="p-2 bg-white border border-yellow-300 rounded-lg text-sm font-bold outline-none focus:border-yellow-500 w-48">
+                        <option value="">-- Select Winner --</option>
+                    </select>
+                </div>
+
                 <div id="live-view-standard" class="hidden flex flex-col items-center justify-center py-10">
                     <div class="flex items-center gap-8 mb-8">
                         <div class="text-center">
                             <h4 id="live-std-name1" class="font-bold text-xl text-slate-800 mb-2">Team A</h4>
-                            <input type="text" id="live-std-score1" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-indigo-500 shadow-sm" placeholder="0">
+                            <input type="text" id="live-std-score1" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl shadow-sm" placeholder="0">
                         </div>
                         <span class="text-2xl font-bold text-slate-300">VS</span>
                         <div class="text-center">
                             <h4 id="live-std-name2" class="font-bold text-xl text-slate-800 mb-2">Team B</h4>
-                            <input type="text" id="live-std-score2" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-indigo-500 shadow-sm" placeholder="0">
+                            <input type="text" id="live-std-score2" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl shadow-sm" placeholder="0">
                         </div>
                     </div>
-                    <button onclick="window.updateLiveScore('standard')" class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all">Update Scoreboard</button>
+                    <button onclick="window.updateLiveScore('standard', this)" class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all">Update Scoreboard</button>
                 </div>
 
                 <div id="live-view-cricket" class="hidden max-w-2xl mx-auto">
@@ -592,7 +648,7 @@
                             <div><label class="text-[10px] font-bold text-slate-400 uppercase">Overs</label><input id="cric-o2" type="text" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
                         </div>
                     </div>
-                    <button onclick="window.updateLiveScore('cricket')" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Update Cricket Score</button>
+                    <button onclick="window.updateLiveScore('cricket', this)" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Update Cricket Score</button>
                 </div>
 
                 <div id="live-view-performance" class="hidden">
@@ -610,7 +666,7 @@
                         </table>
                     </div>
                     <div class="mt-4 text-right">
-                        <button onclick="window.updateLiveScore('performance')" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Save Results</button>
+                        <button onclick="window.updateLiveScore('performance', this)" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Save Results</button>
                     </div>
                 </div>
 
