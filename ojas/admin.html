@@ -37,6 +37,10 @@
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body>
@@ -87,6 +91,10 @@
                     <i data-lucide="users" class="w-5 h-5"></i> Teams & Squads
                 </button>
 
+                <button onclick="switchView('matches')" id="nav-matches" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                    <i data-lucide="calendar-clock" class="w-5 h-5"></i> Live Matches
+                </button>
+
                  <div class="pt-4 pb-2">
                     <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Results</p>
                 </div>
@@ -133,7 +141,6 @@
                 </div>
 
                 <div id="view-users" class="hidden animate-fade-in space-y-6">
-                    
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-3xl mx-auto">
                         <h3 class="text-lg font-bold text-slate-900 mb-4">Find Student</h3>
                         <div class="relative">
@@ -144,7 +151,6 @@
                     </div>
 
                     <div id="user-manager-profile" class="hidden max-w-3xl mx-auto space-y-6">
-                        
                         <div class="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
                             <div class="relative z-10 flex justify-between items-start">
                                 <div>
@@ -164,8 +170,7 @@
                                 <h4 class="font-bold text-slate-800 text-sm">Active Registrations</h4>
                                 <span id="um-reg-count" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded">0</span>
                             </div>
-                            <div id="um-regs-list" class="divide-y divide-slate-100">
-                                </div>
+                            <div id="um-regs-list" class="divide-y divide-slate-100"></div>
                         </div>
 
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -177,7 +182,6 @@
                                 </button>
                             </div>
                         </div>
-
                         <input type="hidden" id="um-current-user-id">
                     </div>
                 </div>
@@ -242,7 +246,6 @@
                 </div>
 
                 <div id="view-teams" class="hidden animate-fade-in space-y-4">
-                    
                     <div class="flex flex-col gap-4 sticky top-0 z-10">
                         <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                              <h3 class="text-sm font-bold text-slate-700 px-2">Team Management</h3>
@@ -272,17 +275,14 @@
                                 <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
                                 <input type="text" id="team-search" onkeyup="renderTeamsGrid()" placeholder="Search Teams..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
                             </div>
-                            
                             <select id="team-filter-sport" onchange="renderTeamsGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 min-w-[120px]">
                                 <option value="All">All Sports</option>
                             </select>
-                            
                             <select id="team-filter-gender" onchange="renderTeamsGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
                                 <option value="All">All Genders</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                             </select>
-
                             <select id="team-filter-class" onchange="renderTeamsGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
                                 <option value="All">All Classes</option>
                                 <option value="FYJC">FYJC</option>
@@ -293,28 +293,45 @@
                                 <option value="FYPG">FYPG</option>
                                 <option value="SYPG">SYPG</option>
                             </select>
-
                             <select id="team-filter-status" onchange="renderTeamsGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
                                 <option value="All">All Statuses</option>
                                 <option value="Open">Open</option>
                                 <option value="Locked">Locked</option>
                             </select>
-
                             <select id="team-sort" onchange="renderTeamsGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 ml-auto">
                                 <option value="newest">Newest First</option>
                                 <option value="oldest">Oldest First</option>
                                 <option value="full">Most Full</option>
                             </select>
-
                             <button onclick="window.loadTeams()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors">
                                 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
-
                     <div id="teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
                     <div id="teams-loader" class="p-8 text-center w-full col-span-full">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    </div>
+                </div>
+
+                <div id="view-matches" class="hidden animate-fade-in space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900">Live Matches & Schedule</h3>
+                            <p class="text-sm text-slate-500 mt-1">Manage fixture timings and live scores.</p>
+                        </div>
+                        <button onclick="window.openScheduleModal()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-600/20">
+                            <i data-lucide="calendar-plus" class="w-5 h-5"></i> Schedule Match
+                        </button>
+                    </div>
+
+                    <div class="flex gap-4 border-b border-slate-200 pb-1">
+                        <button class="px-4 py-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600">Live / Upcoming</button>
+                        <button class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">Completed</button>
+                    </div>
+
+                    <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div class="col-span-full p-12 text-center text-slate-400">Loading matches...</div>
                     </div>
                 </div>
 
@@ -324,7 +341,6 @@
                             <h3 class="text-lg font-bold text-slate-800">Declare Event Winners</h3>
                             <p class="text-xs text-slate-500 mt-1">Updates will reflect immediately on student dashboard.</p>
                         </div>
-
                         <div class="space-y-4">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -340,7 +356,6 @@
                                     </select>
                                 </div>
                             </div>
-
                             <div class="pt-4 space-y-3">
                                 <div class="relative">
                                     <div class="absolute left-3 top-3.5 w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 border border-yellow-200">
@@ -361,17 +376,13 @@
                                     <input type="text" id="winner-bronze" placeholder="Bronze Winner" class="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600">
                                 </div>
                             </div>
-
                             <button onclick="window.saveWinner()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-600/20 mt-4">
                                 Publish Results
                             </button>
                         </div>
                     </div>
-
-                    <div id="winners-list-container" class="max-w-4xl mx-auto space-y-3 pb-10">
-                        </div>
+                    <div id="winners-list-container" class="max-w-4xl mx-auto space-y-3 pb-10"></div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -457,6 +468,152 @@
             <div class="p-5 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-between items-center shrink-0">
                 <button onclick="window.deleteTeam()" class="text-red-600 text-xs font-bold hover:underline">Delete Team Permanently</button>
                 <button onclick="document.getElementById('modal-manage-team').classList.add('hidden')" class="px-6 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-schedule-match" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900">Manually Schedule Match</h3>
+                <button onclick="document.getElementById('modal-schedule-match').classList.add('hidden')"><i data-lucide="x" class="w-5 h-5 text-slate-400"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="col-span-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Sport</label>
+                        <select id="sched-sport" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500"></select>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Match Title / Round</label>
+                        <input type="text" id="sched-title" placeholder="e.g. Semi Final" class="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Round Number</label>
+                        <input type="text" id="sched-round" placeholder="1" class="w-full mt-1 p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div id="sched-participants-container" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-4">
+                    <div id="sched-type-team" class="hidden">
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Home Team</label>
+                                <select id="sched-team1" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
+                            </div>
+                            <span class="text-sm font-bold text-slate-400 mt-5">VS</span>
+                            <div class="flex-1">
+                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Away Team</label>
+                                <select id="sched-team2" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sched-type-performance" class="hidden text-center py-2">
+                        <p class="text-sm font-bold text-indigo-700">Performance Event</p>
+                        <p class="text-xs text-slate-500">All registered students for this sport will be loaded automatically.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Date & Time</label>
+                        <input type="datetime-local" id="sched-datetime" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Location</label>
+                        <select id="sched-location" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                            <option>College Ground</option>
+                            <option>Turf A</option>
+                            <option>Turf B</option>
+                            <option>Badminton Court</option>
+                            <option>Table Tennis Hall</option>
+                            <option>Gymkhana</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-slate-100 flex justify-end gap-3">
+                <button onclick="document.getElementById('modal-schedule-match').classList.add('hidden')" class="px-5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
+                <button onclick="window.publishSchedule()" class="px-5 py-2.5 bg-black text-white rounded-xl text-sm font-bold hover:bg-slate-800 shadow-lg">Publish Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-live-score" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col h-[90vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center shrink-0 bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        Live Score Control
+                    </h3>
+                    <p id="live-match-subtitle" class="text-xs text-slate-500 mt-1">Updating: Final Match - Football</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="window.endMatch()" class="px-3 py-1.5 bg-red-100 text-red-600 text-xs font-bold rounded-lg hover:bg-red-200">End Match</button>
+                    <button onclick="document.getElementById('modal-live-score').classList.add('hidden')" class="p-2 hover:bg-slate-200 rounded-lg"><i data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+                
+                <div id="live-view-standard" class="hidden flex flex-col items-center justify-center py-10">
+                    <div class="flex items-center gap-8 mb-8">
+                        <div class="text-center">
+                            <h4 id="live-std-name1" class="font-bold text-xl text-slate-800 mb-2">Team A</h4>
+                            <input type="text" id="live-std-score1" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-indigo-500 shadow-sm" placeholder="0">
+                        </div>
+                        <span class="text-2xl font-bold text-slate-300">VS</span>
+                        <div class="text-center">
+                            <h4 id="live-std-name2" class="font-bold text-xl text-slate-800 mb-2">Team B</h4>
+                            <input type="text" id="live-std-score2" class="w-24 h-24 text-center text-4xl font-extrabold bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-indigo-500 shadow-sm" placeholder="0">
+                        </div>
+                    </div>
+                    <button onclick="window.updateLiveScore('standard')" class="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all">Update Scoreboard</button>
+                </div>
+
+                <div id="live-view-cricket" class="hidden max-w-2xl mx-auto">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-4">
+                        <h4 id="live-cric-name1" class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Team A Batting</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Runs</label><input id="cric-r1" type="number" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Wickets</label><input id="cric-w1" type="number" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Overs</label><input id="cric-o1" type="text" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                        </div>
+                    </div>
+                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+                        <h4 id="live-cric-name2" class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Team B Batting</h4>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Runs</label><input id="cric-r2" type="number" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Wickets</label><input id="cric-w2" type="number" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">Overs</label><input id="cric-o2" type="text" class="w-full p-2 border rounded-lg font-bold text-lg"></div>
+                        </div>
+                    </div>
+                    <button onclick="window.updateLiveScore('cricket')" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Update Cricket Score</button>
+                </div>
+
+                <div id="live-view-performance" class="hidden">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3 w-16">Rank</th>
+                                    <th class="p-3">Participant</th>
+                                    <th class="p-3 w-32 text-right">Time/Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="live-perf-rows" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-right">
+                        <button onclick="window.updateLiveScore('performance')" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700">Save Results</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
