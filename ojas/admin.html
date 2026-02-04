@@ -77,18 +77,18 @@
                 </button>
                 
                 <div class="pt-4 pb-2">
-                    <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Scheduling</p>
+                    <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Event Management</p>
                 </div>
 
-                <button onclick="switchView('matches', 'tournament')" id="nav-matches-tournament" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <button onclick="switchView('tournament')" id="nav-tournament" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i data-lucide="trophy" class="w-5 h-5"></i> Tournament Scheduling
                 </button>
 
-                <button onclick="switchView('matches', 'performance')" id="nav-matches-performance" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <button onclick="switchView('performance')" id="nav-performance" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i data-lucide="timer" class="w-5 h-5"></i> Performance Scheduling
                 </button>
 
-                <button onclick="switchView('matches', 'all')" id="nav-matches-all" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <button onclick="switchView('matches-master')" id="nav-matches-master" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
                     <i data-lucide="calendar-days" class="w-5 h-5"></i> Matches & Schedule
                 </button>
 
@@ -137,62 +137,61 @@
                     </div>
                 </div>
 
-                <div id="view-matches" class="hidden animate-fade-in space-y-6">
+                <div id="view-tournament" class="hidden animate-fade-in space-y-6">
                     <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div>
-                            <h3 id="matches-view-title" class="text-xl font-bold text-slate-900">Matches</h3>
-                            <p id="matches-view-subtitle" class="text-sm text-slate-500 mt-1">Manage schedules and results.</p>
+                            <h3 class="text-xl font-bold text-slate-900">Tournament Scheduling</h3>
+                            <p class="text-sm text-slate-500 mt-1">Schedule Cricket, Chess, Football matches (Versus).</p>
                         </div>
-                        <button onclick="window.openScheduleModal()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-600/20">
-                            <i data-lucide="calendar-plus" class="w-5 h-5"></i> <span id="btn-schedule-text">Schedule Match</span>
+                        <button onclick="window.openScheduleModal('tournament')" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-600/20">
+                            <i data-lucide="calendar-plus" class="w-5 h-5"></i> Schedule Versus Match
                         </button>
                     </div>
+                    <div id="tournament-matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div class="col-span-full p-12 text-center text-slate-400">Loading tournaments...</div>
+                    </div>
+                </div>
+
+                <div id="view-performance" class="hidden animate-fade-in space-y-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-4">
+                        <h3 class="text-xl font-bold text-slate-900">Performance Events</h3>
+                        <p class="text-sm text-slate-500 mt-1">Click "Start" to instantly create an event and load registered students.</p>
+                    </div>
+                    <div id="performance-sports-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div class="col-span-full p-12 text-center text-slate-400">Loading performance sports...</div>
+                    </div>
+                </div>
+
+                <div id="view-matches-master" class="hidden animate-fade-in space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900">Matches & Schedule</h3>
+                            <p class="text-sm text-slate-500 mt-1">Master list of all ongoing and completed events.</p>
+                        </div>
+                        </div>
 
                     <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-2 items-center sticky top-0 z-10">
                         <div class="relative w-64">
                             <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
-                            <input type="text" id="match-search" onkeyup="renderMatchesGrid()" placeholder="Search..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
+                            <input type="text" id="master-search" onkeyup="renderMasterGrid()" placeholder="Search..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
                         </div>
-                        
-                        <select id="match-filter-sport" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 min-w-[120px]">
-                            <option value="All">All Sports</option>
-                        </select>
-                        
-                        <select id="match-filter-gender" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
-                            <option value="All">All Genders</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Mixed">Mixed</option>
-                        </select>
-
-                        <select id="match-filter-status" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
+                        <select id="master-filter-status" onchange="renderMasterGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500">
                             <option value="All">All Statuses</option>
                             <option value="Live">Live</option>
                             <option value="Scheduled">Scheduled</option>
                             <option value="Completed">Completed</option>
                         </select>
-
-                        <select id="match-sort" onchange="renderMatchesGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 ml-auto">
+                        <select id="master-sort" onchange="renderMasterGrid()" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-indigo-500 ml-auto">
                             <option value="time_asc">Time (Earliest First)</option>
                             <option value="time_desc">Time (Latest First)</option>
                         </select>
-                        
-                        <div class="h-8 w-px bg-slate-200 mx-1"></div>
-                        
-                        <button onclick="window.exportMatchesExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
-                            <i data-lucide="sheet" class="w-3.5 h-3.5"></i> Excel
-                        </button>
-                        <button onclick="window.exportMatchesPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1">
-                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i> PDF
-                        </button>
-                        
-                        <button onclick="window.loadMatches()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors">
+                        <button onclick="window.loadAllMatches()" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                         </button>
                     </div>
 
-                    <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <div class="col-span-full p-12 text-center text-slate-400">Loading matches...</div>
+                    <div id="master-matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div class="col-span-full p-12 text-center text-slate-400">Loading master list...</div>
                     </div>
                 </div>
 
@@ -251,7 +250,7 @@
     <div id="modal-schedule-match" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-900">Manually Schedule Match</h3>
+                <h3 class="text-lg font-bold text-slate-900">Schedule Tournament Match</h3>
                 <button onclick="document.getElementById('modal-schedule-match').classList.add('hidden')"><i data-lucide="x" class="w-5 h-5 text-slate-400"></i></button>
             </div>
             
@@ -262,7 +261,7 @@
                         <select id="sched-sport" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-indigo-500"></select>
                     </div>
                     <div class="col-span-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Category / Gender</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Gender Category</label>
                         <select id="sched-gender" class="w-full mt-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
                             <option value="">-- All --</option>
                             <option value="Male">Male</option>
@@ -282,27 +281,20 @@
                 </div>
 
                 <div id="sched-participants-container" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-4">
-                    <div id="sched-type-team" class="hidden">
-                        <div class="flex items-center gap-4">
-                            <div class="flex-1">
-                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Home</label>
-                                <select id="sched-team1" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
-                            </div>
-                            <span class="text-sm font-bold text-slate-400 mt-5" id="vs-text">VS</span>
-                            <div class="flex-1" id="away-container">
-                                <label class="text-[10px] font-bold text-indigo-400 uppercase">Away</label>
-                                <select id="sched-team2" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
-                            </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <label class="text-[10px] font-bold text-indigo-400 uppercase">Home</label>
+                            <select id="sched-team1" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
                         </div>
-                        <div class="mt-2 flex items-center gap-2">
-                             <input type="checkbox" id="sched-is-bye" class="w-4 h-4 text-indigo-600 rounded">
-                             <label for="sched-is-bye" class="text-xs font-bold text-slate-600 cursor-pointer">Declare Bye (Home advances automatically)</label>
+                        <span class="text-sm font-bold text-slate-400 mt-5" id="vs-text">VS</span>
+                        <div class="flex-1" id="away-container">
+                            <label class="text-[10px] font-bold text-indigo-400 uppercase">Away</label>
+                            <select id="sched-team2" class="w-full mt-1 p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold outline-none"></select>
                         </div>
                     </div>
-
-                    <div id="sched-type-performance" class="hidden text-center py-2">
-                        <p class="text-sm font-bold text-indigo-700">Performance Event</p>
-                        <p class="text-xs text-slate-500">All registered students will be loaded automatically.</p>
+                    <div class="mt-2 flex items-center gap-2">
+                         <input type="checkbox" id="sched-is-bye" class="w-4 h-4 text-indigo-600 rounded">
+                         <label for="sched-is-bye" class="text-xs font-bold text-slate-600 cursor-pointer">Declare Bye (Home advances automatically)</label>
                     </div>
                 </div>
 
