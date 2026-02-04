@@ -1,5 +1,5 @@
 // ==========================================
-// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL FIXED)
+// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL SORTED)
 // ==========================================
 
 (function() { // Wrapped in IIFE for safety
@@ -133,8 +133,7 @@
 
                 // 2. If the updated match is currently open in the modal, refresh UI
                 if (currentLiveMatchId && payload.new.id === currentLiveMatchId) {
-                    // FIX: Don't use payload.new directly because it lacks joined 'sports' data.
-                    // Fetch full data first.
+                    // Fetch full data first to prevent 'undefined reading name' errors
                     await refreshAndRenderLiveModal(payload.new.id);
                 }
             })
@@ -524,27 +523,29 @@
             return;
         }
 
-        // SORTING: Rank 1 (Low) to Rank X (High)
-        // Treat missing ranks as high number to push to bottom
+        // SORTING: Score/Time Low to High (Ascending)
         results.sort((a, b) => {
-            const rA = a.rank || 9999;
-            const rB = b.rank || 9999;
-            return rA - rB;
+            const timeA = parseFloat(a.time) || 999999;
+            const timeB = parseFloat(b.time) || 999999;
+            return timeA - timeB;
         });
 
         // Fetch Names for UIDs in results
         const uids = results.map(r => r.uid);
         const { data: users } = await supabaseClient.from('users').select('id, name, student_id').in('id', uids);
 
-        table.innerHTML = results.map((res) => {
+        table.innerHTML = results.map((res, index) => { 
             const user = users?.find(u => u.id === res.uid);
             const name = user ? user.name : "Unknown ID";
             const sub = user ? user.student_id : "";
             
-            let rankDisplay = `<span class="font-bold text-slate-500">#${res.rank || '-'}</span>`;
-            if (res.rank === 1) rankDisplay = '🏆';
-            if (res.rank === 2) rankDisplay = '🥈';
-            if (res.rank === 3) rankDisplay = '🥉';
+            // Assign Rank based on sorted position (Index + 1)
+            const rank = index + 1;
+            
+            let rankDisplay = `<span class="font-bold text-slate-500">#${rank}</span>`;
+            if (rank === 1) rankDisplay = '🏆';
+            if (rank === 2) rankDisplay = '🥈';
+            if (rank === 3) rankDisplay = '🥉';
 
             return `
             <tr class="hover:bg-slate-50/50 transition-colors">
