@@ -1,5 +1,5 @@
 // ==========================================
-// OJAS 2026 - VOLUNTEER CONTROLLER (FIXED TEAMS)
+// OJAS 2026 - VOLUNTEER CONTROLLER (FINAL FIX)
 // ==========================================
 
 (function() { 
@@ -15,7 +15,7 @@
     let currentVolunteer = null;
     let assignedSport = null;
     let liveMatches = [];
-    let rawTeams = []; // NEW: Cache for Team Names
+    let rawTeams = []; 
     let currentActiveMatchId = null; 
 
     // --- 2. INITIALIZATION ---
@@ -51,29 +51,33 @@
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
-        // NEW: Load Teams & Matches in parallel
         await Promise.all([loadTeams(), loadLiveMatches()]);
         subscribeToRealtime();
     }
 
     function showAuthError(msg) {
         const el = document.getElementById('auth-msg');
-        el.innerText = msg;
-        el.classList.add('text-red-600', 'font-bold');
-        document.querySelector('.animate-spin').classList.remove('animate-spin'); 
+        if(el) {
+            el.innerText = msg;
+            el.classList.add('text-red-600', 'font-bold');
+        }
+        const spinner = document.querySelector('.animate-spin');
+        if(spinner) spinner.classList.remove('animate-spin');
     }
 
     // --- 4. DATA LOADING ---
-    
-    // NEW: Fetch Teams to resolve IDs to Names
     async function loadTeams() {
         const { data } = await supabase.from('teams').select('id, name');
         if (data) rawTeams = data;
     }
 
     async function loadLiveMatches() {
-        const container = document.getElementById('matches-container');
-        if(liveMatches.length === 0) container.innerHTML = '<div class="text-center py-10"><span class="loading-spinner text-indigo-600">Loading Live Events...</span></div>';
+        // FIX: Updated ID to match volunteer.html
+        const container = document.getElementById('matches-list-container'); 
+        
+        if(liveMatches.length === 0 && container) {
+            container.innerHTML = '<div class="text-center py-10"><span class="loading-spinner text-indigo-600">Loading Live Events...</span></div>';
+        }
 
         const { data, error } = await supabase
             .from('matches')
@@ -116,28 +120,23 @@
             .subscribe();
     }
 
-    // HELPER: Resolve Name from ID or JSON
-    function getParticipantName(match, type) { // type = '1' or '2'
+    function getParticipantName(match, type) { 
         const p = match.participants || {};
-        
-        // 1. Try JSON Name (if saved)
         if (p[`player${type}_name`]) return p[`player${type}_name`];
         if (p[`team${type}_name`]) return p[`team${type}_name`];
-
-        // 2. Try ID Lookup in rawTeams
+        
         const teamId = p[`team${type}_id`];
         if (teamId && rawTeams.length > 0) {
             const team = rawTeams.find(t => t.id === teamId);
             if (team) return team.name;
         }
-
-        // 3. Fallback
         return type === '1' ? 'Team A' : 'Team B';
     }
 
     // --- 5. VIEW 1: MATCH LIST ---
     window.renderMatchList = function() {
         const container = document.getElementById('matches-list-container');
+        if(!container) return;
         container.innerHTML = '';
 
         if (liveMatches.length === 0) {
@@ -208,13 +207,9 @@
             document.getElementById('end-match-section').classList.add('hidden'); 
         } else {
             document.getElementById('end-match-section').classList.remove('hidden');
-            
-            // Resolve Names using Helper
             const n1 = getParticipantName(match, '1');
             const n2 = getParticipantName(match, '2');
-            
             versusText = `${n1} vs ${n2}`;
-            
             winnerSelect.innerHTML += `<option value="${n1}">${n1}</option>`;
             winnerSelect.innerHTML += `<option value="${n2}">${n2}</option>`;
             winnerSelect.innerHTML += `<option value="Draw">Draw</option>`;
@@ -236,7 +231,6 @@
         const container = document.getElementById('score-inputs-container');
         container.innerHTML = '';
 
-        // A. PERFORMANCE
         if (assignedSport.is_performance) {
             const students = match.participants?.students || [];
             const results = match.live_data?.results || [];
@@ -259,12 +253,10 @@
             }).join('');
             container.innerHTML = `<div class="space-y-3">${rows}</div>`;
         } 
-        // B. CRICKET
         else if (assignedSport.name.toLowerCase().includes('cricket')) {
             const d = match.live_data || {};
             const t1 = d.t1 || {r:0,w:0,o:0};
             const t2 = d.t2 || {r:0,w:0,o:0};
-            
             const n1 = getParticipantName(match, '1');
             const n2 = getParticipantName(match, '2');
 
@@ -283,22 +275,17 @@
                 <div>
                     <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-slate-100 pb-2">${n1}</p>
                     <div class="grid grid-cols-3 gap-3">
-                        ${inputBlock('t1', 'Runs', 'r', t1.r)}
-                        ${inputBlock('t1', 'Wickets', 'w', t1.w)}
-                        ${inputBlock('t1', 'Overs', 'o', t1.o)}
+                        ${inputBlock('t1', 'Runs', 'r', t1.r)} ${inputBlock('t1', 'Wkts', 'w', t1.w)} ${inputBlock('t1', 'Overs', 'o', t1.o)}
                     </div>
                 </div>
                 <div>
                     <p class="text-xs font-bold text-indigo-900 uppercase mb-2 border-b border-slate-100 pb-2">${n2}</p>
                     <div class="grid grid-cols-3 gap-3">
-                        ${inputBlock('t2', 'Runs', 'r', t2.r)}
-                        ${inputBlock('t2', 'Wickets', 'w', t2.w)}
-                        ${inputBlock('t2', 'Overs', 'o', t2.o)}
+                        ${inputBlock('t2', 'Runs', 'r', t2.r)} ${inputBlock('t2', 'Wickets', 'w', t2.w)} ${inputBlock('t2', 'Overs', 'o', t2.o)}
                     </div>
                 </div>
             </div>`;
         } 
-        // C. STANDARD
         else {
             const s = match.live_data || {s1:0, s2:0};
             const n1 = getParticipantName(match, '1');
@@ -309,36 +296,29 @@
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex-1 text-center">
                         <p class="text-[10px] font-bold text-slate-400 mb-2 truncate">${n1}</p>
-                        <input type="number" 
-                            class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500"
-                            value="${s.s1 || 0}"
-                            onchange="window.updateStandardScore('${match.id}', 's1', this.value)">
+                        <input type="number" class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500"
+                            value="${s.s1 || 0}" onchange="window.updateStandardScore('${match.id}', 's1', this.value)">
                     </div>
                     <div class="text-slate-300 font-black text-xl italic">VS</div>
                     <div class="flex-1 text-center">
                         <p class="text-[10px] font-bold text-slate-400 mb-2 truncate">${n2}</p>
-                        <input type="number" 
-                            class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500"
-                            value="${s.s2 || 0}"
-                            onchange="window.updateStandardScore('${match.id}', 's2', this.value)">
+                        <input type="number" class="w-full h-20 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-4xl font-extrabold text-slate-800 outline-none focus:border-indigo-500"
+                            value="${s.s2 || 0}" onchange="window.updateStandardScore('${match.id}', 's2', this.value)">
                     </div>
                 </div>
             </div>`;
         }
     }
 
-    // --- 7. UPDATE ACTIONS ---
-
+    // --- 7. ACTIONS ---
     window.updatePerformanceScore = async function(matchId, studentId, value) {
         showToast("Saving...", "info");
         const match = liveMatches.find(m => m.id === matchId);
         if(!match) return;
-
         let results = match.live_data?.results || [];
         const existingIndex = results.findIndex(r => r.uid === studentId);
         if (existingIndex > -1) results[existingIndex].time = value;
         else results.push({ uid: studentId, time: value, rank: 999 });
-
         const { error } = await supabase.from('matches').update({ live_data: { ...match.live_data, results: results } }).eq('id', matchId);
         if (error) showToast("Failed", "error"); else showToast("Saved", "success");
     }
@@ -364,46 +344,32 @@
 
     window.endMatchVolunteer = async function() {
         if (!currentActiveMatchId) return;
-        
         const winnerSelect = document.getElementById('select-winner');
         const winner = winnerSelect.value;
-
         if (!winner) return showToast("Please select a winner first", "error");
         if (!confirm(`Declare ${winner} as winner and end match?`)) return;
 
         showToast("Finalizing Match...", "info");
-
         const match = liveMatches.find(m => m.id === currentActiveMatchId);
         const finalLiveData = { ...match.live_data, winner: winner };
-
         const { error } = await supabase.from('matches').update({ status: 'Completed', live_data: finalLiveData }).eq('id', currentActiveMatchId);
-
-        if (error) {
-            showToast("Error ending match", "error");
-        } else {
-            showToast("Match Completed", "success");
-            closeMatchView();
-        }
+        if (error) showToast("Error ending match", "error");
+        else { showToast("Match Completed", "success"); closeMatchView(); }
     }
 
     function showToast(msg, type = 'success') {
         const container = document.getElementById('toast-container');
+        if(!container) return;
         const toast = document.createElement('div');
         let bg = type === 'error' ? 'bg-red-600' : (type === 'info' ? 'bg-blue-600' : 'bg-green-600');
         let icon = type === 'error' ? 'alert-circle' : (type === 'info' ? 'loader-2' : 'check');
         let spin = type === 'info' ? 'animate-spin' : '';
-
         toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-bold ${bg} toast-enter-active`;
         toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 ${spin}"></i> <span>${msg}</span>`;
         container.appendChild(toast);
         if(window.lucide) lucide.createIcons();
-
         requestAnimationFrame(() => toast.classList.remove('translate-y-full', 'opacity-0'));
-        setTimeout(() => { 
-            toast.style.opacity = '0'; 
-            toast.style.transform = 'translateY(100%)'; 
-            setTimeout(() => toast.remove(), 300); 
-        }, 2000);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(100%)'; setTimeout(() => toast.remove(), 300); }, 2000);
     }
 
 })();
