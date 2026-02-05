@@ -1,5 +1,5 @@
 // ==========================================
-// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL SORTED)
+// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL - FULL LIST VIEW)
 // ==========================================
 
 (function() { // Wrapped in IIFE for safety
@@ -120,20 +120,19 @@
         }
     }
 
-    // --- 3. REALTIME SUBSCRIPTION (FIXED) ---
+    // --- 3. REALTIME SUBSCRIPTION ---
     function subscribeToLiveMatches() {
         supabaseClient
             .channel('public:matches')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, async (payload) => {
                 
-                // 1. Refresh Schedule List (to show new scores/winners on cards)
+                // 1. Refresh Schedule List
                 if (!document.getElementById('view-schedule').classList.contains('hidden')) {
                      window.loadSchedule();
                 }
 
                 // 2. If the updated match is currently open in the modal, refresh UI
                 if (currentLiveMatchId && payload.new.id === currentLiveMatchId) {
-                    // Fetch full data first to prevent 'undefined reading name' errors
                     await refreshAndRenderLiveModal(payload.new.id);
                 }
             })
@@ -323,7 +322,7 @@
             // Names Logic
             let title = m.title || 'League Match';
             
-            // Winners Display for non-interactive sports
+            // Winners Display
             let winnerText = "";
             if (m.status === 'Completed' && m.live_data?.winner) {
                 winnerText = `<span class="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded border border-green-100 mt-2 inline-block">🏆 Winner: ${m.live_data.winner}</span>`;
@@ -333,7 +332,7 @@
                 ? `<span class="px-2 py-0.5 rounded bg-red-100 text-red-600 text-[10px] font-bold animate-pulse border border-red-200">LIVE</span>` 
                 : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">${timeStr}</span>`;
 
-            // Interaction Logic: Only Cricket & Performance open Modal
+            // Interaction Logic
             const isCricket = m.sports.name.toLowerCase().includes('cricket');
             const isPerf = m.sports.is_performance;
             const canOpen = isCricket || isPerf;
@@ -374,9 +373,8 @@
         if(window.lucide) lucide.createIcons();
     }
 
-    // --- 7. LIVE MATCH MODAL LOGIC (UPDATED) ---
+    // --- 7. LIVE MATCH MODAL LOGIC (UPDATED WITH MERGE) ---
     window.openLiveMatch = async function(matchId) {
-        // Fetch Fresh Data to check type
         const { data: match, error } = await supabaseClient
             .from('matches')
             .select(`*, sports(name, is_performance, type)`)
@@ -388,12 +386,10 @@
             return;
         }
 
-        // RESTRICTION: Only open for Cricket or Performance
         const isCricket = match.sports.name.toLowerCase().includes('cricket');
         const isPerf = match.sports.is_performance;
 
         if (!isCricket && !isPerf) {
-            // For other sports, just show winner in toast if completed
             if (match.status === 'Completed' && match.live_data?.winner) {
                 showToast(`🏆 Winner: ${match.live_data.winner}`, "success");
             } else {
@@ -406,30 +402,23 @@
         const modal = document.getElementById('modal-match-live');
         modal.classList.remove('hidden');
 
-        // Reset UI
         document.getElementById('live-modal-sport').innerText = "Loading...";
         document.getElementById('live-ui-versus').classList.add('hidden');
         document.getElementById('live-ui-performance').classList.add('hidden');
 
-        // Render Initial State
         updateLiveModalUI(match);
     }
 
-    // This function can now be safely called by Realtime subscription wrapper
     window.updateLiveModalUI = async function(match) {
-        if (!match || !match.sports) return; // Safety check
+        if (!match || !match.sports) return; 
 
-        // 1. Header
         document.getElementById('live-modal-sport').innerText = match.sports.name;
 
-        // 2. Select UI Mode
         if (match.sports.is_performance) {
-            // PERFORMANCE MODE (Leaderboard)
             document.getElementById('live-ui-performance').classList.remove('hidden');
             document.getElementById('live-ui-versus').classList.add('hidden');
-            await renderPerformanceLeaderboard(match);
+            renderPerformanceLeaderboard(match);
         } else {
-            // VERSUS MODE (Scoreboard - Cricket Only as per logic)
             document.getElementById('live-ui-versus').classList.remove('hidden');
             document.getElementById('live-ui-performance').classList.add('hidden');
             await renderVersusScoreboard(match);
@@ -440,22 +429,19 @@
         const live = match.live_data || {};
         const parts = match.participants || {};
 
-        // A. Update Scores
-        // Team 1
+        // Score
         const t1 = live.t1 || { r: 0, w: 0, o: 0 };
         document.getElementById('live-score-s1').innerText = `${t1.r}/${t1.w}`;
         document.getElementById('live-over-s1').innerText = `(${t1.o} ov)`;
         
-        // Team 2
         const t2 = live.t2 || { r: 0, w: 0, o: 0 };
         document.getElementById('live-score-s2').innerText = `${t2.r}/${t2.w}`;
         document.getElementById('live-over-s2').innerText = `(${t2.o} ov)`;
 
-        // B. Resolve Names & Fetch Rosters
+        // Names
         let name1 = "Team A", name2 = "Team B";
 
         if (match.sport_type === 'Team' && parts.team1_id) {
-            // 1. Fetch Team Names
             const { data: teams } = await supabaseClient
                 .from('teams')
                 .select('id, name')
@@ -468,8 +454,6 @@
                 if(team2) name2 = team2.name;
             }
 
-            // 2. Fetch Rosters
-            // Only fetch if currently empty to avoid flickering on every live update
             const list1 = document.getElementById('roster-list-p1');
             if (list1.innerHTML.includes('Loading')) {
                 await fetchAndRenderRoster(parts.team1_id, 'roster-list-p1');
@@ -477,7 +461,6 @@
             }
 
         } else {
-            // Fallback (Though modal shouldn't open for non-team non-perf)
             name1 = parts.player1_name || "Player 1";
             name2 = parts.player2_name || "Player 2";
             document.getElementById('roster-list-p1').innerHTML = `<p class="text-sm font-bold text-slate-800">${name1}</p>`;
@@ -514,53 +497,63 @@
         }
     }
 
-    async function renderPerformanceLeaderboard(match) {
+    // --- UPDATED PERFORMANCE LOGIC (MERGE LISTS) ---
+    function renderPerformanceLeaderboard(match) {
         const table = document.getElementById('live-perf-table');
-        let results = match.live_data?.results || [];
+        
+        // 1. Get Lists
+        const allParticipants = match.participants?.students || [];
+        const results = match.live_data?.results || [];
 
-        if (results.length === 0) {
-            table.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-slate-400 text-xs">Event scheduled. Waiting for results.</td></tr>';
+        if (allParticipants.length === 0) {
+            table.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-slate-400 text-xs">No participants registered.</td></tr>';
             return;
         }
 
-        // SORTING: Score/Time Low to High (Ascending)
-        results.sort((a, b) => {
-            const timeA = parseFloat(a.time) || 999999;
-            const timeB = parseFloat(b.time) || 999999;
-            return timeA - timeB;
+        // 2. Merge Data
+        const leaderboard = allParticipants.map(student => {
+            const res = results.find(r => r.uid === student.id);
+            const timeVal = res?.time ? parseFloat(res.time) : null;
+            
+            return {
+                ...student, 
+                hasResult: !!res,
+                timeDisplay: res?.time || '-',
+                // Use a large number for sorting if no time exists
+                sortValue: (timeVal !== null && !isNaN(timeVal)) ? timeVal : 999999999 
+            };
         });
 
-        // Fetch Names for UIDs in results
-        const uids = results.map(r => r.uid);
-        const { data: users } = await supabaseClient.from('users').select('id, name, student_id').in('id', uids);
+        // 3. Sort (Scores First, Then Pending)
+        leaderboard.sort((a, b) => a.sortValue - b.sortValue);
 
-        table.innerHTML = results.map((res, index) => { 
-            const user = users?.find(u => u.id === res.uid);
-            const name = user ? user.name : "Unknown ID";
-            const sub = user ? user.student_id : "";
+        // 4. Render
+        table.innerHTML = leaderboard.map((p, index) => {
+            let rankDisplay = `<span class="text-slate-300 font-mono text-sm">-</span>`; // Default for pending
             
-            // Assign Rank based on sorted position (Index + 1)
-            const rank = index + 1;
-            
-            let rankDisplay = `<span class="font-bold text-slate-500">#${rank}</span>`;
-            if (rank === 1) rankDisplay = '🏆';
-            if (rank === 2) rankDisplay = '🥈';
-            if (rank === 3) rankDisplay = '🥉';
+            if (p.hasResult) {
+                // If they have a score, they get a rank
+                rankDisplay = `<span class="font-bold text-slate-400 text-xs">#${index + 1}</span>`;
+                if (index === 0) rankDisplay = '🏆';
+                if (index === 1) rankDisplay = '🥈';
+                if (index === 2) rankDisplay = '🥉';
+            }
 
             return `
-            <tr class="hover:bg-slate-50/50 transition-colors">
+            <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50 last:border-0">
                 <td class="py-3 pl-5 text-lg">${rankDisplay}</td>
                 <td class="py-3">
-                    <p class="text-sm font-bold text-slate-800 leading-tight">${name}</p>
-                    <p class="text-[10px] text-slate-400 font-mono">${sub}</p>
+                    <p class="text-sm font-bold text-slate-800 leading-tight">${p.name}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">${p.student_id || ''}</p>
                 </td>
-                <td class="py-3 pr-5 text-right font-bold text-indigo-600 font-mono">${res.time || '-'}</td>
+                <td class="py-3 pr-5 text-right font-bold ${p.hasResult ? 'text-indigo-600' : 'text-slate-300'} font-mono">
+                    ${p.timeDisplay}
+                </td>
             </tr>`;
         }).join('');
     }
 
-    // --- 8. TEAM & REGISTRATION LOGIC (Standard) ---
-    
+    // --- 8. TEAM & REGISTRATION LOGIC ---
     window.toggleTeamView = function(view) {
         document.getElementById('team-marketplace').classList.add('hidden');
         document.getElementById('team-locker').classList.add('hidden');
