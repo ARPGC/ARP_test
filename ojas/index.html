@@ -92,6 +92,7 @@
         <main class="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-32 relative scroll-smooth bg-slate-50">
             
             <div id="view-dashboard" class="space-y-6 animate-fade-in">
+                
                 <div class="bg-indigo-600 p-6 rounded-2xl text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
                     <div class="relative z-10">
                         <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-widest mb-1">Welcome Back</p>
@@ -116,6 +117,21 @@
                             </div>
                         </div>
                         <div class="absolute -right-4 -bottom-8 w-24 h-24 bg-indigo-500 opacity-20 rounded-full blur-xl group-hover:opacity-30 transition-all"></div>
+                    </div>
+                </div>
+
+                <div id="volunteer-dashboard-card" class="hidden cursor-pointer" onclick="window.openVolunteerPanel()">
+                    <div class="bg-emerald-900 p-5 rounded-2xl shadow-xl border border-emerald-700 relative overflow-hidden group">
+                        <div class="relative z-10 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-white font-bold text-lg">Volunteer Console</h3>
+                                <p class="text-emerald-200 text-xs mt-1 group-hover:text-white transition-colors">Tap to manage tasks &rarr;</p>
+                            </div>
+                            <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-600/40">
+                                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="absolute -right-4 -bottom-8 w-24 h-24 bg-emerald-500 opacity-20 rounded-full blur-xl group-hover:opacity-30 transition-all"></div>
                     </div>
                 </div>
 
