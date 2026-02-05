@@ -1,5 +1,5 @@
 // ==========================================
-// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL - FULL LIST VIEW)
+// URJA 2026 - STUDENT PORTAL CONTROLLER (FINAL)
 // ==========================================
 
 (function() { // Wrapped in IIFE for safety
@@ -193,16 +193,33 @@
 
     // --- 5. DASHBOARD ---
     async function loadDashboard() {
+        // 1. Check Admin Role
         if (currentUser && currentUser.role === 'admin') {
             const adminCard = document.getElementById('admin-dashboard-card');
             if(adminCard) adminCard.classList.remove('hidden');
         }
+
+        // 2. Check Volunteer Role (NEW)
+        if (currentUser && currentUser.role === 'volunteer') {
+            const volCard = document.getElementById('volunteer-dashboard-card');
+            if(volCard) volCard.classList.remove('hidden');
+        }
+
         loadLatestChampions();
     }
 
     window.openAdminPanel = function() {
         if(currentUser && currentUser.student_id) {
             window.location.href = `admin.html?id=${currentUser.student_id}`;
+        } else {
+            showToast("Error: User ID not found.", "error");
+        }
+    }
+
+    // NEW: Open Volunteer Page with ID
+    window.openVolunteerPanel = function() {
+        if(currentUser && currentUser.student_id) {
+            window.location.href = `volunteer.html?id=${currentUser.student_id}`;
         } else {
             showToast("Error: User ID not found.", "error");
         }
