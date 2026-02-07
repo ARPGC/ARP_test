@@ -1,10 +1,10 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Adds OJAS 2.0 Sports Meet Logic
+ * Updated: Standard Dashboard State (OJAS Logic Removed)
  */
 
 import { supabase } from './supabase-client.js';
-import { state, OJAS_CONFIG } from './state.js'; // <--- Updated Import
+import { state } from './state.js'; 
 import { 
     els, 
     formatDate, 
@@ -574,44 +574,8 @@ export const handleDailyCheckin = async () => {
     }
 };
 
-// --- OJAS 2.0 LOGIC (NEW) ---
-
-export const handleOjasClick = () => {
-    try {
-        const user = state.currentUser;
-        if (!user || !user.student_id) {
-            showToast('Student ID not found. Please log in again.', 'error');
-            return;
-        }
-
-        // 1. Convert Student ID string to Number
-        const numericId = parseInt(user.student_id, 10);
-        if (isNaN(numericId)) {
-             showToast('Invalid Student ID format.', 'error');
-             return;
-        }
-
-        // 2. Add Fixed Number (Obfuscation)
-        const encryptedId = numericId + OJAS_CONFIG.fixNumber;
-
-        // 3. Build Target URL
-        // Example: if id=50000, fix=5489 -> target?id=55489
-        const target = `${OJAS_CONFIG.targetUrl}?id=${encryptedId}`;
-        
-        logUserActivity('click_ojas', 'Opened OJAS 2.0 Sports Portal');
-        
-        // 4. Redirect
-        window.location.href = target;
-
-    } catch (err) {
-        console.error('OJAS Click Error:', err);
-        showToast('Could not open portal.', 'error');
-    }
-};
-
 // --- GLOBAL EXPORTS ---
 window.openCheckinModal = openCheckinModal;
 window.closeCheckinModal = closeCheckinModal;
 window.handleDailyCheckin = handleDailyCheckin;
 window.handleStreakRestore = handleStreakRestore;
-window.handleOjasClick = handleOjasClick; // Exported for HTML onclick
