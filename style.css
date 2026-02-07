@@ -231,13 +231,13 @@ body[class*="theme-"] .glass-card {
 }
 
 /* Make Sidebar Glassy & Transparent */
-/* FIX SIDEBAR BLUR & CLICKABILITY */
+/* FIX: Force Sidebar to be TOPMOST element */
 body[class*="theme-"] #sidebar {
     background: rgba(255, 255, 255, 0.85) !important; 
-    backdrop-filter: blur(12px) !important; /* Restore Blur for Glass effect */
+    backdrop-filter: blur(12px) !important; /* Restore Blur */
     -webkit-backdrop-filter: blur(12px) !important;
-    z-index: 10000 !important; /* FORCE TOP - Fixes Unclickable Issue */
     border-right: 1px solid var(--v-glass-border) !important;
+    z-index: 10000 !important; /* CRITICAL FIX: Higher than overlay (9990) */
 }
 
 body[class*="theme-"].dark #sidebar {
@@ -265,11 +265,11 @@ body[class*="theme-"].dark header {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 0; /* Behind everything */
+    z-index: -1; /* Push to back */
     /* Heart SVG Pattern */
     background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 45C30 45 50 30 50 18C50 11.3726 44.6274 6 38 6C33.882 6 30.294 8.07728 28.093 11.2185C25.806 8.07728 22.118 6 18 6C11.3726 6 6 11.3726 6 18C6 30 26 45 26 45H30Z' fill='%23ffffff' fill-opacity='1'/%3E%3C/svg%3E");
     background-size: 100px 100px;
-    opacity: 0.25; /* Higher visibility */
+    opacity: 0.25; 
     mix-blend-mode: overlay; 
     animation: heartScroll 40s linear infinite;
 }
@@ -315,7 +315,7 @@ body[class*="theme-"].dark header {
     position: relative;
     overflow: hidden;
     background-color: #f9fafb;
-    z-index: 1; /* Ensure above heart background */
+    z-index: 1; 
 }
 .dark .app-container {
     background-color: #111827;
@@ -410,18 +410,19 @@ body.low-data-mode .heart-bg-layer {
     overflow-y: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    z-index: 50;
+    z-index: 10000 !important; /* CRITICAL GLOBAL FIX: Force topmost layer */
     width: 280px; /* Fixed width */
     height: 100%;
 }
 #sidebar::-webkit-scrollbar { display: none; }
 
-/* FIX: NO BLUR ON OVERLAY */
+/* FIX: Ensure overlay is below Sidebar but above content */
 #sidebar-overlay { 
     transition: opacity 0.3s ease-in-out; 
-    backdrop-filter: none !important; /* Removed Blur */
+    backdrop-filter: none !important; /* Removed Blur for performance/bugs */
     -webkit-backdrop-filter: none !important;
     background-color: rgba(0, 0, 0, 0.5); /* Simple dimming */
+    z-index: 9990 !important; /* Below sidebar (10000) */
 }
 
 /* Desktop Sidebar Behavior */
@@ -432,6 +433,7 @@ body.low-data-mode .heart-bg-layer {
         box-shadow: none;
         border-right: 1px solid rgba(0,0,0,0.05);
         background: transparent;
+        z-index: 10 !important; /* Desktop doesn't need high Z */
     }
     .dark #sidebar {
         border-right: 1px solid rgba(255,255,255,0.05);
