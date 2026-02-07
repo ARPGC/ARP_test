@@ -30,7 +30,7 @@ export const loadStoreAndProductData = async () => {
             .from('products')
             .select(`
                 id, name, description, original_price, discounted_price, ecopoints_cost, store_id,
-                stores ( id, name, logo_url ), 
+                stores ( id, name, logo_url, is_active ), 
                 product_images ( image_url, sort_order ),
                 product_features ( feature, sort_order ),
                 product_specifications ( spec_key, spec_value, sort_order )
@@ -40,8 +40,12 @@ export const loadStoreAndProductData = async () => {
 
         if (error) throw error;
 
+        // FILTER: Exclude products from inactive stores
+        // We ensure p.stores exists and is_active is explicitly true
+        const validProducts = data.filter(p => p.stores && p.stores.is_active === true);
+
         // Process and map data
-        state.products = data.map(p => ({
+        state.products = validProducts.map(p => ({
             ...p, 
             images: p.product_images?.sort((a,b) => a.sort_order - b.sort_order).map(img => img.image_url) || [],
             highlights: p.product_features?.sort((a,b) => a.sort_order - b.sort_order).map(f => f.feature) || [],
@@ -51,7 +55,7 @@ export const loadStoreAndProductData = async () => {
             popularity: Math.floor(Math.random() * 50) 
         }));
 
-        // Extract unique stores
+        // Extract unique stores (Now only active ones because of the filter above)
         const storeMap = new Map();
         state.products.forEach(p => {
             if (p.stores && !storeMap.has(p.stores.id)) {
