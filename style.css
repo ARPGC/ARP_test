@@ -231,15 +231,17 @@ body[class*="theme-"] .glass-card {
 }
 
 /* Make Sidebar Glassy & Transparent */
+/* FIX SIDEBAR BLUR */
 body[class*="theme-"] #sidebar {
-    background: rgba(255, 255, 255, 0.4) !important; 
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-right: 1px solid var(--v-glass-border) !important;
+    background: rgba(255, 255, 255, 0.95) !important; 
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
+
 body[class*="theme-"].dark #sidebar {
-    background: rgba(10, 10, 10, 0.3) !important;
+    background: rgba(17, 24, 39, 0.95) !important;
 }
+
 
 /* Make Mobile Header Transparent */
 body[class*="theme-"] header {
