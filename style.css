@@ -26,7 +26,7 @@ html, body {
     --ny-accent: #818cf8;
     --ny-gold: #fbbf24;
 
-    /* --- VALENTINE'S WEEK VARIABLES (Default Green) --- */
+    /* --- VALENTINE'S WEEK VARIABLES (Default Green Fallback) --- */
     --v-primary: #10B981;    
     --v-secondary: #ECFDF5;  
     --v-accent: #34D399;     
@@ -48,7 +48,7 @@ body.theme-rose {
     --v-glass-bg: rgba(255, 255, 255, 0.55); /* More transparent for immersion */
     --v-card-bg: rgba(255, 241, 242, 0.6);  /* Pinkish Card */
     --v-heart-color: rgba(225, 29, 72, 0.15);
-    /* IMMERSIVE GRADIENT */
+    /* IMMERSIVE GRADIENT - LIGHT */
     --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 50%, #fecdd3 100%);
 }
 body.theme-rose.dark {
@@ -58,7 +58,8 @@ body.theme-rose.dark {
     --v-glass-bg: rgba(76, 5, 25, 0.5);
     --v-card-bg: rgba(76, 5, 25, 0.6);
     --v-heart-color: rgba(251, 113, 133, 0.2);
-    --v-bg-gradient: linear-gradient(135deg, #4c0519 0%, #881337 100%); /* Deep Velvet */
+    /* IMMERSIVE GRADIENT - DARK */
+    --v-bg-gradient: linear-gradient(135deg, #4c0519 0%, #881337 100%); 
 }
 
 /* --- THEME: PROPOSE DAY (Feb 8) --- */
