@@ -1,7 +1,7 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Valentine's "Eco-Romantic" Immersive Edition
- * Features: Randomized Particle Rain, Dynamic Theme Buttons, Quote Widget
+ * Updated: Valentine's "Eco-Romantic" Edition
+ * Features: Dynamic Check-in Button (Pink/Gold), Randomized Rain Animations, Quote Widget
  */
 
 import { supabase } from './supabase-client.js';
@@ -85,13 +85,17 @@ const renderValentineWidget = () => {
     const existingWidget = document.getElementById('vday-hero-card');
     if (existingWidget) existingWidget.remove();
     
-    // Cleanup visuals if theme expired
+    // Handle visual cleanup if theme expired
+    const visuals = document.getElementById('vday-visuals');
+    const bgLayer = document.querySelector('.heart-bg-layer');
+
     if (!theme) {
-        const visuals = document.getElementById('vday-visuals');
-        const bgLayer = document.querySelector('.heart-bg-layer');
-        if (visuals) visuals.remove();
-        if (bgLayer) bgLayer.remove();
+        if (visuals) visuals.innerHTML = ''; 
+        if (bgLayer) bgLayer.style.display = 'none';
         return;
+    } else {
+        // Ensure background is visible if theme IS active
+        if (bgLayer) bgLayer.style.display = 'block';
     }
 
     if (!dashboardLeftCol) return;
@@ -101,12 +105,11 @@ const renderValentineWidget = () => {
     const config = VALENTINE_DAYS[today] || VALENTINE_DAYS[14]; 
 
     // 1. Render Hero Card with "Eco-Romantic" Style
-    // Uses glow-card and glass-card-love for pink tint
     const card = document.createElement('div');
     card.id = 'vday-hero-card';
     card.className = "glass-card-love glow-card p-6 mb-6 relative overflow-hidden group animate-slideUp";
     
-    // Dynamic content: Quote focused, no buttons
+    // Dynamic content: Quote Focused
     card.innerHTML = `
         <div class="absolute -right-6 -top-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-1000">
             <i data-lucide="${config.icon}" class="w-40 h-40 ${config.color.split(' ')[0]}"></i>
@@ -147,20 +150,19 @@ const renderValentineWidget = () => {
 const renderValentineVisuals = (config) => {
     if (isLowDataMode()) return;
 
-    // A. Inject Scrolling Heart Background (Safe check)
+    // A. Inject Scrolling Heart Background (if not present)
     if (!document.querySelector('.heart-bg-layer')) {
         const bgLayer = document.createElement('div');
         bgLayer.className = 'heart-bg-layer';
         document.body.prepend(bgLayer); 
     }
 
-    // B. Floating Emojis (The Love Shower)
-    // Only create container if it doesn't exist
-    if (document.getElementById('vday-visuals')) return;
-
-    const container = document.createElement('div');
-    container.id = 'vday-visuals';
-    container.className = 'v-floating-container';
+    // B. Falling Emojis (The Love Shower)
+    const container = document.getElementById('vday-visuals');
+    if (!container) return; // Must exist in HTML
+    
+    // Only populate if empty to prevent duplicate rain
+    if (container.children.length > 0) return;
 
     // Map icons to emojis
     const emojiMap = {
@@ -175,23 +177,21 @@ const renderValentineVisuals = (config) => {
     };
     const emoji = emojiMap[config.icon] || '❤️';
 
-    // Create 15 floating items with RANDOMIZED positions for organic rain effect
+    // Create 15 falling items with RANDOMIZED properties
     let html = '';
     for(let i=0; i<15; i++) {
         // Random horizontal position (0-100%)
         const left = Math.floor(Math.random() * 100);
         // Random animation duration (6s to 12s)
         const duration = 6 + Math.random() * 6;
-        // Random delay (-5s to 0s) so they start at different heights immediately
-        const delay = -(Math.random() * 5);
+        // Random delay (-10s to 0s) so they start at different heights immediately
+        const delay = -(Math.random() * 10);
         // Random size scaling (0.8 to 1.5)
         const scale = 0.8 + Math.random() * 0.7;
 
         html += `<div class="v-float-item" style="left: ${left}%; animation-duration: ${duration}s; animation-delay: ${delay}s; font-size: ${scale}rem;">${emoji}</div>`;
     }
     container.innerHTML = html;
-    
-    document.body.appendChild(container);
 };
 
 // --- UI RENDERING HELPERS ---
@@ -240,8 +240,7 @@ const renderDashboardUI = () => {
             btn.id = "dashboard-volunteer-btn";
             btn.onclick = () => window.location.href = 'volunteer/index.html'; 
             
-            // DYNAMIC COLOR: Uses Theme Variables!
-            // Defaults to Green, turns Pink/Red if theme is active
+            // DYNAMIC COLOR: Pink in Valentine Mode, Green otherwise
             btn.className = "w-full bg-gradient-to-r from-[var(--v-primary)] to-[var(--v-accent)] text-white p-4 rounded-2xl shadow-lg flex items-center justify-between active:scale-[0.98] transition-all mb-6";
             
             btn.innerHTML = `
@@ -283,15 +282,27 @@ const renderCheckinButtonState = () => {
     const btn = els.dailyCheckinBtn;
     if (!btn) return; 
 
-    // Toggle Button Style based on status
+    // Classes for different states
+    const standardGradient = ['from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500'];
+    const valentineGradient = ['from-[var(--v-primary)]', 'to-[var(--v-accent)]']; // Pink/Red dynamic
+
+    // Reset basics
+    btn.classList.remove(...standardGradient, ...valentineGradient, 'bg-gradient-to-r');
+
     if (state.currentUser.isCheckedInToday) {
         btn.classList.add('checkin-completed'); 
-        btn.classList.remove('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
         btn.onclick = null; 
     } else {
         btn.classList.remove('checkin-completed');
-        // Keep Check-in Gold/Orange for "Points" context
-        btn.classList.add('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
+        btn.classList.add('bg-gradient-to-r');
+        
+        // APPLY THEME COLOR LOGIC
+        if (getValentineTheme()) {
+            btn.classList.add(...valentineGradient); // Pink
+        } else {
+            btn.classList.add(...standardGradient); // Yellow/Gold
+        }
+        
         btn.onclick = openCheckinModal;
     }
 };
@@ -362,7 +373,6 @@ const renderAQICard = (card, aqi, city) => {
         advice = "High pollution. Wear a mask if outside!";
     }
 
-    // AQI Card uses new styles too
     card.innerHTML = `
         <div class="bg-gradient-to-br ${colorClass} border p-5 rounded-2xl shadow-sm relative overflow-hidden animate-breathe">
             <div class="relative z-10 flex justify-between items-start">
@@ -442,7 +452,6 @@ export const renderProfile = () => {
     const u = state.currentUser;
     if (!u) return;
     
-    // Log profile view (Once per session)
     if (!sessionStorage.getItem('profile_view_logged')) {
         logUserActivity('view_profile', 'Viewed profile page');
         sessionStorage.setItem('profile_view_logged', '1');
@@ -496,15 +505,10 @@ export const setupFileUploads = () => {
             
             try {
                 showToast('Updating profile picture...', 'warning');
-                
-                // Upload to Cloudinary via Utils
                 const imageUrl = await uploadToCloudinary(file);
-                
-                // Update DB
                 const { error } = await supabase.from('users').update({ profile_img_url: imageUrl }).eq('id', state.currentUser.id);
                 if (error) throw error;
                 
-                // Update Local State & UI
                 state.currentUser.profile_img_url = imageUrl;
                 const sidebarAvatar = document.getElementById('user-avatar-sidebar');
                 if(sidebarAvatar) sidebarAvatar.src = imageUrl;
@@ -530,17 +534,14 @@ export const setupFileUploads = () => {
 export const openCheckinModal = () => {
     if (state.currentUser.isCheckedInToday) return;
     
-    // Check if streak is broken to display correct UI
     let isStreakBroken = false;
     let savedStreak = 0;
 
     if (state.currentUser.lastCheckInDate) {
         const lastDate = new Date(state.currentUser.lastCheckInDate);
         const today = new Date(); 
-        
         lastDate.setHours(0,0,0,0);
         today.setHours(0,0,0,0);
-        
         const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
@@ -558,14 +559,12 @@ export const openCheckinModal = () => {
     const streakDisplay = document.getElementById('checkin-modal-streak');
     const btnContainer = document.getElementById('checkin-modal-button-container');
 
-    // Display Logic
     const displayStreak = isStreakBroken ? 0 : (state.currentUser.checkInStreak || 0);
 
     streakDisplay.innerHTML = isStreakBroken 
         ? `<span class="text-red-500 line-through opacity-50 text-2xl mr-2">${savedStreak}</span> 0 Days`
         : `${displayStreak} Days`;
     
-    // Calendar Rendering
     calendarContainer.innerHTML = '';
     const today = new Date(); 
     for (let i = -3; i <= 3; i++) {
@@ -579,13 +578,10 @@ export const openCheckinModal = () => {
             </div>`;
     }
 
-    // Button Logic: Standard Check-in OR Restore Option
     let buttonsHTML = '';
 
     if (isStreakBroken) {
         const canRestore = state.currentUser.current_points >= 50;
-        
-        // Restore Button
         if (canRestore) {
             buttonsHTML += `
                 <button onclick="handleStreakRestore()" class="w-full mb-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
@@ -600,15 +596,12 @@ export const openCheckinModal = () => {
                 </div>
             `;
         }
-
-        // Start New Streak Button
         buttonsHTML += `
             <button onclick="handleDailyCheckin()" class="w-full bg-white dark:bg-gray-800 border-2 border-green-500 text-green-600 dark:text-green-400 font-bold py-3 px-4 rounded-xl hover:bg-green-50 dark:hover:bg-gray-700 transition-transform active:scale-95">
                 Start New Streak (+${state.checkInReward} Pts)
             </button>`;
             
     } else {
-        // Standard Check-in
         buttonsHTML = `
             <button onclick="handleDailyCheckin()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 shadow-lg transition-transform active:scale-95">
                 Check-in &amp; Earn ${state.checkInReward} Points
@@ -616,7 +609,6 @@ export const openCheckinModal = () => {
     }
 
     btnContainer.innerHTML = buttonsHTML;
-    
     if(window.lucide) window.lucide.createIcons();
 };
 
@@ -633,24 +625,19 @@ export const handleStreakRestore = async () => {
 
     try {
         const { data, error } = await supabase.rpc('restore_streak_v1');
-
         if (error) throw error;
         if (!data.success) throw new Error(data.error);
 
         logUserActivity('streak_restore', 'Restored streak with points');
-        
-        // Update Local State for points only (Streak will be updated by handleDailyCheckin)
         state.currentUser.current_points -= 50;
         
         showToast("Streak Restored! Checking you in...", "success");
-        
-        // FIX: Immediately trigger daily check-in to continue the streak correctly
         await handleDailyCheckin();
 
     } catch (err) {
         console.error("Streak Restore Error:", err);
         showToast(err.message || "Failed to restore streak.", "error");
-        btnContainer.innerHTML = originalContent; // Revert buttons on failure
+        btnContainer.innerHTML = originalContent; 
     }
 };
 
@@ -664,7 +651,6 @@ export const handleDailyCheckin = async () => {
     try {
         const todayIST = getTodayIST();
         
-        // 1. Insert Check-in
         const { error } = await supabase.from('daily_checkins').insert({ 
             user_id: state.currentUser.id, 
             points_awarded: state.checkInReward,
@@ -673,14 +659,12 @@ export const handleDailyCheckin = async () => {
         
         if (error) throw error;
         
-        // 2. Fetch new streak from Trigger (Database Trigger handles increment or reset)
         const { data: newStreak } = await supabase.from('user_streaks').select('current_streak').eq('user_id', state.currentUser.id).single();
         const finalStreak = newStreak ? newStreak.current_streak : 1;
         
         logUserActivity('checkin_success', `Daily check-in completed.`);
         closeCheckinModal();
 
-        // 3. Update Local State
         state.currentUser.checkInStreak = finalStreak;
         state.currentUser.isCheckedInToday = true;
         state.currentUser.current_points += state.checkInReward; 
