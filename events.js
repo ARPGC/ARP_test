@@ -1,7 +1,7 @@
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
 import { els, formatDate, getPlaceholderImage, getTickImg, logUserActivity, getOptimizedImageUrl, showToast } from './utils.js';
-import { refreshUserData } from './app.js'; // Import refresh to update balance after payment
+import { refreshUserData } from './app.js'; 
 
 // --- EVENTS MODULEs ---
 
@@ -10,17 +10,17 @@ export const loadEventsData = async () => {
         // 1. Get current time in ISO format for filtering
         const now = new Date().toISOString();
 
-        // 2. Fetch Events (Filter: start_at >= NOW)
-        // Added: points_cost, max_seats for the new paid/limited logic
+        // 2. Fetch Events + Participant Count
+        // Added: event_attendance(count) to get the number of registered users
         const { data: events, error: eventsError } = await supabase
             .from('events')
-            .select('id, title, start_at, location, poster_url, points_reward, points_cost, max_seats, organizer, description')
+            .select('id, title, start_at, location, poster_url, points_reward, points_cost, max_seats, organizer, description, event_attendance(count)')
             .gte('start_at', now) 
             .order('start_at', { ascending: true });
 
         if (eventsError) throw eventsError;
 
-        // 3. Fetch My Attendance ONLY (Privacy & Egress optimization)
+        // 3. Fetch My Attendance ONLY
         const { data: myAttendance, error: attendanceError } = await supabase
             .from('event_attendance')
             .select('event_id, status')
@@ -34,7 +34,7 @@ export const loadEventsData = async () => {
             myAttendance.forEach(a => attendanceMap.set(a.event_id, a.status));
         }
 
-        // Map events to include the user's personal status
+        // Map events to include status and seat calculations
         state.events = events.map(e => {
             const status = attendanceMap.get(e.id);
             let myStatus = 'upcoming';
@@ -43,14 +43,20 @@ export const loadEventsData = async () => {
                 if (status === 'confirmed') myStatus = 'attended';
                 else if (status === 'absent') myStatus = 'missed';
                 else if (status === 'registered') myStatus = 'going';
-            } 
+            }
             
-            // Normalize cost/seats
+            // Calculate Seats
+            const taken = e.event_attendance ? e.event_attendance[0].count : 0;
+            const max = e.max_seats || null;
+            const remaining = max !== null ? Math.max(0, max - taken) : null;
+            
             return { 
                 ...e, 
                 myStatus,
                 points_cost: e.points_cost || 0,
-                max_seats: e.max_seats || null
+                max_seats: max,
+                seats_taken: taken,
+                seats_remaining: remaining
             };
         });
         
@@ -81,9 +87,10 @@ const renderEventsPage = () => {
         const isPast = new Date(event.start_at) < new Date();
         const optimizedPoster = getOptimizedImageUrl(event.poster_url);
         
-        // --- LOGIC: Cost vs Reward UI ---
+        // --- LOGIC: Cost vs Reward vs Seats UI ---
         const isPaid = event.points_cost > 0;
         const isLimited = event.max_seats !== null;
+        const isSoldOut = isLimited && event.seats_remaining === 0;
         
         // Badge Logic
         let badgeHtml = '';
@@ -100,9 +107,17 @@ const renderEventsPage = () => {
         // Capacity Tag
         let capacityHtml = '';
         if (isLimited) {
-            capacityHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ml-2">
-                <i data-lucide="users" class="w-3 h-3 mr-1"></i> Limited Seats
-            </span>`;
+            if (isSoldOut) {
+                capacityHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 ml-2">
+                    Sold Out
+                </span>`;
+            } else {
+                // Show specific count if low
+                const countText = event.seats_remaining <= 10 ? `Only ${event.seats_remaining} left` : `${event.seats_remaining} seats left`;
+                capacityHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ml-2">
+                    <i data-lucide="users" class="w-3 h-3 mr-1"></i> ${countText}
+                </span>`;
+            }
         }
 
         // Button Logic
@@ -111,6 +126,8 @@ const renderEventsPage = () => {
              buttonHtml = `<button disabled class="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold flex items-center gap-2 w-full justify-center"><i data-lucide="check-circle" class="w-4 h-4"></i> Going</button>`;
         } else if (isPast) {
              buttonHtml = `<button disabled class="px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-bold w-full">Ended</button>`;
+        } else if (isSoldOut) {
+             buttonHtml = `<button disabled class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 rounded-lg text-sm font-bold w-full cursor-not-allowed">Sold Out</button>`;
         } else {
              // Differentiate Paid vs Free RSVP
              if (isPaid) {
@@ -217,8 +234,8 @@ export const handleRSVP = async (eventId, cost = 0) => {
         // --- COMMON SUCCESS ACTIONS ---
         logUserActivity('rsvp_event', `RSVP for event ${eventId}`, { cost });
         
-        // Optimistic Update
-        if(eventObj) eventObj.myStatus = 'going';
+        // Refresh event data to update seat count visually
+        await loadEventsData(); 
         renderEventsPage();
 
     } catch (err) {
@@ -226,7 +243,7 @@ export const handleRSVP = async (eventId, cost = 0) => {
         // User-friendly error mapping
         let msg = 'Failed to RSVP. Try again.';
         if (err.message.includes('Insufficient')) msg = 'Not enough EcoPoints!';
-        if (err.message.includes('sold out')) msg = 'Event is Sold Out!';
+        if (err.message.includes('sold out') || err.message.includes('Sold out')) msg = 'Event is Sold Out!';
         
         showToast(msg, 'error');
         btn.innerText = originalText;
