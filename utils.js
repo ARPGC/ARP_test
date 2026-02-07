@@ -159,7 +159,8 @@ export const getIconForHistory = (type) => {
 
     const icons = { 
         'checkin': 'calendar-check', 
-        'event': 'calendar-check', 
+        'event': 'calendar-check',
+        'event_payment': 'ticket', // <--- ADDED: Paid Event RSVP
         'challenge': 'award', 
         'plastic': 'recycle', 
         'order': 'shopping-cart', 
@@ -167,11 +168,11 @@ export const getIconForHistory = (type) => {
         'quiz': 'brain', 
         'streak_restore': 'zap',
         
-        // --- MOVIE ICONS (Multiple keys to catch any DB value) ---
+        // --- MOVIE ICONS ---
         'movie_booking': 'clapperboard',
-        'ticket': 'clapperboard',      // Covers "Ticket"
-        'booking': 'clapperboard',     // Covers "Booking"
-        'movie': 'clapperboard'        // Covers "Movie"
+        'ticket': 'clapperboard',      
+        'booking': 'clapperboard',     
+        'movie': 'clapperboard'        
     };
     return icons[safeType] || 'help-circle';
 };
