@@ -1,10 +1,10 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Standard Dashboard State (OJAS Logic Removed) & Fixed Streak Restore
+ * Updated: Valentine's Week Theme & Daily Events
  */
 
 import { supabase } from './supabase-client.js';
-import { state } from './state.js'; 
+import { state, VALENTINE_DAYS } from './state.js'; 
 import { 
     els, 
     formatDate, 
@@ -16,7 +16,9 @@ import {
     uploadToCloudinary, 
     getTodayIST, 
     logUserActivity, 
-    showToast 
+    showToast,
+    getValentineTheme,
+    isLowDataMode
 } from './utils.js';
 import { refreshUserData } from './app.js';
 import { loadLeaderboardData } from './social.js';
@@ -68,7 +70,103 @@ export const renderDashboard = () => {
     if (!state.currentUser) return; 
     renderDashboardUI();
     renderCheckinButtonState();
+    renderValentineWidget(); // NEW: Check and render Valentine theme
     initAQI(); 
+};
+
+// --- VALENTINE'S THEME LOGIC ---
+
+const renderValentineWidget = () => {
+    const theme = getValentineTheme();
+    const dashboardLeftCol = document.querySelector('#dashboard > div.grid > div:first-child');
+    
+    // Cleanup existing widget if any
+    const existingWidget = document.getElementById('vday-hero-card');
+    if (existingWidget) existingWidget.remove();
+    
+    // Cleanup visuals if theme expired
+    if (!theme) {
+        const visuals = document.getElementById('vday-visuals');
+        if (visuals) visuals.remove();
+        return;
+    }
+
+    if (!dashboardLeftCol) return;
+
+    const today = new Date().getDate();
+    const config = VALENTINE_DAYS[today] || VALENTINE_DAYS[14]; // Fallback to V-Day config
+
+    // 1. Render Hero Card
+    const card = document.createElement('div');
+    card.id = 'vday-hero-card';
+    card.className = "glass-card-love p-6 mb-6 relative overflow-hidden group animate-slideUp";
+    
+    // Dynamic content based on day
+    card.innerHTML = `
+        <div class="absolute -right-6 -top-6 opacity-10 transform rotate-12 group-hover:scale-110 transition-transform duration-700">
+            <i data-lucide="${config.icon}" class="w-32 h-32 ${config.color.split(' ')[0]}"></i>
+        </div>
+        <div class="relative z-10">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/20 shadow-sm ${config.color}">
+                    <i data-lucide="calendar-heart" class="w-3 h-3 mr-1"></i> Special Event
+                </span>
+            </div>
+            <h3 class="text-2xl font-black ${config.color} mb-1 font-jakarta tracking-tight leading-tight">
+                ${config.title}
+            </h3>
+            <p class="text-sm font-medium opacity-80 mb-4 max-w-[85%] leading-relaxed">
+                ${config.desc}
+            </p>
+            <div class="flex gap-3">
+                <button onclick="showPage('challenges')" class="flex-1 bg-white/90 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-800 text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${config.color}">
+                    <i data-lucide="camera" class="w-4 h-4"></i> Challenge
+                </button>
+                <button onclick="showPage('rewards')" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-pink-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="gift" class="w-4 h-4"></i> Gift
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Insert as first item
+    dashboardLeftCol.prepend(card);
+    
+    // 2. Trigger Visuals
+    renderValentineVisuals(config);
+
+    if (window.lucide) window.lucide.createIcons();
+};
+
+const renderValentineVisuals = (config) => {
+    // Only render if not low data mode and container doesn't exist
+    if (isLowDataMode() || document.getElementById('vday-visuals')) return;
+
+    const container = document.createElement('div');
+    container.id = 'vday-visuals';
+    container.className = 'v-floating-container'; // CSS handles low-data hiding too
+
+    // Map icons to emojis for floating effect
+    const emojiMap = {
+        'flower': '🌹',
+        'heart-handshake': '💍',
+        'cookie': '🍫',
+        'smile': '🧸',
+        'shield-check': '🤞',
+        'users': '🤗',
+        'heart': '💋',
+        'sparkles': '💖'
+    };
+    const emoji = emojiMap[config.icon] || '❤️';
+
+    // Create 5 floating items with staggered delays (handled in CSS)
+    let html = '';
+    for(let i=0; i<5; i++) {
+        html += `<div class="v-float-item">${emoji}</div>`;
+    }
+    container.innerHTML = html;
+    
+    document.body.appendChild(container);
 };
 
 // --- UI RENDERING HELPERS ---
@@ -130,7 +228,13 @@ const renderDashboardUI = () => {
                 </div>
                 <i data-lucide="chevron-right" class="w-6 h-6 text-white/80"></i>
             `;
-            dashboardGrid.prepend(btn);
+            // If Valentine hero exists, insert after it, else prepend
+            const vHero = document.getElementById('vday-hero-card');
+            if (vHero) {
+                vHero.after(btn);
+            } else {
+                dashboardGrid.prepend(btn);
+            }
             if(window.lucide) window.lucide.createIcons();
         }
     } else {
