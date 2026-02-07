@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Standard Dashboard State (OJAS Logic Removed)
+ * Updated: Standard Dashboard State (OJAS Logic Removed) & Fixed Streak Restore
  */
 
 import { supabase } from './supabase-client.js';
@@ -504,18 +504,13 @@ export const handleStreakRestore = async () => {
 
         logUserActivity('streak_restore', 'Restored streak with points');
         
-        // Update Local State
-        state.currentUser.checkInStreak = data.restored_streak; 
+        // Update Local State for points only (Streak will be updated by handleDailyCheckin)
         state.currentUser.current_points -= 50;
-        state.currentUser.lastCheckInDate = getTodayIST(); // Restore sets checkin date to today
         
-        showToast("Streak Restored! 🔥", "success");
+        showToast("Streak Restored! Checking you in...", "success");
         
-        // Re-open modal to show the standard check-in button immediately
-        openCheckinModal();
-        
-        renderDashboardUI();
-        await refreshUserData();
+        // FIX: Immediately trigger daily check-in to continue the streak correctly
+        await handleDailyCheckin();
 
     } catch (err) {
         console.error("Streak Restore Error:", err);
