@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Valentine's "Eco-Romantic" Edition
+ * Updated: Valentine's "Eco-Romantic" Immersive Edition
  */
 
 import { supabase } from './supabase-client.js';
@@ -96,10 +96,11 @@ const renderValentineWidget = () => {
     if (!dashboardLeftCol) return;
 
     const today = new Date().getDate();
-    // Fallback to 14 if testing or out of range, logic handled in utils mostly
+    // Fallback to 14 if testing or out of range
     const config = VALENTINE_DAYS[today] || VALENTINE_DAYS[14]; 
 
     // 1. Render Hero Card with "Eco-Romantic" Style
+    // Uses glow-card and glass-card-love for pink tint
     const card = document.createElement('div');
     card.id = 'vday-hero-card';
     card.className = "glass-card-love glow-card p-6 mb-6 relative overflow-hidden group animate-slideUp";
@@ -146,6 +147,7 @@ const renderValentineVisuals = (config) => {
     if (isLowDataMode()) return;
 
     // A. Inject Scrolling Heart Background (if not present)
+    // This forces the pink wallpaper if style.css didn't catch it yet
     if (!document.querySelector('.heart-bg-layer')) {
         const bgLayer = document.createElement('div');
         bgLayer.className = 'heart-bg-layer';
@@ -153,7 +155,6 @@ const renderValentineVisuals = (config) => {
     }
 
     // B. Floating Emojis
-    // Only create container if it doesn't exist
     if (document.getElementById('vday-visuals')) return;
 
     const container = document.createElement('div');
@@ -228,7 +229,10 @@ const renderDashboardUI = () => {
             const btn = document.createElement('button');
             btn.id = "dashboard-volunteer-btn";
             btn.onclick = () => window.location.href = 'volunteer/index.html'; 
-            btn.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between active:scale-[0.98] transition-all mb-6";
+            
+            // DYNAMIC COLOR: Uses Theme Variables!
+            // Defaults to Green, turns Pink/Red if theme is active
+            btn.className = "w-full bg-gradient-to-r from-[var(--v-primary)] to-[var(--v-accent)] text-white p-4 rounded-2xl shadow-lg flex items-center justify-between active:scale-[0.98] transition-all mb-6";
             
             btn.innerHTML = `
                 <div class="flex items-center gap-3">
@@ -237,11 +241,12 @@ const renderDashboardUI = () => {
                     </div>
                     <div class="text-left">
                         <h3 class="font-bold text-lg leading-tight">Volunteer Mode</h3>
-                        <p class="text-xs text-emerald-100 font-medium">Access scanner & logs</p>
+                        <p class="text-xs text-white/90 font-medium">Access scanner & logs</p>
                     </div>
                 </div>
                 <i data-lucide="chevron-right" class="w-6 h-6 text-white/80"></i>
             `;
+            
             // If Valentine hero exists, insert after it, else prepend
             const vHero = document.getElementById('vday-hero-card');
             if (vHero) {
@@ -275,6 +280,7 @@ const renderCheckinButtonState = () => {
         btn.onclick = null; 
     } else {
         btn.classList.remove('checkin-completed');
+        // Keep Check-in Gold/Orange for "Points" context
         btn.classList.add('from-yellow-400', 'to-orange-400', 'dark:from-yellow-500', 'dark:to-orange-500', 'bg-gradient-to-r');
         btn.onclick = openCheckinModal;
     }
@@ -346,6 +352,7 @@ const renderAQICard = (card, aqi, city) => {
         advice = "High pollution. Wear a mask if outside!";
     }
 
+    // AQI Card uses new styles too
     card.innerHTML = `
         <div class="bg-gradient-to-br ${colorClass} border p-5 rounded-2xl shadow-sm relative overflow-hidden animate-breathe">
             <div class="relative z-10 flex justify-between items-start">
