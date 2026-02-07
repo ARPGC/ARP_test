@@ -1,7 +1,7 @@
 /* =========================================
    1. GLOBAL RESET & APP STRUCTURE
    ========================================= */
-html, body {
+   html, body {
     height: 100%;
     overflow: hidden; /* Handle scrolling in .main-content */
     font-family: 'Inter', sans-serif;
@@ -24,6 +24,143 @@ html, body {
     --ny-purple: #3b0764;
     --ny-accent: #818cf8;
     --ny-gold: #fbbf24;
+
+    /* --- VALENTINE'S WEEK VARIABLES (Default Fallback) --- */
+    --v-primary: #10B981;    /* Default Green */
+    --v-secondary: #ECFDF5;  /* Default Light Green */
+    --v-accent: #34D399;     /* Default Accent */
+    --v-text: #064E3B;       /* Default Dark Text */
+    --v-glass-border: rgba(16, 185, 129, 0.2);
+    --v-glass-bg: rgba(255, 255, 255, 0.76);
+}
+
+/* --- THEME: ROSE DAY (Feb 7) --- */
+body.theme-rose {
+    --v-primary: #e11d48;    /* Rose Red */
+    --v-secondary: #fff1f2;  /* Rose Blush */
+    --v-accent: #fda4af;     /* Soft Pink */
+    --v-text: #881337;       /* Deep Rose */
+    --v-glass-border: rgba(225, 29, 72, 0.3);
+    --v-glass-bg: rgba(255, 241, 242, 0.85);
+}
+body.theme-rose.dark {
+    --v-primary: #fb7185;    /* Light Rose */
+    --v-secondary: #4c0519;  /* Dark Wine */
+    --v-accent: #e11d48;     
+    --v-text: #ffe4e6;
+    --v-glass-bg: rgba(76, 5, 25, 0.8);
+}
+
+/* --- THEME: PROPOSE DAY (Feb 8) --- */
+body.theme-propose {
+    --v-primary: #f97316;    /* Warm Orange */
+    --v-secondary: #fff7ed;  /* Cream */
+    --v-accent: #fdba74;     
+    --v-text: #9a3412;
+    --v-glass-border: rgba(249, 115, 22, 0.3);
+    --v-glass-bg: rgba(255, 247, 237, 0.85);
+}
+body.theme-propose.dark {
+    --v-primary: #fdba74;
+    --v-secondary: #431407;
+    --v-text: #ffedd5;
+    --v-glass-bg: rgba(67, 20, 7, 0.8);
+}
+
+/* --- THEME: CHOCOLATE DAY (Feb 9) --- */
+body.theme-chocolate {
+    --v-primary: #854d0e;    /* Rich Brown */
+    --v-secondary: #fefce8;  /* Vanilla */
+    --v-accent: #ca8a04;     /* Gold/Caramel */
+    --v-text: #422006;       /* Dark Chocolate */
+    --v-glass-border: rgba(133, 77, 14, 0.3);
+    --v-glass-bg: rgba(254, 252, 232, 0.85);
+}
+body.theme-chocolate.dark {
+    --v-primary: #d97706;    /* Caramel */
+    --v-secondary: #451a03;  /* Dark Cocoa */
+    --v-text: #fef3c7;
+    --v-glass-bg: rgba(69, 26, 3, 0.8);
+}
+
+/* --- THEME: TEDDY DAY (Feb 10) --- */
+body.theme-teddy {
+    --v-primary: #db2777;    /* Cute Pink */
+    --v-secondary: #fdf2f8;  /* Soft Fluff */
+    --v-accent: #f472b6;
+    --v-text: #831843;
+    --v-glass-border: rgba(219, 39, 119, 0.3);
+    --v-glass-bg: rgba(253, 242, 248, 0.85);
+}
+body.theme-teddy.dark {
+    --v-primary: #f472b6;
+    --v-secondary: #500724;
+    --v-text: #fce7f3;
+    --v-glass-bg: rgba(80, 7, 36, 0.8);
+}
+
+/* --- THEME: PROMISE DAY (Feb 11) --- */
+body.theme-promise {
+    --v-primary: #0284c7;    /* Trust Blue */
+    --v-secondary: #f0f9ff;  /* Sky */
+    --v-accent: #38bdf8;
+    --v-text: #075985;
+    --v-glass-border: rgba(2, 132, 199, 0.3);
+    --v-glass-bg: rgba(240, 249, 255, 0.85);
+}
+body.theme-promise.dark {
+    --v-primary: #38bdf8;
+    --v-secondary: #082f49;
+    --v-text: #e0f2fe;
+    --v-glass-bg: rgba(8, 47, 73, 0.8);
+}
+
+/* --- THEME: HUG DAY (Feb 12) --- */
+body.theme-hug {
+    --v-primary: #d97706;    /* Warm Amber */
+    --v-secondary: #fffbeb;  /* Soft Yellow */
+    --v-accent: #fbbf24;
+    --v-text: #92400e;
+    --v-glass-border: rgba(217, 119, 6, 0.3);
+    --v-glass-bg: rgba(255, 251, 235, 0.85);
+}
+body.theme-hug.dark {
+    --v-primary: #fbbf24;
+    --v-secondary: #451a03;
+    --v-text: #fef3c7;
+    --v-glass-bg: rgba(69, 26, 3, 0.8);
+}
+
+/* --- THEME: KISS DAY (Feb 13) --- */
+body.theme-kiss {
+    --v-primary: #9333ea;    /* Passion Purple */
+    --v-secondary: #faf5ff;  /* Lavender */
+    --v-accent: #c084fc;
+    --v-text: #581c87;
+    --v-glass-border: rgba(147, 51, 234, 0.3);
+    --v-glass-bg: rgba(250, 245, 255, 0.85);
+}
+body.theme-kiss.dark {
+    --v-primary: #c084fc;
+    --v-secondary: #3b0764;
+    --v-text: #f3e8ff;
+    --v-glass-bg: rgba(59, 7, 100, 0.8);
+}
+
+/* --- THEME: VALENTINE'S DAY (Feb 14) --- */
+body.theme-valentine {
+    --v-primary: #e11d48;    /* True Red */
+    --v-secondary: #fff1f2;  /* Romantic Blush */
+    --v-accent: #ff4d6d;     /* Hot Pink */
+    --v-text: #881337;
+    --v-glass-border: rgba(255, 77, 109, 0.4);
+    --v-glass-bg: rgba(255, 240, 243, 0.9);
+}
+body.theme-valentine.dark {
+    --v-primary: #ff4d6d;    /* Neon Pink */
+    --v-secondary: #2d0d16;  /* Deep Velvet */
+    --v-text: #ffe4e6;
+    --v-glass-bg: rgba(45, 13, 22, 0.85);
 }
 
 *, *::before, *::after {
@@ -129,7 +266,7 @@ header, nav {
 
 /* --- LOW DATA / REDUCED MOTION --- */
 @media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .hero-particle, .live-pulse {
+    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .hero-particle, .live-pulse, .v-float-item {
         animation: none !important;
         transition: none !important;
     }
@@ -137,7 +274,8 @@ header, nav {
 
 body.low-data-mode .leaf,
 body.low-data-mode .animate-float,
-body.low-data-mode .hero-particle {
+body.low-data-mode .hero-particle,
+body.low-data-mode .v-floating-container {
     display: none !important; /* Hide heavy visuals */
 }
 
@@ -184,13 +322,25 @@ body.low-data-mode .hero-particle {
     color: #059669;
     font-weight: 600;
 }
+/* If a theme is active, override sidebar active colors */
+body[class*="theme-"] .sidebar-nav-item.active {
+    background-color: var(--v-secondary);
+    color: var(--v-primary);
+}
+
 .sidebar-nav-item.active svg { color: #059669; }
+body[class*="theme-"] .sidebar-nav-item.active svg { color: var(--v-primary); }
 
 .dark .sidebar-nav-item.active {
     background-color: #064E3B;
     color: #A7F3D0;
 }
-.dark .sidebar-nav-item.active svg { color: #A7F3D0; }
+body[class*="theme-"].dark .sidebar-nav-item.active {
+    background-color: var(--v-secondary);
+    color: var(--v-primary);
+}
+body[class*="theme-"].dark .sidebar-nav-item.active svg { color: var(--v-primary); }
+
 
 /* Force White Text on Sidebar when background is dark (GreenLens) */
 #sidebar.force-dark-text .sidebar-nav-item,
@@ -215,9 +365,18 @@ body.low-data-mode .hero-particle {
 }
 
 .nav-item.active { color: #10B981; }
+/* Theme override for bottom nav */
+body[class*="theme-"] .nav-item.active { color: var(--v-primary) !important; }
+
 .nav-item.active svg { color: #10B981; }
+body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !important; }
+
 .dark .nav-item.active { color: #34D399; }
+body[class*="theme-"].dark .nav-item.active { color: var(--v-primary) !important; }
+
 .dark .nav-item.active svg { color: #34D399; }
+body[class*="theme-"].dark .nav-item.active svg { color: var(--v-primary) !important; }
+
 
 #theme-toggle-btn > span { transition: transform 0.3s ease-in-out; }
 
@@ -251,6 +410,20 @@ body.low-data-mode .hero-particle {
     border-color: rgba(45, 212, 191, 0.60);
 }
 
+/* --- NEW: VALENTINE THEMED GLASS CARD --- */
+.glass-card-love {
+    background: var(--v-glass-bg);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--v-glass-border);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    color: var(--v-text);
+}
+.glass-card-love h3 { color: var(--v-primary); }
+
 .glass-bottom-bar {
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
@@ -265,6 +438,11 @@ body.low-data-mode .hero-particle {
     background-image: linear-gradient(135deg, #10B981, #34D399);
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
 }
+body[class*="theme-"] .btn-eco-gradient {
+    background-image: linear-gradient(135deg, var(--v-primary), var(--v-accent));
+    box-shadow: 0 4px 15px var(--v-glass-border) !important;
+}
+
 .btn-eco-gradient:hover {
     filter: brightness(1.05);
 }
@@ -837,3 +1015,54 @@ body.low-data-mode .hero-particle {
     background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
     background-size: 15px 15px;
 }
+
+/* =========================================
+   12. VALENTINE'S WEEK ANIMATIONS
+   ========================================= */
+.v-floating-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10; /* Above background, below UI */
+    overflow: hidden;
+}
+
+.v-float-item {
+    position: absolute;
+    bottom: -10vh; /* Start below screen */
+    opacity: 0;
+    animation: v-float-up 8s linear infinite;
+    font-size: 2rem; /* Adjust based on emoji size */
+    will-change: transform, opacity;
+}
+
+@keyframes v-float-up {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(0.8);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 0.8;
+        transform: translateY(-50vh) rotate(180deg) scale(1);
+    }
+    90% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-110vh) rotate(360deg) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Staggered Animations for natural feel */
+.v-float-item:nth-child(1) { left: 10%; animation-duration: 7s; animation-delay: 0s; }
+.v-float-item:nth-child(2) { left: 30%; animation-duration: 9s; animation-delay: 2s; font-size: 1.5rem; }
+.v-float-item:nth-child(3) { left: 60%; animation-duration: 6s; animation-delay: 4s; }
+.v-float-item:nth-child(4) { left: 80%; animation-duration: 8s; animation-delay: 1s; font-size: 2.5rem; }
+.v-float-item:nth-child(5) { left: 50%; animation-duration: 10s; animation-delay: 3s; }
