@@ -10,56 +10,63 @@ export const TICK_IMAGES = {
     green: 'https://i.ibb.co/SXGL4Nq0/green.png'
 };
 
-// --- VALENTINE'S WEEK CONFIGURATION ---
-// Maps the day of the month (7-14) to specific themes
+// --- VALENTINE'S WEEK CONFIGURATION (Eco-Romantic Edition) ---
 export const VALENTINE_DAYS = {
     7: { 
         title: 'Rose Day 🌹', 
         icon: 'flower', 
         color: 'text-rose-600 dark:text-rose-400', 
-        desc: 'Plant a sapling, spread the love! A real rose fades, a planted one grows.' 
+        desc: 'Real love grows. Plant a sapling today instead of picking a flower.',
+        quote: "Love blooms where you plant it. Let's make the earth blossom together. 🌿❤️"
     },
     8: { 
         title: 'Propose Day 💍', 
         icon: 'heart-handshake', 
         color: 'text-orange-500 dark:text-orange-400', 
-        desc: 'Propose a greener future today. Commit to zero-waste living.' 
+        desc: 'Pop the question: "Will you go Zero-Waste with me?"',
+        quote: "I propose a lifetime of sustainable choices... and you by my side. 💍✨"
     },
     9: { 
         title: 'Chocolate Day 🍫', 
         icon: 'cookie', 
         color: 'text-amber-700 dark:text-amber-400', 
-        desc: 'Sweet treats, zero plastic wrappers. Recycle your foil!' 
+        desc: 'Sweet to the taste, kind to the waste. Recycle that foil wrapper!',
+        quote: "Life is delicious when it's guilt-free. Sweet love, sustainable living. 🍫🌍"
     },
     10: { 
         title: 'Teddy Day 🧸', 
         icon: 'smile', 
         color: 'text-pink-500 dark:text-pink-400', 
-        desc: 'Soft hearts, strong eco-will. Be gentle with nature.' 
+        desc: 'Soft hearts protect the planet. Be a gentle guardian of nature.',
+        quote: "The world is our teddy bear—handle it with care and love. 🧸💚"
     },
     11: { 
         title: 'Promise Day 🤝', 
         icon: 'shield-check', 
         color: 'text-sky-600 dark:text-sky-400', 
-        desc: 'Promise to protect our campus and reduce your carbon footprint.' 
+        desc: 'Make a vow to reduce your carbon footprint starting today.',
+        quote: "A promise to you, a vow to the Earth. Forever green, forever ours. 🤞🌏"
     },
     12: { 
         title: 'Hug Day 🤗', 
         icon: 'users', 
         color: 'text-yellow-600 dark:text-yellow-400', 
-        desc: 'Embrace nature, embrace life. Hug a tree (literally)!' 
+        desc: 'Embrace the nature around you. Tree huggers are the best lovers!',
+        quote: "Wrap your arms around the future. Hug a tree, hug a friend, heal the world. 🤗🌳"
     },
     13: { 
         title: 'Kiss Day 💋', 
         icon: 'heart', 
         color: 'text-purple-600 dark:text-purple-400', 
-        desc: 'Love the earth in every way. Keep our campus clean.' 
+        desc: 'Sealed with a sustainable kiss. Say goodbye to toxic plastics.',
+        quote: "Kiss the plastic goodbye. Let our love be as pure as the ocean breeze. 💋🌊"
     },
     14: { 
         title: 'Valentine’s Day 💖', 
         icon: 'sparkles', 
         color: 'text-red-600 dark:text-red-400', 
-        desc: 'Your true love is the planet! Happy Valentine’s Day, Eco-Warrior.' 
+        desc: 'You are my world, so let’s save this one together.',
+        quote: "My heart beats for two things: You, and a greener tomorrow. Happy Valentine's! 💘🌱"
     }
 };
 
