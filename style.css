@@ -51,7 +51,8 @@ body.theme-rose {
     /* IMMERSIVE GRADIENT - LIGHT */
     --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 50%, #fecdd3 100%);
 }
-body.theme-rose.dark {
+/* FIX: Use html.dark to correctly target dark mode */
+html.dark body.theme-rose {
     --v-primary: #fb7185;    
     --v-secondary: #4c0519;  
     --v-text: #ffe4e6;
@@ -74,7 +75,7 @@ body.theme-propose {
     --v-heart-color: rgba(249, 115, 22, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
 }
-body.theme-propose.dark {
+html.dark body.theme-propose {
     --v-primary: #fdba74;
     --v-secondary: #431407;
     --v-text: #ffedd5;
@@ -95,7 +96,7 @@ body.theme-chocolate {
     --v-heart-color: rgba(133, 77, 14, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
-body.theme-chocolate.dark {
+html.dark body.theme-chocolate {
     --v-primary: #d97706;    
     --v-secondary: #451a03;  
     --v-text: #fef3c7;
@@ -116,7 +117,7 @@ body.theme-teddy {
     --v-heart-color: rgba(219, 39, 119, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
 }
-body.theme-teddy.dark {
+html.dark body.theme-teddy {
     --v-primary: #f472b6;
     --v-secondary: #500724;
     --v-text: #fce7f3;
@@ -137,7 +138,7 @@ body.theme-promise {
     --v-heart-color: rgba(2, 132, 199, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 }
-body.theme-promise.dark {
+html.dark body.theme-promise {
     --v-primary: #38bdf8;
     --v-secondary: #082f49;
     --v-text: #e0f2fe;
@@ -158,7 +159,7 @@ body.theme-hug {
     --v-heart-color: rgba(217, 119, 6, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
-body.theme-hug.dark {
+html.dark body.theme-hug {
     --v-primary: #fbbf24;
     --v-secondary: #451a03;
     --v-text: #fef3c7;
@@ -179,7 +180,7 @@ body.theme-kiss {
     --v-heart-color: rgba(147, 51, 234, 0.15);
     --v-bg-gradient: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
 }
-body.theme-kiss.dark {
+html.dark body.theme-kiss {
     --v-primary: #c084fc;
     --v-secondary: #3b0764;
     --v-text: #f3e8ff;
@@ -200,7 +201,7 @@ body.theme-valentine {
     --v-heart-color: rgba(225, 29, 72, 0.2); 
     --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 40%, #fecdd3 100%);
 }
-body.theme-valentine.dark {
+html.dark body.theme-valentine {
     --v-primary: #ff4d6d;    /* Neon Pink */
     --v-secondary: #2d0d16;  /* Deep Velvet */
     --v-text: #ffe4e6;
@@ -221,6 +222,7 @@ body[class*="theme-"] {
 body[class*="theme-"] .app-container,
 body[class*="theme-"] .main-content {
     background-color: transparent !important;
+    /* FIX: Removed z-index: 1 to solve Sidebar stacking issue */
 }
 
 /* Make Glass Cards Tinted */
@@ -231,16 +233,16 @@ body[class*="theme-"] .glass-card {
 }
 
 /* Make Sidebar Glassy & Transparent */
-/* FIX: Force Sidebar to be TOPMOST element */
+/* FIX: Force Sidebar to be TOPMOST element (z-index 10000) */
 body[class*="theme-"] #sidebar {
     background: rgba(255, 255, 255, 0.85) !important; 
     backdrop-filter: blur(12px) !important; /* Restore Blur */
     -webkit-backdrop-filter: blur(12px) !important;
     border-right: 1px solid var(--v-glass-border) !important;
-    z-index: 10000 !important; /* High Z-index */
+    z-index: 10000 !important; /* CRITICAL FIX: Higher than overlay */
 }
 
-body[class*="theme-"].dark #sidebar {
+html.dark body[class*="theme-"] #sidebar {
     background: rgba(17, 24, 39, 0.90) !important;
     border-right: 1px solid rgba(255,255,255,0.1) !important;
 }
@@ -251,7 +253,7 @@ body[class*="theme-"] header {
     backdrop-filter: blur(12px) !important;
     border-bottom: 1px solid var(--v-glass-border) !important;
 }
-body[class*="theme-"].dark header {
+html.dark body[class*="theme-"] header {
     background: rgba(10, 10, 10, 0.3) !important;
 }
 
@@ -273,7 +275,7 @@ body[class*="theme-"].dark header {
     animation: heartScroll 40s linear infinite;
 }
 
-.dark .heart-bg-layer {
+html.dark .heart-bg-layer {
     opacity: 0.12;
     mix-blend-mode: soft-light;
 }
@@ -306,7 +308,7 @@ body[class*="theme-"].dark header {
 }
 
 /* --- RESPONSIVE LAYOUT CONTAINER --- */
-/* FIX: REMOVED z-index: 1 to prevent Stacking Context Trap */
+/* FIX: REMOVED z-index: 1 to prevent Stacking Context Trap for Sidebar */
 .app-container {
     width: 100%;
     height: 100%;
@@ -315,7 +317,7 @@ body[class*="theme-"].dark header {
     position: relative;
     overflow: hidden;
     background-color: #f9fafb;
-    /* z-index: 1; REMOVED! This caused the issue */
+    /* z-index: 1; REMOVED! */
 }
 .dark .app-container {
     background-color: #111827;
@@ -462,11 +464,11 @@ body[class*="theme-"] .sidebar-nav-item.active svg { color: white; }
     background-color: #064E3B;
     color: #A7F3D0;
 }
-body[class*="theme-"].dark .sidebar-nav-item.active {
+html.dark body[class*="theme-"] .sidebar-nav-item.active {
     background-color: var(--v-primary);
     color: white;
 }
-body[class*="theme-"].dark .sidebar-nav-item.active svg { color: white; }
+html.dark body[class*="theme-"] .sidebar-nav-item.active svg { color: white; }
 
 
 /* Force White Text on Sidebar when background is dark */
@@ -499,10 +501,10 @@ body[class*="theme-"] .nav-item.active { color: var(--v-primary) !important; }
 body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !important; }
 
 .dark .nav-item.active { color: #34D399; }
-body[class*="theme-"].dark .nav-item.active { color: var(--v-primary) !important; }
+html.dark body[class*="theme-"] .nav-item.active { color: var(--v-primary) !important; }
 
 .dark .nav-item.active svg { color: #34D399; }
-body[class*="theme-"].dark .nav-item.active svg { color: var(--v-primary) !important; }
+html.dark body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !important; }
 
 
 #theme-toggle-btn > span { transition: transform 0.3s ease-in-out; }
@@ -879,7 +881,7 @@ body[class*="theme-"] .list .item {
     background: rgba(255, 255, 255, 0.8) !important;
     border-color: var(--v-glass-border) !important;
 }
-body[class*="theme-"].dark .list .item {
+html.dark body[class*="theme-"] .list .item {
     background: rgba(0, 0, 0, 0.5) !important;
 }
 
