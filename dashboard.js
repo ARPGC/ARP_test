@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Valentine's Week Theme & Daily Events
+ * Updated: Valentine's "Eco-Romantic" Edition
  */
 
 import { supabase } from './supabase-client.js';
@@ -74,7 +74,7 @@ export const renderDashboard = () => {
     initAQI(); 
 };
 
-// --- VALENTINE'S THEME LOGIC ---
+// --- VALENTINE'S THEME LOGIC (ECO-ROMANTIC UPDATE) ---
 
 const renderValentineWidget = () => {
     const theme = getValentineTheme();
@@ -87,44 +87,48 @@ const renderValentineWidget = () => {
     // Cleanup visuals if theme expired
     if (!theme) {
         const visuals = document.getElementById('vday-visuals');
+        const bgLayer = document.querySelector('.heart-bg-layer');
         if (visuals) visuals.remove();
+        if (bgLayer) bgLayer.remove();
         return;
     }
 
     if (!dashboardLeftCol) return;
 
     const today = new Date().getDate();
-    const config = VALENTINE_DAYS[today] || VALENTINE_DAYS[14]; // Fallback to V-Day config
+    // Fallback to 14 if testing or out of range, logic handled in utils mostly
+    const config = VALENTINE_DAYS[today] || VALENTINE_DAYS[14]; 
 
-    // 1. Render Hero Card
+    // 1. Render Hero Card with "Eco-Romantic" Style
     const card = document.createElement('div');
     card.id = 'vday-hero-card';
-    card.className = "glass-card-love p-6 mb-6 relative overflow-hidden group animate-slideUp";
+    card.className = "glass-card-love glow-card p-6 mb-6 relative overflow-hidden group animate-slideUp";
     
-    // Dynamic content based on day
+    // Dynamic content: Removed buttons, added Quote
     card.innerHTML = `
-        <div class="absolute -right-6 -top-6 opacity-10 transform rotate-12 group-hover:scale-110 transition-transform duration-700">
-            <i data-lucide="${config.icon}" class="w-32 h-32 ${config.color.split(' ')[0]}"></i>
+        <div class="absolute -right-6 -top-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-1000">
+            <i data-lucide="${config.icon}" class="w-40 h-40 ${config.color.split(' ')[0]}"></i>
         </div>
+        
         <div class="relative z-10">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/20 shadow-sm ${config.color}">
-                    <i data-lucide="calendar-heart" class="w-3 h-3 mr-1"></i> Special Event
+            <div class="flex items-center gap-2 mb-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-white/60 dark:bg-black/30 backdrop-blur-md border border-white/40 shadow-sm ${config.color} uppercase tracking-wider">
+                    <i data-lucide="sparkles" class="w-3 h-3 mr-1"></i> ${config.title}
                 </span>
             </div>
-            <h3 class="text-2xl font-black ${config.color} mb-1 font-jakarta tracking-tight leading-tight">
-                ${config.title}
-            </h3>
-            <p class="text-sm font-medium opacity-80 mb-4 max-w-[85%] leading-relaxed">
+
+            <h3 class="text-xl font-bold ${config.color} mb-2 font-jakarta leading-tight">
                 ${config.desc}
-            </p>
-            <div class="flex gap-3">
-                <button onclick="showPage('challenges')" class="flex-1 bg-white/90 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-800 text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${config.color}">
-                    <i data-lucide="camera" class="w-4 h-4"></i> Challenge
-                </button>
-                <button onclick="showPage('rewards')" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-pink-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <i data-lucide="gift" class="w-4 h-4"></i> Gift
-                </button>
+            </h3>
+
+            <div class="mt-4 relative">
+                <div class="absolute -left-2 -top-2 text-4xl opacity-20 ${config.color}">“</div>
+                <div class="bg-white/40 dark:bg-black/20 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-inner">
+                    <p class="text-lg md:text-xl text-gray-800 dark:text-gray-100 font-dancing text-center leading-relaxed glow-text">
+                        ${config.quote}
+                    </p>
+                </div>
+                <div class="absolute -right-1 -bottom-4 text-4xl opacity-20 ${config.color}">”</div>
             </div>
         </div>
     `;
@@ -132,21 +136,31 @@ const renderValentineWidget = () => {
     // Insert as first item
     dashboardLeftCol.prepend(card);
     
-    // 2. Trigger Visuals
+    // 2. Trigger Visuals (Hearts & Background)
     renderValentineVisuals(config);
 
     if (window.lucide) window.lucide.createIcons();
 };
 
 const renderValentineVisuals = (config) => {
-    // Only render if not low data mode and container doesn't exist
-    if (isLowDataMode() || document.getElementById('vday-visuals')) return;
+    if (isLowDataMode()) return;
+
+    // A. Inject Scrolling Heart Background (if not present)
+    if (!document.querySelector('.heart-bg-layer')) {
+        const bgLayer = document.createElement('div');
+        bgLayer.className = 'heart-bg-layer';
+        document.body.prepend(bgLayer); // Put it behind everything
+    }
+
+    // B. Floating Emojis
+    // Only create container if it doesn't exist
+    if (document.getElementById('vday-visuals')) return;
 
     const container = document.createElement('div');
     container.id = 'vday-visuals';
-    container.className = 'v-floating-container'; // CSS handles low-data hiding too
+    container.className = 'v-floating-container';
 
-    // Map icons to emojis for floating effect
+    // Map icons to emojis
     const emojiMap = {
         'flower': '🌹',
         'heart-handshake': '💍',
@@ -159,7 +173,7 @@ const renderValentineVisuals = (config) => {
     };
     const emoji = emojiMap[config.icon] || '❤️';
 
-    // Create 5 floating items with staggered delays (handled in CSS)
+    // Create 5 floating items with staggered delays
     let html = '';
     for(let i=0; i<5; i++) {
         html += `<div class="v-float-item">${emoji}</div>`;
