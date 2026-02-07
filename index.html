@@ -7,8 +7,11 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css"> 
+    
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
@@ -19,6 +22,7 @@
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
                         jakarta: ['Plus Jakarta Sans', 'sans-serif'],
+                        dancing: ['Dancing Script', 'cursive'], /* New Font for Quotes */
                     },
                     colors: {
                         brand: { 
@@ -48,7 +52,10 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden transition-colors duration-500"> 
     
+    <div class="heart-bg-layer"></div>
+
     <script>
+        // Low Data Mode Detection
         (function() {
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             if (conn && (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType))) {
@@ -85,9 +92,7 @@
                 <button onclick="showPage('history')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="history" class="w-5 h-5 mr-3"></i>History</button>
                 <button onclick="showPage('leaderboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Leaderboard</button>
                 <button onclick="showPage('events')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="calendar" class="w-5 h-5 mr-3"></i>All Events</button>
-                                
                 <button onclick="window.location.href='movies/index.html'" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="clapperboard" class="w-5 h-5 mr-3"></i>Movie Tickets</button>
-                
                 <button onclick="showPage('green-lens')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="aperture" class="w-5 h-5 mr-3"></i>GreenLens</button>
                 <button onclick="showPage('plastic-log')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="recycle" class="w-5 h-5 mr-3"></i>Plastic Log</button>
                 <button onclick="showPage('challenges')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="camera" class="w-5 h-5 mr-3"></i>Challenges</button>
@@ -147,7 +152,6 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                         <div>
-                            
                             <div id="dashboard-event-card" class="glass-green-card p-5 mb-6 hidden">
                                 <div class="flex items-center mb-2"><i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-emerald-100"></i><h3 class="font-bold tracking-tight text-emerald-50">Upcoming Event</h3></div>
                                 <p id="dashboard-event-title" class="text-lg font-semibold mb-1 text-emerald-50">...</p>
@@ -167,14 +171,12 @@
 
                             <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Your Stats</h3>
                             <div class="grid grid-cols-2 gap-4 mb-8">
-                        
                                 <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="recycle" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i><p id="impact-recycled" class="font-bold text-lg dark:text-gray-100">0 kg</p><p class="text-xs text-gray-500 dark:text-gray-400">Recycled</p></div>
                                 <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="calendar-check" class="w-8 h-8 text-purple-500 mx-auto mb-2"></i><p id="impact-events" class="font-bold text-lg dark:text-gray-100">0</p><p class="text-xs text-gray-500 dark:text-gray-400">Events</p></div>
                             </div>
                             
                             <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-8">Eco Tip of the Week</h3>
-                            <div class="glass-card border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded-xl" role="alert"><div class="flex"><div class="py-1"><i data-lucide="lightbulb" class="w-5 h-5 text-blue-500 mr-3"></i></div><div><p class="font-bold dark:text-blue-200">💡 🌿 Bring your own bottle!
-</p><p class="text-sm">Carry a reusable water bottle to cut down on single-use plastic. Staying hydrated and eco-friendly is a win-win. Every refill helps! 🚰♻️💚</p></div></div></div>
+                            <div class="glass-card border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded-xl" role="alert"><div class="flex"><div class="py-1"><i data-lucide="lightbulb" class="w-5 h-5 text-blue-500 mr-3"></i></div><div><p class="font-bold dark:text-blue-200">💡 🌿 Bring your own bottle!</p><p class="text-sm">Carry a reusable water bottle to cut down on single-use plastic. Staying hydrated and eco-friendly is a win-win. Every refill helps! 🚰♻️💚</p></div></div></div>
                         </div>
                     </div>
                 </div>
