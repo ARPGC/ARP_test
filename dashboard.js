@@ -107,6 +107,7 @@ const renderValentineWidget = () => {
     card.className = "glass-card-love glow-card p-6 mb-6 relative overflow-hidden group animate-slideUp";
     
     // Dynamic content: Quote focused, no buttons
+    // ADDED HEART ICON in the bottom right of the quote area
     card.innerHTML = `
         <div class="absolute -right-6 -top-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-1000">
             <i data-lucide="${config.icon}" class="w-40 h-40 ${config.color.split(' ')[0]}"></i>
@@ -129,6 +130,12 @@ const renderValentineWidget = () => {
                     <p class="text-lg md:text-xl text-gray-800 dark:text-gray-100 font-dancing text-center leading-relaxed glow-text">
                         ${config.quote}
                     </p>
+                    
+                    <div class="flex justify-center mt-3 gap-2">
+                        <i data-lucide="leaf" class="w-5 h-5 text-green-600 dark:text-green-400"></i>
+                        <i data-lucide="heart" class="w-5 h-5 text-red-500 fill-red-500 animate-pulse"></i>
+                    </div>
+
                 </div>
                 <div class="absolute -right-1 -bottom-4 text-4xl opacity-20 ${config.color}">”</div>
             </div>
