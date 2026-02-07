@@ -1,6 +1,7 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
  * Updated: Valentine's "Eco-Romantic" Immersive Edition
+ * Features: Randomized Particle Rain, Dynamic Theme Buttons, Quote Widget
  */
 
 import { supabase } from './supabase-client.js';
@@ -105,7 +106,7 @@ const renderValentineWidget = () => {
     card.id = 'vday-hero-card';
     card.className = "glass-card-love glow-card p-6 mb-6 relative overflow-hidden group animate-slideUp";
     
-    // Dynamic content: Removed buttons, added Quote
+    // Dynamic content: Quote focused, no buttons
     card.innerHTML = `
         <div class="absolute -right-6 -top-6 opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-1000">
             <i data-lucide="${config.icon}" class="w-40 h-40 ${config.color.split(' ')[0]}"></i>
@@ -146,15 +147,15 @@ const renderValentineWidget = () => {
 const renderValentineVisuals = (config) => {
     if (isLowDataMode()) return;
 
-    // A. Inject Scrolling Heart Background (if not present)
-    // This forces the pink wallpaper if style.css didn't catch it yet
+    // A. Inject Scrolling Heart Background (Safe check)
     if (!document.querySelector('.heart-bg-layer')) {
         const bgLayer = document.createElement('div');
         bgLayer.className = 'heart-bg-layer';
-        document.body.prepend(bgLayer); // Put it behind everything
+        document.body.prepend(bgLayer); 
     }
 
-    // B. Floating Emojis
+    // B. Floating Emojis (The Love Shower)
+    // Only create container if it doesn't exist
     if (document.getElementById('vday-visuals')) return;
 
     const container = document.createElement('div');
@@ -174,10 +175,19 @@ const renderValentineVisuals = (config) => {
     };
     const emoji = emojiMap[config.icon] || '❤️';
 
-    // Create 5 floating items with staggered delays
+    // Create 15 floating items with RANDOMIZED positions for organic rain effect
     let html = '';
-    for(let i=0; i<5; i++) {
-        html += `<div class="v-float-item">${emoji}</div>`;
+    for(let i=0; i<15; i++) {
+        // Random horizontal position (0-100%)
+        const left = Math.floor(Math.random() * 100);
+        // Random animation duration (6s to 12s)
+        const duration = 6 + Math.random() * 6;
+        // Random delay (-5s to 0s) so they start at different heights immediately
+        const delay = -(Math.random() * 5);
+        // Random size scaling (0.8 to 1.5)
+        const scale = 0.8 + Math.random() * 0.7;
+
+        html += `<div class="v-float-item" style="left: ${left}%; animation-duration: ${duration}s; animation-delay: ${delay}s; font-size: ${scale}rem;">${emoji}</div>`;
     }
     container.innerHTML = html;
     
