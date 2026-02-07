@@ -46,7 +46,7 @@ body.theme-rose {
     --v-text: #881337;       
     --v-glass-border: rgba(225, 29, 72, 0.3);
     --v-glass-bg: rgba(255, 255, 255, 0.55); 
-    --v-card-bg: rgba(255, 241, 242, 0.6);
+    --v-card-bg: rgba(255, 241, 242, 0.6);  
     --v-heart-color: rgba(225, 29, 72, 0.15);
     /* IMMERSIVE GRADIENT - LIGHT */
     --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 50%, #fecdd3 100%);
@@ -232,7 +232,7 @@ body[class*="theme-"] .glass-card {
 
 /* Make Sidebar Glassy & Transparent */
 body[class*="theme-"] #sidebar {
-    background: rgba(255, 255, 255, 0.3) !important; /* Highly transparent */
+    background: rgba(255, 255, 255, 0.4) !important; 
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     border-right: 1px solid var(--v-glass-border) !important;
@@ -413,9 +413,12 @@ body.low-data-mode .heart-bg-layer {
 }
 #sidebar::-webkit-scrollbar { display: none; }
 
+/* FIX: NO BLUR ON OVERLAY */
 #sidebar-overlay { 
     transition: opacity 0.3s ease-in-out; 
-    backdrop-filter: blur(2px);
+    backdrop-filter: none !important; /* Removed Blur */
+    -webkit-backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0.5); /* Simple dimming */
 }
 
 /* Desktop Sidebar Behavior */
@@ -582,6 +585,56 @@ body[class*="theme-"] .btn-eco-gradient {
 .btn-eco-gradient:hover {
     filter: brightness(1.05);
 }
+
+/* =========================================
+   12. ANIMATIONS & FLOATING ITEMS
+   ========================================= */
+.v-floating-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10; 
+    overflow: hidden;
+}
+
+.v-float-item {
+    position: absolute;
+    top: -10vh; /* Start ABOVE screen for falling */
+    opacity: 0;
+    animation: v-fall-sway 8s linear infinite;
+    font-size: 2rem; 
+    will-change: transform, opacity;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* UPDATED ANIMATION: FALLING DOWN WITH SWAY */
+@keyframes v-fall-sway {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% { opacity: 0.8; }
+    25% { transform: translateY(25vh) translateX(15px) rotate(15deg); }
+    50% { 
+        transform: translateY(50vh) translateX(-15px) rotate(-15deg); 
+        opacity: 1;
+    }
+    75% { transform: translateY(75vh) translateX(15px) rotate(15deg); }
+    100% {
+        transform: translateY(110vh) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+}
+
+/* Staggered Animations for natural feel */
+.v-float-item:nth-child(1) { left: 10%; animation-duration: 9s; animation-delay: 0s; }
+.v-float-item:nth-child(2) { left: 30%; animation-duration: 11s; animation-delay: 2s; font-size: 1.5rem; }
+.v-float-item:nth-child(3) { left: 60%; animation-duration: 8s; animation-delay: 4s; }
+.v-float-item:nth-child(4) { left: 80%; animation-duration: 10s; animation-delay: 1s; font-size: 2.5rem; }
+.v-float-item:nth-child(5) { left: 50%; animation-duration: 12s; animation-delay: 3s; }
 
 /* =========================================
    5. NEW YEAR HERO BANNER (PREMIUM UI)
@@ -816,7 +869,7 @@ body[class*="theme-"] .btn-eco-gradient {
 }
 .dark .list .item { background: #1f2937; border-color: #374151; box-shadow: none !important; }
 
-/* Theme Overrides for List Items */
+/* Overrides for lists in themes */
 body[class*="theme-"] .list .item {
     background: rgba(255, 255, 255, 0.8) !important;
     border-color: var(--v-glass-border) !important;
@@ -1160,52 +1213,3 @@ body[class*="theme-"].dark .list .item {
     background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
     background-size: 15px 15px;
 }
-
-/* =========================================
-   12. VALENTINE'S WEEK ANIMATIONS & FLOATING ITEMS
-   ========================================= */
-.v-floating-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 10; /* Above background, below UI */
-    overflow: hidden;
-}
-
-.v-float-item {
-    position: absolute;
-    bottom: -10vh; /* Start below screen */
-    opacity: 0;
-    animation: v-float-sway 8s linear infinite;
-    font-size: 2rem; /* Adjust based on emoji size */
-    will-change: transform, opacity;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-@keyframes v-float-sway {
-    0% {
-        transform: translateY(0) rotate(0deg) translateX(0);
-        opacity: 0;
-    }
-    10% { opacity: 0.6; }
-    25% { transform: translateY(-25vh) rotate(45deg) translateX(20px); }
-    50% { 
-        transform: translateY(-50vh) rotate(0deg) translateX(0); 
-        opacity: 0.8;
-    }
-    75% { transform: translateY(-75vh) rotate(-45deg) translateX(-20px); }
-    100% {
-        transform: translateY(-110vh) rotate(0deg) translateX(0);
-        opacity: 0;
-    }
-}
-
-/* Staggered Animations for natural feel */
-.v-float-item:nth-child(1) { left: 10%; animation-duration: 9s; animation-delay: 0s; }
-.v-float-item:nth-child(2) { left: 30%; animation-duration: 11s; animation-delay: 2s; font-size: 1.5rem; }
-.v-float-item:nth-child(3) { left: 60%; animation-duration: 8s; animation-delay: 4s; }
-.v-float-item:nth-child(4) { left: 80%; animation-duration: 10s; animation-delay: 1s; font-size: 2.5rem; }
-.v-float-item:nth-child(5) { left: 50%; animation-duration: 12s; animation-delay: 3s; }
