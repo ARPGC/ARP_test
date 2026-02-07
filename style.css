@@ -231,15 +231,18 @@ body[class*="theme-"] .glass-card {
 }
 
 /* Make Sidebar Glassy & Transparent */
-/* FIX SIDEBAR BLUR */
+/* FIX SIDEBAR BLUR & CLICKABILITY */
 body[class*="theme-"] #sidebar {
-    background: rgba(255, 255, 255, 0.95) !important; 
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.85) !important; 
+    backdrop-filter: blur(12px) !important; /* Restore Blur for Glass effect */
+    -webkit-backdrop-filter: blur(12px) !important;
+    z-index: 9999 !important; /* FORCE TOP - Fixes Unclickable Issue */
+    border-right: 1px solid var(--v-glass-border) !important;
 }
 
 body[class*="theme-"].dark #sidebar {
-    background: rgba(17, 24, 39, 0.95) !important;
+    background: rgba(17, 24, 39, 0.90) !important;
+    border-right: 1px solid rgba(255,255,255,0.1) !important;
 }
 
 
@@ -421,6 +424,7 @@ body.low-data-mode .heart-bg-layer {
     backdrop-filter: none !important; /* Removed Blur */
     -webkit-backdrop-filter: none !important;
     background-color: rgba(0, 0, 0, 0.5); /* Simple dimming */
+    z-index: 9990 !important; /* Ensures it is BELOW the sidebar but above content */
 }
 
 /* Desktop Sidebar Behavior */
@@ -431,6 +435,7 @@ body.low-data-mode .heart-bg-layer {
         box-shadow: none;
         border-right: 1px solid rgba(0,0,0,0.05);
         background: transparent;
+        z-index: 10;
     }
     .dark #sidebar {
         border-right: 1px solid rgba(255,255,255,0.05);
