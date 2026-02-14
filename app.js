@@ -1,11 +1,11 @@
 /**
  * EcoCampus - Main Application Logic (app.js)
- * Final Version: Standard Dashboard State + Valentine's Auto-Trigger
+ * Final Version: Standard Dashboard State (New Year Elements Removed)
  */
 
 import { supabase } from './supabase-client.js';
 import { state } from './state.js';
-import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast, applyValentineTheme } from './utils.js';
+import { els, toggleSidebar, showPage, logUserActivity, debounce, showToast } from './utils.js';
 import { loadDashboardData, renderDashboard, setupFileUploads } from './dashboard.js';
 import { loadEventsData } from './events.js'; 
 
@@ -17,9 +17,6 @@ import { loadEventsData } from './events.js';
  */
 const checkAuth = async () => {
     try {
-        // 1. APPLY THEME IMMEDIATELY (Fix for White Background)
-        applyValentineTheme();
-
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) { 
