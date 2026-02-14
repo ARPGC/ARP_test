@@ -30,46 +30,6 @@ export const showToast = (message, type = 'success') => {
     }, 3000);
 };
 
-// --- VALENTINE'S THEME LOGIC ---
-export const getValentineTheme = () => {
-    const now = new Date();
-    const month = now.getMonth(); // 1 = February
-    const date = now.getDate();
-
-    // Only active during Feb 7 - Feb 14
-    if (month !== 1) return null;
-
-    switch(date) {
-        case 7: return 'theme-rose';
-        case 8: return 'theme-propose';
-        case 9: return 'theme-chocolate';
-        case 10: return 'theme-teddy';
-        case 11: return 'theme-promise';
-        case 12: return 'theme-hug';
-        case 13: return 'theme-kiss';
-        case 14: return 'theme-valentine';
-        default: return null;
-    }
-};
-
-export const applyValentineTheme = () => {
-    const themeClass = getValentineTheme();
-    const body = document.body;
-
-    // Remove any existing theme classes first
-    const themeClasses = [
-        'theme-rose', 'theme-propose', 'theme-chocolate', 
-        'theme-teddy', 'theme-promise', 'theme-hug', 
-        'theme-kiss', 'theme-valentine'
-    ];
-    body.classList.remove(...themeClasses);
-
-    // Apply new theme if active
-    if (themeClass) {
-        body.classList.add(themeClass);
-    }
-};
-
 // --- PERFORMANCE & DATA UTILS ---
 export const debounce = (func, wait) => {
     let timeout;
@@ -199,8 +159,7 @@ export const getIconForHistory = (type) => {
 
     const icons = { 
         'checkin': 'calendar-check', 
-        'event': 'calendar-check',
-        'event_payment': 'ticket', 
+        'event': 'calendar-check', 
         'challenge': 'award', 
         'plastic': 'recycle', 
         'order': 'shopping-cart', 
@@ -208,17 +167,11 @@ export const getIconForHistory = (type) => {
         'quiz': 'brain', 
         'streak_restore': 'zap',
         
-        // --- MOVIE ICONS ---
+        // --- MOVIE ICONS (Multiple keys to catch any DB value) ---
         'movie_booking': 'clapperboard',
-        'ticket': 'clapperboard',      
-        'booking': 'clapperboard',     
-        'movie': 'clapperboard',
-
-        // --- VALENTINE ICONS ---
-        'rose': 'flower',
-        'chocolate': 'cookie',
-        'gift': 'gift',
-        'love': 'heart'
+        'ticket': 'clapperboard',      // Covers "Ticket"
+        'booking': 'clapperboard',     // Covers "Booking"
+        'movie': 'clapperboard'        // Covers "Movie"
     };
     return icons[safeType] || 'help-circle';
 };
@@ -254,9 +207,6 @@ export const uploadToCloudinary = async (file) => {
 };
 
 export const showPage = async (pageId, addToHistory = true) => {
-    // 1. APPLY THEME ON PAGE LOAD
-    applyValentineTheme();
-
     const pageLogKey = `page_view_${pageId}`;
     if (!sessionStorage.getItem(pageLogKey)) {
         logUserActivity('view_page', `Mapped to ${pageId}`);
@@ -299,7 +249,6 @@ export const showPage = async (pageId, addToHistory = true) => {
     if (addToHistory) window.history.pushState({ pageId: pageId }, '', `#${pageId}`);
     if (els.lbLeafLayer) els.lbLeafLayer.classList.add('hidden');
 
-    // MODULE ROUTING
     if (pageId === 'dashboard') {
         renderDashboard();
     } 
