@@ -7,11 +7,8 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css"> 
-    
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
@@ -22,7 +19,6 @@
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
                         jakarta: ['Plus Jakarta Sans', 'sans-serif'],
-                        dancing: ['Dancing Script', 'cursive'], /* New Font for Quotes */
                     },
                     colors: {
                         brand: { 
@@ -50,12 +46,9 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden transition-colors duration-500"> 
+<body class="bg-gray-50 dark:bg-gray-900 font-inter h-[100dvh] overflow-hidden"> 
     
-    <div class="heart-bg-layer"></div>
-
     <script>
-        // Low Data Mode Detection
         (function() {
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             if (conn && (conn.saveData === true || ['slow-2g', '2g', '3g'].includes(conn.effectiveType))) {
@@ -74,16 +67,16 @@
         <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4">A BKBNC GREEN CLUB INITIATIVE</p>
     </div>
 
-    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 z-40 opacity-0 hidden lg:hidden"></div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 opacity-0 hidden lg:hidden"></div>
 
     <div class="app-container">
         
         <div id="sidebar" class="fixed top-0 left-0 h-full bg-white dark:bg-gray-800 z-50 transform -translate-x-full lg:translate-x-0 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <img id="user-avatar-sidebar" src="https://placehold.co/80x80/A3E635/FFFFFF?text=..." class="w-16 h-16 rounded-full mb-3 border-2 border-[var(--v-primary)] object-cover transition-colors duration-500" alt="User Avatar">
+                <img id="user-avatar-sidebar" src="https://placehold.co/80x80/A3E635/FFFFFF?text=..." class="w-16 h-16 rounded-full mb-3 border-2 border-green-500 object-cover" alt="User Avatar">
                 <h2 id="user-name-sidebar" class="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1">Loading...</h2>
                 <p id="user-level-sidebar" class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">...</p>
-                <p class="text-sm text-[var(--v-primary)] font-semibold transition-colors duration-500"><span id="user-points-sidebar">0</span> EcoPoints</p>
+                <p class="text-sm text-green-600 dark:text-green-400 font-semibold"><span id="user-points-sidebar">0</span> EcoPoints</p>
             </div>
             <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
                 <button onclick="showPage('dashboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</button>
@@ -92,7 +85,9 @@
                 <button onclick="showPage('history')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="history" class="w-5 h-5 mr-3"></i>History</button>
                 <button onclick="showPage('leaderboard')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Leaderboard</button>
                 <button onclick="showPage('events')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="calendar" class="w-5 h-5 mr-3"></i>All Events</button>
+                                
                 <button onclick="window.location.href='movies/index.html'" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="clapperboard" class="w-5 h-5 mr-3"></i>Movie Tickets</button>
+                
                 <button onclick="showPage('green-lens')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="aperture" class="w-5 h-5 mr-3"></i>GreenLens</button>
                 <button onclick="showPage('plastic-log')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i data-lucide="recycle" class="w-5 h-5 mr-3"></i>Plastic Log</button>
                 <button onclick="showPage('challenges')" class="sidebar-nav-item w-full flex items-center p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hidden lg:flex"><i data-lucide="camera" class="w-5 h-5 mr-3"></i>Challenges</button>
@@ -128,13 +123,8 @@
             <header class="bg-white dark:bg-gray-950 sticky top-0 z-20 p-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
                 <div class="flex justify-between items-center">
                     <div class="w-1/3"><button id="sidebar-toggle-btn" class="p-2 -ml-2 text-gray-600 dark:text-gray-300 lg:hidden"><i data-lucide="menu" class="w-6 h-6"></i></button></div>
-                    <div class="w-1/3 text-center"><button onclick="showPage('dashboard')" class="text-2xl font-extrabold text-[var(--v-primary)] transition-colors duration-500">EcoCampus</button></div>
-                    <div class="w-1/3 flex justify-end">
-                        <button onclick="showPage('ecopoints')" class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 pr-3 hover:bg-gray-200 dark:hover:bg-gray-700">
-                            <i data-lucide="leaf" class="w-5 h-5 text-[var(--v-primary)] mx-1 transition-colors duration-500"></i>
-                            <span id="user-points-header" class="text-sm font-bold text-gray-700 dark:text-gray-200 ml-1">0</span>
-                        </button>
-                    </div>
+                    <div class="w-1/3 text-center"><button onclick="showPage('dashboard')" class="text-2xl font-extrabold text-green-700 dark:text-green-500">EcoCampus</button></div>
+                    <div class="w-1/3 flex justify-end"><button onclick="showPage('ecopoints')" class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 pr-3 hover:bg-gray-200 dark:hover:bg-gray-700"><i data-lucide="leaf" class="w-5 h-5 text-green-500 mx-1"></i><span id="user-points-header" class="text-sm font-bold text-gray-700 dark:text-gray-200 ml-1">0</span></button></div>
                 </div>
             </header>
 
@@ -152,6 +142,7 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                         <div>
+                            
                             <div id="dashboard-event-card" class="glass-green-card p-5 mb-6 hidden">
                                 <div class="flex items-center mb-2"><i data-lucide="calendar-check" class="w-5 h-5 mr-2 text-emerald-100"></i><h3 class="font-bold tracking-tight text-emerald-50">Upcoming Event</h3></div>
                                 <p id="dashboard-event-title" class="text-lg font-semibold mb-1 text-emerald-50">...</p>
@@ -169,14 +160,16 @@
                         <div>
                             <div id="dashboard-aqi-card" class="mb-6 hidden transition-all duration-500"></div>
 
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Your Stats</h3>
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Your Impact</h3>
                             <div class="grid grid-cols-2 gap-4 mb-8">
+                        
                                 <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="recycle" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i><p id="impact-recycled" class="font-bold text-lg dark:text-gray-100">0 kg</p><p class="text-xs text-gray-500 dark:text-gray-400">Recycled</p></div>
                                 <div class="glass-card p-4 rounded-xl text-center"><i data-lucide="calendar-check" class="w-8 h-8 text-purple-500 mx-auto mb-2"></i><p id="impact-events" class="font-bold text-lg dark:text-gray-100">0</p><p class="text-xs text-gray-500 dark:text-gray-400">Events</p></div>
                             </div>
                             
                             <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-8">Eco Tip of the Week</h3>
-                            <div class="glass-card border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded-xl" role="alert"><div class="flex"><div class="py-1"><i data-lucide="lightbulb" class="w-5 h-5 text-blue-500 mr-3"></i></div><div><p class="font-bold dark:text-blue-200">💡 🌿 Bring your own bottle!</p><p class="text-sm">Carry a reusable water bottle to cut down on single-use plastic. Staying hydrated and eco-friendly is a win-win. Every refill helps! 🚰♻️💚</p></div></div></div>
+                            <div class="glass-card border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded-xl" role="alert"><div class="flex"><div class="py-1"><i data-lucide="lightbulb" class="w-5 h-5 text-blue-500 mr-3"></i></div><div><p class="font-bold dark:text-blue-200">💡 🌿 Bring your own bottle!
+</p><p class="text-sm">Carry a reusable water bottle to cut down on single-use plastic. Staying hydrated and eco-friendly is a win-win. Every refill helps! 🚰♻️💚</p></div></div></div>
                         </div>
                     </div>
                 </div>
@@ -185,7 +178,7 @@
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Your Profile</h2>
                     <div class="space-y-6 max-w-2xl mx-auto">
                         <div class="glass-card rounded-2xl overflow-hidden">
-                            <div class="bg-[var(--v-primary)] h-24 transition-colors duration-500"></div>
+                            <div class="bg-green-500 h-24"></div>
                             <div class="p-5 -mt-16 flex flex-col items-center">
                                 <div class="relative group cursor-pointer" onclick="document.getElementById('profile-upload-input').click()">
                                     <img id="profile-avatar" src="https://placehold.co/112x112/A3E635/FFFFFF?text=..." class="w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 object-cover">
@@ -195,8 +188,8 @@
                                 <p id="profile-email" class="text-gray-500 dark:text-gray-400">...</p>
                                 <p id="profile-joined" class="text-sm text-gray-400 dark:text-gray-500 mt-1">...</p>
                                 <div class="w-full px-4 mt-4">
-                                    <div class="flex justify-between items-center mb-1"><span id="profile-level-title" class="text-sm font-semibold text-[var(--v-primary)] transition-colors duration-500">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="profile-level-number">0</span></span></div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="profile-level-progress" class="bg-[var(--v-primary)] h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                                    <div class="flex justify-between items-center mb-1"><span id="profile-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="profile-level-number">0</span></span></div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="profile-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div>
                                     <p id="profile-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p>
                                 </div>
                             </div>
@@ -264,10 +257,10 @@
                 <div id="ecopoints" class="page p-6">
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">My EcoPoints</h2>
                     <div class="max-w-3xl mx-auto">
-                        <div class="glass-card p-6 rounded-2xl text-center mb-6"><p class="text-sm text-gray-500 dark:text-gray-400">Your current balance is</p><p class="text-5xl font-extrabold text-[var(--v-primary)] my-2 transition-colors duration-500" id="ecopoints-balance">0</p><p class="text-sm text-gray-500 dark:text-gray-400">Keep up the great work!</p></div>
+                        <div class="glass-card p-6 rounded-2xl text-center mb-6"><p class="text-sm text-gray-500 dark:text-gray-400">Your current balance is</p><p class="text-5xl font-extrabold text-green-600 dark:text-green-400 my-2" id="ecopoints-balance">0</p><p class="text-sm text-gray-500 dark:text-gray-400">Keep up the great work!</p></div>
                         <div class="glass-card p-6 rounded-2xl mb-6">
                             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Level Progress</h3>
-                            <div class="mb-4"><div class="flex justify-between items-center mb-1"><span id="ecopoints-level-title" class="text-sm font-semibold text-[var(--v-primary)] transition-colors duration-500">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="ecopoints-level-number">0</span></span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="ecopoints-level-progress" class="bg-[var(--v-primary)] h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div></div><p id="ecopoints-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p></div>
+                            <div class="mb-4"><div class="flex justify-between items-center mb-1"><span id="ecopoints-level-title" class="text-sm font-semibold text-green-600 dark:text-green-400">...</span><span class="text-xs text-gray-500 dark:text-gray-400">Lv. <span id="ecopoints-level-number">0</span></span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div id="ecopoints-level-progress" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div><p id="ecopoints-level-next" class="text-xs text-right text-gray-500 dark:text-gray-400 mt-1">...</p></div>
                         </div>
                         <div class="glass-card p-6 rounded-2xl mb-6"><h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">All Levels</h3><div id="all-levels-list" class="space-y-4"><p class="text-gray-500 dark:text-gray-400 text-sm">Loading levels...</p></div></div>
                         <div class="glass-card p-6 rounded-2xl mb-6"><h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Recent Transactions</h4><div id="ecopoints-recent-activity" class="space-y-3"><p class="text-gray-500 dark:text-gray-400 text-sm">Loading activity...</p></div></div>
@@ -412,7 +405,7 @@
 
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                <i data-lucide="leaf" class="w-5 h-5 text-[var(--v-primary)] transition-colors duration-500"></i> EcoPoints & Rewards
+                                <i data-lucide="leaf" class="w-5 h-5 text-green-500"></i> EcoPoints & Rewards
                             </h3>
                             <div class="space-y-3">
                                 <details class="group bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl cursor-pointer">
@@ -490,25 +483,25 @@
 
             <nav class="glass-bottom-bar border-t border-gray-200/70 dark:border-gray-800 fixed bottom-0 w-full z-30 lg:hidden">
                 <div class="flex justify-between items-end px-2">
-                    <button onclick="showPage('dashboard')" class="nav-item active flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-[var(--v-primary)] dark:hover:text-[var(--v-primary)] transition-colors">
+                    <button onclick="showPage('dashboard')" class="nav-item active flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                         <i data-lucide="layout-dashboard" class="w-6 h-6 mx-auto mb-1"></i>
                         <span class="text-[10px] font-bold block">Home</span>
                     </button>
-                    <button onclick="showPage('leaderboard')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-[var(--v-primary)] dark:hover:text-[var(--v-primary)] transition-colors">
+                    <button onclick="showPage('leaderboard')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                         <i data-lucide="users" class="w-6 h-6 mx-auto mb-1"></i>
                         <span class="text-[10px] font-bold block">Rank</span>
                     </button>
-                    <button onclick="showPage('challenges')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-[var(--v-primary)] dark:hover:text-[var(--v-primary)] transition-colors">
+                    <button onclick="showPage('challenges')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                         <div class="relative inline-block">
                             <i data-lucide="camera" class="w-6 h-6 mx-auto mb-1"></i>
                         </div>
                         <span class="text-[10px] font-bold block">Action</span>
                     </button>
-                    <button onclick="showPage('events')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-[var(--v-primary)] dark:hover:text-[var(--v-primary)] transition-colors">
+                    <button onclick="showPage('events')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                         <i data-lucide="calendar-days" class="w-6 h-6 mx-auto mb-1"></i>
                         <span class="text-[10px] font-bold block">Events</span>
                     </button>
-                    <button onclick="showPage('rewards')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-[var(--v-primary)] dark:hover:text-[var(--v-primary)] transition-colors">
+                    <button onclick="showPage('rewards')" class="nav-item flex-1 text-center py-3 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                         <i data-lucide="store" class="w-6 h-6 mx-auto mb-1"></i>
                         <span class="text-[10px] font-bold block">Store</span>
                     </button>
@@ -521,8 +514,8 @@
         <div class="relative w-full h-full">
             <img src="https://i.ibb.co/7xwsMnBc/Pngtree-green-earth-globe-clip-art-16672659-1.png" alt="EcoBot" class="w-full h-full object-contain drop-shadow-xl">
             <span class="absolute bottom-1 right-1 flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--v-accent)] opacity-75 transition-colors duration-500"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-[var(--v-primary)] transition-colors duration-500"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
             </span>
         </div>
     </button>
@@ -586,8 +579,6 @@
             <div id="participants-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
         </div>
     </div>
-    
-    <div id="vday-visuals" class="v-floating-container"></div>
     
     <script type="module" src="app.js"></script> 
     <script type="module" src="chatbot.js"></script>
