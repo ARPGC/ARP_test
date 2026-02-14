@@ -6,7 +6,6 @@ html, body {
     overflow: hidden; /* Handle scrolling in .main-content */
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.5s ease; /* Smooth theme switching */
 }
 
 :root {
@@ -25,264 +24,6 @@ html, body {
     --ny-purple: #3b0764;
     --ny-accent: #818cf8;
     --ny-gold: #fbbf24;
-
-    /* --- VALENTINE'S WEEK VARIABLES (Default Green Fallback) --- */
-    --v-primary: #10B981;    
-    --v-secondary: #ECFDF5;  
-    --v-accent: #34D399;     
-    --v-text: #064E3B;       
-    --v-glass-border: rgba(16, 185, 129, 0.2);
-    --v-glass-bg: rgba(255, 255, 255, 0.76);
-    --v-card-bg: rgba(255, 255, 255, 0.76); /* Standard Card */
-    --v-heart-color: rgba(16, 185, 129, 0.1); 
-    --v-bg-gradient: #f9fafb; /* Standard Background */
-}
-
-/* --- THEME: ROSE DAY (Feb 7) --- */
-body.theme-rose {
-    --v-primary: #e11d48;    /* Rose Red */
-    --v-secondary: #fff1f2;  
-    --v-accent: #fda4af;     
-    --v-text: #881337;       
-    --v-glass-border: rgba(225, 29, 72, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55); 
-    --v-card-bg: rgba(255, 241, 242, 0.6);  
-    --v-heart-color: rgba(225, 29, 72, 0.15);
-    /* IMMERSIVE GRADIENT - LIGHT */
-    --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 50%, #fecdd3 100%);
-}
-/* FIX: Use html.dark to correctly target dark mode */
-html.dark body.theme-rose {
-    --v-primary: #fb7185;    
-    --v-secondary: #4c0519;  
-    --v-text: #ffe4e6;
-    --v-glass-bg: rgba(76, 5, 25, 0.5);
-    --v-card-bg: rgba(76, 5, 25, 0.6);
-    --v-heart-color: rgba(251, 113, 133, 0.2);
-    /* IMMERSIVE GRADIENT - DARK */
-    --v-bg-gradient: linear-gradient(135deg, #4c0519 0%, #881337 100%); 
-}
-
-/* --- THEME: PROPOSE DAY (Feb 8) --- */
-body.theme-propose {
-    --v-primary: #f97316;    /* Warm Orange */
-    --v-secondary: #fff7ed;  
-    --v-accent: #fdba74;     
-    --v-text: #9a3412;
-    --v-glass-border: rgba(249, 115, 22, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(255, 247, 237, 0.6);
-    --v-heart-color: rgba(249, 115, 22, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-}
-html.dark body.theme-propose {
-    --v-primary: #fdba74;
-    --v-secondary: #431407;
-    --v-text: #ffedd5;
-    --v-glass-bg: rgba(67, 20, 7, 0.5);
-    --v-card-bg: rgba(67, 20, 7, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #431407 0%, #7c2d12 100%);
-}
-
-/* --- THEME: CHOCOLATE DAY (Feb 9) --- */
-body.theme-chocolate {
-    --v-primary: #854d0e;    /* Rich Brown */
-    --v-secondary: #fefce8;  
-    --v-accent: #ca8a04;     
-    --v-text: #422006;       
-    --v-glass-border: rgba(133, 77, 14, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(255, 252, 235, 0.6);
-    --v-heart-color: rgba(133, 77, 14, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-html.dark body.theme-chocolate {
-    --v-primary: #d97706;    
-    --v-secondary: #451a03;  
-    --v-text: #fef3c7;
-    --v-glass-bg: rgba(69, 26, 3, 0.5);
-    --v-card-bg: rgba(69, 26, 3, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #451a03 0%, #78350f 100%);
-}
-
-/* --- THEME: TEDDY DAY (Feb 10) --- */
-body.theme-teddy {
-    --v-primary: #db2777;    /* Cute Pink */
-    --v-secondary: #fdf2f8;  
-    --v-accent: #f472b6;
-    --v-text: #831843;
-    --v-glass-border: rgba(219, 39, 119, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(253, 242, 248, 0.6);
-    --v-heart-color: rgba(219, 39, 119, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
-}
-html.dark body.theme-teddy {
-    --v-primary: #f472b6;
-    --v-secondary: #500724;
-    --v-text: #fce7f3;
-    --v-glass-bg: rgba(80, 7, 36, 0.5);
-    --v-card-bg: rgba(80, 7, 36, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #500724 0%, #831843 100%);
-}
-
-/* --- THEME: PROMISE DAY (Feb 11) --- */
-body.theme-promise {
-    --v-primary: #0284c7;    /* Trust Blue */
-    --v-secondary: #f0f9ff;  
-    --v-accent: #38bdf8;
-    --v-text: #075985;
-    --v-glass-border: rgba(2, 132, 199, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(240, 249, 255, 0.6);
-    --v-heart-color: rgba(2, 132, 199, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-}
-html.dark body.theme-promise {
-    --v-primary: #38bdf8;
-    --v-secondary: #082f49;
-    --v-text: #e0f2fe;
-    --v-glass-bg: rgba(8, 47, 73, 0.5);
-    --v-card-bg: rgba(8, 47, 73, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #082f49 0%, #0c4a6e 100%);
-}
-
-/* --- THEME: HUG DAY (Feb 12) --- */
-body.theme-hug {
-    --v-primary: #d97706;    /* Warm Amber */
-    --v-secondary: #fffbeb;  
-    --v-accent: #fbbf24;
-    --v-text: #92400e;
-    --v-glass-border: rgba(217, 119, 6, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(255, 251, 235, 0.6);
-    --v-heart-color: rgba(217, 119, 6, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-html.dark body.theme-hug {
-    --v-primary: #fbbf24;
-    --v-secondary: #451a03;
-    --v-text: #fef3c7;
-    --v-glass-bg: rgba(69, 26, 3, 0.5);
-    --v-card-bg: rgba(69, 26, 3, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #451a03 0%, #78350f 100%);
-}
-
-/* --- THEME: KISS DAY (Feb 13) --- */
-body.theme-kiss {
-    --v-primary: #9333ea;    /* Passion Purple */
-    --v-secondary: #faf5ff;  
-    --v-accent: #c084fc;
-    --v-text: #581c87;
-    --v-glass-border: rgba(147, 51, 234, 0.3);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(250, 245, 255, 0.6);
-    --v-heart-color: rgba(147, 51, 234, 0.15);
-    --v-bg-gradient: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-}
-html.dark body.theme-kiss {
-    --v-primary: #c084fc;
-    --v-secondary: #3b0764;
-    --v-text: #f3e8ff;
-    --v-glass-bg: rgba(59, 7, 100, 0.5);
-    --v-card-bg: rgba(59, 7, 100, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #3b0764 0%, #581c87 100%);
-}
-
-/* --- THEME: VALENTINE'S DAY (Feb 14) --- */
-body.theme-valentine {
-    --v-primary: #e11d48;    /* True Red */
-    --v-secondary: #fff1f2;  /* Romantic Blush */
-    --v-accent: #ff4d6d;     /* Hot Pink */
-    --v-text: #881337;
-    --v-glass-border: rgba(255, 77, 109, 0.4);
-    --v-glass-bg: rgba(255, 255, 255, 0.55);
-    --v-card-bg: rgba(255, 240, 243, 0.65);
-    --v-heart-color: rgba(225, 29, 72, 0.2); 
-    --v-bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ffe4e6 40%, #fecdd3 100%);
-}
-html.dark body.theme-valentine {
-    --v-primary: #ff4d6d;    /* Neon Pink */
-    --v-secondary: #2d0d16;  /* Deep Velvet */
-    --v-text: #ffe4e6;
-    --v-glass-bg: rgba(45, 13, 22, 0.5);
-    --v-card-bg: rgba(45, 13, 22, 0.6);
-    --v-bg-gradient: linear-gradient(135deg, #2d0d16 0%, #4c0519 100%);
-}
-
-/* =========================================
-   IMMERSIVE OVERRIDES (FORCE THEME BG)
-   ========================================= */
-/* When any theme class is present, override the body background */
-body[class*="theme-"] {
-    background: var(--v-bg-gradient) !important;
-}
-
-/* Make containers transparent so the body gradient shows through */
-body[class*="theme-"] .app-container,
-body[class*="theme-"] .main-content {
-    background-color: transparent !important;
-    /* FIX: Removed z-index: 1 to solve Sidebar stacking issue */
-}
-
-/* Make Glass Cards Tinted */
-body[class*="theme-"] .glass-card {
-    background: var(--v-card-bg) !important;
-    border-color: var(--v-glass-border) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-}
-
-/* Make Sidebar Glassy & Transparent */
-/* FIX: Force Sidebar to be TOPMOST element (z-index 10000) */
-body[class*="theme-"] #sidebar {
-    background: rgba(255, 255, 255, 0.85) !important; 
-    backdrop-filter: blur(12px) !important; /* Restore Blur */
-    -webkit-backdrop-filter: blur(12px) !important;
-    border-right: 1px solid var(--v-glass-border) !important;
-    z-index: 10000 !important; /* CRITICAL FIX: Higher than overlay */
-}
-
-html.dark body[class*="theme-"] #sidebar {
-    background: rgba(17, 24, 39, 0.90) !important;
-    border-right: 1px solid rgba(255,255,255,0.1) !important;
-}
-
-/* Make Mobile Header Transparent */
-body[class*="theme-"] header {
-    background: rgba(255, 255, 255, 0.3) !important;
-    backdrop-filter: blur(12px) !important;
-    border-bottom: 1px solid var(--v-glass-border) !important;
-}
-html.dark body[class*="theme-"] header {
-    background: rgba(10, 10, 10, 0.3) !important;
-}
-
-/* =========================================
-   IMMERSIVE HEART BACKGROUND LAYER
-   ========================================= */
-.heart-bg-layer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1; /* Push to back */
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 45C30 45 50 30 50 18C50 11.3726 44.6274 6 38 6C33.882 6 30.294 8.07728 28.093 11.2185C25.806 8.07728 22.118 6 18 6C11.3726 6 6 11.3726 6 18C6 30 26 45 26 45H30Z' fill='%23ffffff' fill-opacity='1'/%3E%3C/svg%3E");
-    background-size: 100px 100px;
-    opacity: 0.25; 
-    mix-blend-mode: overlay; 
-    animation: heartScroll 40s linear infinite;
-}
-
-html.dark .heart-bg-layer {
-    opacity: 0.12;
-    mix-blend-mode: soft-light;
-}
-
-@keyframes heartScroll {
-    from { background-position: 0 0; }
-    to { background-position: 100px 100px; }
 }
 
 *, *::before, *::after {
@@ -308,7 +49,6 @@ html.dark .heart-bg-layer {
 }
 
 /* --- RESPONSIVE LAYOUT CONTAINER --- */
-/* FIX: REMOVED z-index: 1 to prevent Stacking Context Trap for Sidebar */
 .app-container {
     width: 100%;
     height: 100%;
@@ -317,7 +57,6 @@ html.dark .heart-bg-layer {
     position: relative;
     overflow: hidden;
     background-color: #f9fafb;
-    /* z-index: 1; REMOVED! */
 }
 .dark .app-container {
     background-color: #111827;
@@ -390,7 +129,7 @@ header, nav {
 
 /* --- LOW DATA / REDUCED MOTION --- */
 @media (prefers-reduced-motion: reduce) {
-    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .hero-particle, .live-pulse, .v-float-item, .heart-bg-layer {
+    .leaf, .animate-float, .app-loader-logo, .points-pulse, .page, .hero-particle, .live-pulse {
         animation: none !important;
         transition: none !important;
     }
@@ -398,9 +137,7 @@ header, nav {
 
 body.low-data-mode .leaf,
 body.low-data-mode .animate-float,
-body.low-data-mode .hero-particle,
-body.low-data-mode .v-floating-container,
-body.low-data-mode .heart-bg-layer {
+body.low-data-mode .hero-particle {
     display: none !important; /* Hide heavy visuals */
 }
 
@@ -412,19 +149,16 @@ body.low-data-mode .heart-bg-layer {
     overflow-y: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    z-index: 10000 !important; /* CRITICAL GLOBAL FIX: Force topmost layer */
+    z-index: 50;
     width: 280px; /* Fixed width */
     height: 100%;
+    z-index: 50; 
 }
 #sidebar::-webkit-scrollbar { display: none; }
 
-/* FIX: Ensure overlay is below Sidebar but above content */
 #sidebar-overlay { 
     transition: opacity 0.3s ease-in-out; 
-    backdrop-filter: none !important; 
-    -webkit-backdrop-filter: none !important;
-    background-color: rgba(0, 0, 0, 0.5); /* Simple dimming */
-    z-index: 9990 !important; /* Below sidebar (10000) */
+    backdrop-filter: blur(2px);
 }
 
 /* Desktop Sidebar Behavior */
@@ -435,7 +169,6 @@ body.low-data-mode .heart-bg-layer {
         box-shadow: none;
         border-right: 1px solid rgba(0,0,0,0.05);
         background: transparent;
-        z-index: 10 !important; /* Desktop doesn't need high Z */
     }
     .dark #sidebar {
         border-right: 1px solid rgba(255,255,255,0.05);
@@ -451,27 +184,15 @@ body.low-data-mode .heart-bg-layer {
     color: #059669;
     font-weight: 600;
 }
-/* Theme Override for Sidebar */
-body[class*="theme-"] .sidebar-nav-item.active {
-    background-color: var(--v-primary);
-    color: white; /* Contrast text on pink */
-}
-
 .sidebar-nav-item.active svg { color: #059669; }
-body[class*="theme-"] .sidebar-nav-item.active svg { color: white; }
 
 .dark .sidebar-nav-item.active {
     background-color: #064E3B;
     color: #A7F3D0;
 }
-html.dark body[class*="theme-"] .sidebar-nav-item.active {
-    background-color: var(--v-primary);
-    color: white;
-}
-html.dark body[class*="theme-"] .sidebar-nav-item.active svg { color: white; }
+.dark .sidebar-nav-item.active svg { color: #A7F3D0; }
 
-
-/* Force White Text on Sidebar when background is dark */
+/* Force White Text on Sidebar when background is dark (GreenLens) */
 #sidebar.force-dark-text .sidebar-nav-item,
 #sidebar.force-dark-text h2, 
 #sidebar.force-dark-text p,
@@ -494,18 +215,9 @@ html.dark body[class*="theme-"] .sidebar-nav-item.active svg { color: white; }
 }
 
 .nav-item.active { color: #10B981; }
-/* Theme override for bottom nav */
-body[class*="theme-"] .nav-item.active { color: var(--v-primary) !important; }
-
 .nav-item.active svg { color: #10B981; }
-body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !important; }
-
 .dark .nav-item.active { color: #34D399; }
-html.dark body[class*="theme-"] .nav-item.active { color: var(--v-primary) !important; }
-
 .dark .nav-item.active svg { color: #34D399; }
-html.dark body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !important; }
-
 
 #theme-toggle-btn > span { transition: transform 0.3s ease-in-out; }
 
@@ -539,37 +251,6 @@ html.dark body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !
     border-color: rgba(45, 212, 191, 0.60);
 }
 
-/* --- VALENTINE THEMED GLASS CARD & TYPOGRAPHY --- */
-.glass-card-love {
-    background: var(--v-glass-bg);
-    border-radius: 1.5rem;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--v-glass-border);
-    box-shadow: 0 10px 40px -10px var(--v-heart-color); 
-    position: relative;
-    overflow: hidden;
-    color: var(--v-text);
-}
-.glass-card-love h3 { color: var(--v-primary); }
-
-.glow-text {
-    text-shadow: 0 0 15px var(--v-primary);
-}
-.glow-card {
-    box-shadow: 0 0 20px 5px var(--v-glass-border);
-    animation: cardGlow 4s infinite alternate;
-}
-@keyframes cardGlow {
-    from { box-shadow: 0 0 10px var(--v-glass-border); }
-    to { box-shadow: 0 0 25px var(--v-glass-border); }
-}
-
-.font-dancing {
-    font-family: 'Brush Script MT', 'Comic Sans MS', cursive; 
-    letter-spacing: 0.5px;
-}
-
 .glass-bottom-bar {
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(18px);
@@ -584,64 +265,9 @@ html.dark body[class*="theme-"] .nav-item.active svg { color: var(--v-primary) !
     background-image: linear-gradient(135deg, #10B981, #34D399);
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
 }
-body[class*="theme-"] .btn-eco-gradient {
-    background-image: linear-gradient(135deg, var(--v-primary), var(--v-accent));
-    box-shadow: 0 4px 15px var(--v-glass-border) !important;
-}
-
 .btn-eco-gradient:hover {
     filter: brightness(1.05);
 }
-
-/* =========================================
-   12. ANIMATIONS & FLOATING ITEMS
-   ========================================= */
-.v-floating-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 10; 
-    overflow: hidden;
-}
-
-.v-float-item {
-    position: absolute;
-    top: -10vh; /* Start ABOVE screen for falling */
-    opacity: 0;
-    animation: v-fall-sway 8s linear infinite;
-    font-size: 2rem; 
-    will-change: transform, opacity;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* UPDATED ANIMATION: FALLING DOWN WITH SWAY */
-@keyframes v-fall-sway {
-    0% {
-        transform: translateY(0) translateX(0) rotate(0deg);
-        opacity: 0;
-    }
-    10% { opacity: 0.8; }
-    25% { transform: translateY(25vh) translateX(15px) rotate(15deg); }
-    50% { 
-        transform: translateY(50vh) translateX(-15px) rotate(-15deg); 
-        opacity: 1;
-    }
-    75% { transform: translateY(75vh) translateX(15px) rotate(15deg); }
-    100% {
-        transform: translateY(110vh) translateX(0) rotate(0deg);
-        opacity: 0;
-    }
-}
-
-/* Staggered Animations for natural feel */
-.v-float-item:nth-child(1) { left: 10%; animation-duration: 9s; animation-delay: 0s; }
-.v-float-item:nth-child(2) { left: 30%; animation-duration: 11s; animation-delay: 2s; font-size: 1.5rem; }
-.v-float-item:nth-child(3) { left: 60%; animation-duration: 8s; animation-delay: 4s; }
-.v-float-item:nth-child(4) { left: 80%; animation-duration: 10s; animation-delay: 1s; font-size: 2.5rem; }
-.v-float-item:nth-child(5) { left: 50%; animation-duration: 12s; animation-delay: 3s; }
 
 /* =========================================
    5. NEW YEAR HERO BANNER (PREMIUM UI)
@@ -875,15 +501,6 @@ body[class*="theme-"] .btn-eco-gradient {
     border: 1px solid #f0f0f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
 }
 .dark .list .item { background: #1f2937; border-color: #374151; box-shadow: none !important; }
-
-/* Overrides for lists in themes */
-body[class*="theme-"] .list .item {
-    background: rgba(255, 255, 255, 0.8) !important;
-    border-color: var(--v-glass-border) !important;
-}
-html.dark body[class*="theme-"] .list .item {
-    background: rgba(0, 0, 0, 0.5) !important;
-}
 
 .list .item:hover { transform: translateY(-2px); border-color: #e0ffe8; box-shadow: 0 8px 20px rgba(30, 143, 75, 0.08) !important; }
 .dark .list .item:hover { border-color: #065f46; }
@@ -1158,15 +775,14 @@ html.dark body[class*="theme-"] .list .item {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    /* Gold/Yellow Glow for Sports Theme */
-    box-shadow: 0 10px 30px -5px rgba(234, 179, 8, 0.25);
+    box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.15);
     overflow: hidden;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .dark .glass-card-ojas {
-    background: rgba(40, 30, 10, 0.8); /* Dark Gold/Brown Tint */
-    border-color: rgba(234, 179, 8, 0.3); /* Yellow-500/30 */
+    background: rgba(30, 27, 75, 0.8); /* Indigo-950/80 */
+    border-color: rgba(99, 102, 241, 0.3); /* Indigo-500/30 */
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
 }
 
