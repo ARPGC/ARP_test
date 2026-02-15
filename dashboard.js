@@ -1,6 +1,6 @@
 /**
  * EcoCampus - Dashboard Module (dashboard.js)
- * Updated: Standard Dashboard State (OJAS Logic Removed)
+ * Updated: Fixes Streak Restore Bug using Atomic SQL Override
  */
 
 import { supabase } from './supabase-client.js';
@@ -494,26 +494,28 @@ export const closeCheckinModal = () => {
 export const handleStreakRestore = async () => {
     const btnContainer = document.getElementById('checkin-modal-button-container');
     const originalContent = btnContainer.innerHTML;
-    btnContainer.innerHTML = '<button disabled class="w-full bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold py-3 px-4 rounded-xl animate-pulse cursor-wait">Restoring Streak...</button>';
+    btnContainer.innerHTML = '<button disabled class="w-full bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold py-3 px-4 rounded-xl animate-pulse cursor-wait">Restoring & Checking In...</button>';
 
     try {
+        // CALL ATOMIC SQL FUNCTION
         const { data, error } = await supabase.rpc('restore_streak_v1');
 
         if (error) throw error;
         if (!data.success) throw new Error(data.error);
 
-        logUserActivity('streak_restore', 'Restored streak with points');
+        const newStreak = data.new_streak;
+        logUserActivity('streak_restore', `Restored streak to ${newStreak}`);
         
-        // Update Local State
-        state.currentUser.checkInStreak = data.restored_streak; 
-        state.currentUser.current_points -= 50;
-        state.currentUser.lastCheckInDate = getTodayIST(); // Restore sets checkin date to today
+        // Update Local State IMMEDIATELY
+        state.currentUser.current_points -= 40; // (-50 penalty, +10 checkin) = net -40
+        state.currentUser.checkInStreak = newStreak;
+        state.currentUser.isCheckedInToday = true;
+        state.currentUser.lastCheckInDate = getTodayIST();
         
-        showToast("Streak Restored! 🔥", "success");
+        closeCheckinModal();
+        showToast(`Streak Restored to ${newStreak} Days! 🔥`, "success");
         
-        // Re-open modal to show the standard check-in button immediately
-        openCheckinModal();
-        
+        renderCheckinButtonState();
         renderDashboardUI();
         await refreshUserData();
 
