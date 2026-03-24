@@ -67,11 +67,13 @@
 
     <input type="file" id="profile-upload-input" accept="image/*" class="hidden">
 
-    <div id="app-loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-        <div class="app-loader-logo">
-            <img src="EcoBirla (4).png" class="w-48 h-auto object-contain" alt="EcoCampus Logo">
+   <div id="app-loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+        <div class="app-loader-logo flex flex-col items-center">
+            <h1 class="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-[#1E8F45] via-[#007DC5] to-[#7128A3] tracking-tight">
+                EcoCampus
+            </h1>
         </div>
-        <p class="text-xs font-black text-gray-400 dark:text-gray-500 mt-6 tracking-[0.2em] uppercase">A BKBNC Green Club Initiative</p>
+        <p class="text-[10px] font-black text-gray-400 dark:text-gray-500 mt-6 tracking-[0.2em] uppercase text-center">A BKBNC Green Club Initiative</p>
     </div>
 
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 opacity-0 hidden lg:hidden"></div>
